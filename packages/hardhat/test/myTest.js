@@ -2,14 +2,16 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 
+const contractName = "HodlPool";
+
 use(solidity);
 
 describe("My Dapp", function () {
   let myContract;
 
-  describe("YourContract", function () {
+  describe(contractName, function () {
     it("Should deploy YourContract", async function () {
-      const YourContract = await ethers.getContractFactory("YourContract");
+      const YourContract = await ethers.getContractFactory(contractName);
 
       myContract = await YourContract.deploy();
     });

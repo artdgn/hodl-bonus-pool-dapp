@@ -3,12 +3,12 @@ import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 import "antd/dist/antd.css";
 import {  StaticJsonRpcProvider, JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, Menu, Alert, Switch as SwitchD } from "antd";
+import { Row, Col, Button, Menu, Alert, Switch as SwitchD, List } from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
 import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useContractReader, useEventListener, useBalance, useExternalContractLoader, useOnBlock } from "./hooks";
-import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch } from "./components";
+import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address } from "./components";
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
 //import Hints from "./Hints";
@@ -40,6 +40,8 @@ const targetNetwork = NETWORKS['localhost']; // <------- select your target fron
 
 // 😬 Sorry for all the console logging
 const DEBUG = true
+
+const contractName = "HodlPool";
 
 
 // 🛰 providers
@@ -117,10 +119,10 @@ function App(props) {
   const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
 
   // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts,"YourContract", "purpose")
+  const purpose = useContractReader(readContracts, contractName, "purpose")
 
   //📟 Listen for broadcast events
-  const setPurposeEvents = useEventListener(readContracts, "YourContract", "SetPurpose", localProvider, 1);
+  const receivedDepositEvents = useEventListener(readContracts, contractName, "ReceivedDeposit", localProvider, 1);
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
@@ -241,12 +243,34 @@ function App(props) {
             */}
 
             <Contract
-              name="YourContract"
+              name={contractName}
               signer={userProvider.getSigner()}
               provider={localProvider}
               address={address}
               blockExplorer={blockExplorer}
             />
+
+            {
+            // EVENTS
+            }
+            <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
+              <h2>Events:</h2>
+              <List
+                bordered
+                dataSource={receivedDepositEvents}
+                renderItem={(item) => {
+                  return (
+                    <List.Item key={item.time.toString()}>
+                      <Address
+                        address={item.from}
+                        ensProvider={mainnetProvider}
+                        fontSize={16}
+                      />  deposited {item.amount.toString()} at {item.time.toString()}
+                    </List.Item>
+                  )
+                }}
+              />
+            </div>
 
 
             { /* uncomment for a second contract:
@@ -290,7 +314,8 @@ function App(props) {
               writeContracts={writeContracts}
               readContracts={readContracts}
               purpose={purpose}
-              setPurposeEvents={setPurposeEvents}
+              setPurposeEvents={receivedDepositEvents}
+              contractName={contractName}
             />
           </Route>
           <Route path="/mainnetdai">

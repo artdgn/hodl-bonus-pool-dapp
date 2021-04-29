@@ -5,13 +5,17 @@ const { config, ethers, tenderly, run } = require("hardhat");
 const { utils } = require("ethers");
 const R = require("ramda");
 
+const contractName = "HodlPool";
+const args = [50, 60];  // 50 percent, 60 seconds
+
 const main = async () => {
 
   console.log("\n\n 📡 Deploying...\n");
 
-  const yourContract = await deploy("YourContract") // <-- add in constructor args like line 19 vvvv
 
-  //const yourContract = await ethers.getContractAt('YourContract', "0xaAC799eC2d00C013f1F11c37E654e59B0429DF6A") //<-- if you want to instantiate a version of a contract at a specific address!
+  const yourContract = await deploy(contractName, args) // <-- add in constructor args like line 19 vvvv
+
+  //const yourContract = await ethers.getContractAt(contractName, "0xaAC799eC2d00C013f1F11c37E654e59B0429DF6A") //<-- if you want to instantiate a version of a contract at a specific address!
   //const secondContract = await deploy("SecondContract")
 
   // const exampleToken = await deploy("ExampleToken")
@@ -30,7 +34,7 @@ const main = async () => {
 
   /*
   //If you want to send some ETH to a contract on deploy (make your constructor payable!)
-  const yourContract = await deploy("YourContract", [], {
+  const yourContract = await deploy(contractName, [], {
   value: ethers.utils.parseEther("0.05")
   });
   */
@@ -39,7 +43,7 @@ const main = async () => {
   /*
   //If you want to link a library into your contract:
   // reference: https://github.com/austintgriffith/scaffold-eth/blob/using-libraries-example/packages/hardhat/scripts/deploy.js#L19
-  const yourContract = await deploy("YourContract", [], {}, {
+  const yourContract = await deploy(contractName, [], {}, {
    LibraryName: **LibraryAddress**
   });
   */
@@ -48,7 +52,7 @@ const main = async () => {
   //If you want to verify your contract on tenderly.co (see setup details in the scaffold-eth README!)
   /*
   await tenderlyVerify(
-    {contractName: "YourContract",
+    {contractName: contractName,
      contractAddress: yourContract.address
   })
   */

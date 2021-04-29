@@ -3,9 +3,11 @@ A small project for learning smart-contract-full-stack-whizz-banging-dApp-buidli
 
 ### 💡 The idea
 
-A HODLing pool smart contract with rewards and penalties. "HODL me, I'm scared".
-
-Incentivising long term holding of tokens together as communities / teams. Committed hodlers, "strong 💎 hands" are rewarded from penalties for early withdrawals by the "weak 🧁 hands". 
+1. "Strong 💎 hands" (committed hodlers) are rewarded from penalties for early withdrawals by the "weak 🧁 hands". 
+2. This incentivises holding by providing an economic incentive to join.
+3. This builds trust in a community / project team by providing a social incentive to "signal" "skin in the game".
+4. Allows holders to earn interest on any token without the downsides of AMMs or exposure to multiple assets.
+5. Can act as soft time lock for communities (e.g. meme coins) and project teams. 
 
 ### 📔 Vague versions plan
 1. v0
@@ -23,7 +25,7 @@ Incentivising long term holding of tokens together as communities / teams. Commi
 
 ---
 
-# 🏃‍♀️ Local development
+# Local development
 
 System dependencies: [Node](https://nodejs.org/dist/latest-v12.x/) plus [Yarn](https://classic.yarnpkg.com/en/docs/install/)
 
