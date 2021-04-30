@@ -122,8 +122,8 @@ function App(props) {
   const purpose = useContractReader(readContracts, contractName, "purpose")
 
   //📟 Listen for broadcast events
-  const receivedDepositEvents = useEventListener(readContracts, contractName, "ReceivedDeposit", localProvider, 1);
-  const withdrawalEvents = useEventListener(readContracts, contractName, "Withdrawal", localProvider, 1);
+  const receivedDepositEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1);
+  const withdrawalEvents = useEventListener(readContracts, contractName, "Withdrawed", localProvider, 1);
   const allEvents = receivedDepositEvents.concat(withdrawalEvents);
   allEvents.sort((a, b) => b.blockNumber - a.blockNumber);
 
@@ -263,9 +263,9 @@ function App(props) {
                 dataSource={allEvents}
                 renderItem={(item) => {
                     let eventText = "";
-                    if (item.eventName == "ReceivedDeposit") {
+                    if (item.eventName == "Deposited") {
                       eventText = `deposited ${item.amount.toString()} at ${item.time.toString()}`;
-                    } else if (item.eventName == "Withdrawal") {
+                    } else if (item.eventName == "Withdrawed") {
                       eventText = (`withdrew ${item.amount.toString()} ` + 
                                    `out of ${item.depositAmount.toString()} ` + 
                                    `(held for ${item.timeHeld.toString()}s)`
