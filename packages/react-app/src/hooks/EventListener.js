@@ -29,7 +29,8 @@ export default function useEventListener(contracts, contractName, eventName, pro
       try {
         contracts[contractName].on(eventName, (...args) => {
           let blockNumber = args[args.length-1].blockNumber
-          setUpdates(messages => [Object.assign({blockNumber},args.pop().args), ...messages]);
+          let newMessage = Object.assign({blockNumber, eventName}, args.pop().args)
+          setUpdates(messages => [newMessage, ...messages]);
         });
         return () => {
           contracts[contractName].removeListener(eventName);

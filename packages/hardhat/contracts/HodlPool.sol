@@ -11,7 +11,8 @@ contract HodlPool {
     uint time;
   }
 
-  event ReceivedDeposit(address from, uint amount, uint time);
+  event ReceivedDeposit(address sender, uint amount, uint time);
+  event Withdrawal(address sender, uint amount, uint depositAmount);
 
   // consts
   uint public constant maxDeposit = 1 ether;
@@ -54,6 +55,20 @@ contract HodlPool {
     require(deposits[msg.sender].value == 0, "already deposited");
     deposits[msg.sender] = Deposit(msg.value, block.timestamp);
     emit ReceivedDeposit(msg.sender, msg.value, block.timestamp);
+  }
+
+  function depositOf(address sender) external view returns (uint) {
+    // todo: testcase check works
+    return deposits[sender].value;
+  }
+
+  function withdraw() external {
+    // todo: testcase withdraw without depositing, withdraw twice
+    Deposit memory dep = deposits[msg.sender];
+    require(dep.value > 0, "nothing to withdraw");
+    deposits[msg.sender] = Deposit(0, 0);
+    payable(msg.sender).transfer(dep.value);
+    emit Withdrawal(msg.sender, dep.value, dep.value);
   }
   
 

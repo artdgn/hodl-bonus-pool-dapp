@@ -123,6 +123,9 @@ function App(props) {
 
   //📟 Listen for broadcast events
   const receivedDepositEvents = useEventListener(readContracts, contractName, "ReceivedDeposit", localProvider, 1);
+  const withdrawalEvents = useEventListener(readContracts, contractName, "Withdrawal", localProvider, 1);
+  const allEvents = receivedDepositEvents.concat(withdrawalEvents);
+  allEvents.sort((a, b) => b.blockNumber - a.blockNumber);
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
@@ -257,17 +260,23 @@ function App(props) {
               <h2>Events:</h2>
               <List
                 bordered
-                dataSource={receivedDepositEvents}
+                dataSource={allEvents}
                 renderItem={(item) => {
-                  return (
-                    <List.Item key={item.time.toString()}>
-                      <Address
-                        address={item.from}
-                        ensProvider={mainnetProvider}
-                        fontSize={16}
-                      />  deposited {item.amount.toString()} at {item.time.toString()}
-                    </List.Item>
-                  )
+                    let eventText = "";
+                    if (item.eventName == "ReceivedDeposit") {
+                      eventText = `deposited ${item.amount.toString()} at ${item.time.toString()}`;
+                    } else if (item.eventName == "Withdrawal") {
+                      eventText = `withdrew ${item.amount.toString()} out of ${item.depositAmount.toString()}`;
+                    }
+                    return (
+                      <List.Item key={item.blockNumber + item.eventName + item.sender}>
+                        block {item.blockNumber}: <Address
+                          address={item.sender}
+                          ensProvider={mainnetProvider}
+                          fontSize={16}
+                        />  {eventText}
+                      </List.Item>
+                    )
                 }}
               />
             </div>
