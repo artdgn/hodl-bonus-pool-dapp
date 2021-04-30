@@ -254,7 +254,7 @@ function App(props) {
             />
 
             {
-            // EVENTS
+            // EVENTS:
             }
             <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
               <h2>Events:</h2>
@@ -266,7 +266,12 @@ function App(props) {
                     if (item.eventName == "ReceivedDeposit") {
                       eventText = `deposited ${item.amount.toString()} at ${item.time.toString()}`;
                     } else if (item.eventName == "Withdrawal") {
-                      eventText = `withdrew ${item.amount.toString()} out of ${item.depositAmount.toString()}`;
+                      eventText = (`withdrew ${item.amount.toString()} ` + 
+                                   `out of ${item.depositAmount.toString()} ` + 
+                                   `(held for ${item.timeHeld.toString()}s)`
+                                   );
+                      eventText += (item.penalty > 0) ? ` with ${item.penalty} penalty` : ''
+                      eventText += (item.bonus > 0) ? ` with ${item.bonus} bonus` : ''
                     }
                     return (
                       <List.Item key={item.blockNumber + item.eventName + item.sender}>

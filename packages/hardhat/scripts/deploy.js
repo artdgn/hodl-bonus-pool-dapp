@@ -6,7 +6,7 @@ const { utils } = require("ethers");
 const R = require("ramda");
 
 const contractName = "HodlPool";
-const args = [50, 60];  // 50 percent, 60 seconds
+const args = [100, 60];  // 50 percent, 60 seconds
 
 const main = async () => {
 
