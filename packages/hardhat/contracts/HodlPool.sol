@@ -33,7 +33,6 @@ contract HodlPool {
 
   // payable to enable seeding the contract's bonus pool
   constructor (uint maxPenaltyPercent_, uint commitPeriod_) payable {
-     // todo: test cases: illegal values
     require(maxPenaltyPercent_ <= 100, "max penalty > 100%"); 
     require(commitPeriod_ >= 10 seconds, "commitment period too short");
     // require(commitPeriod_ >= 7 days, "commitment period too short");
@@ -43,19 +42,11 @@ contract HodlPool {
   }
 
   receive() external payable {
-    // todo: testcase send eth
     revert("no receive(), use deposit()");
   }
 
-  fallback() external payable {
-    // todo: testcase call unknown metho
-    revert("no fallback(), use deposit()");
-  }
-
   function deposit() external payable {
-    // todo: testcase try to deposit too much
     require(msg.value <= maxDeposit, "deposit too large");
-    // todo: tescase deposit twice, check sum
     deposits[msg.sender].value += msg.value;
     deposits[msg.sender].time = block.timestamp;
     depositsSum += msg.value;
@@ -79,7 +70,6 @@ contract HodlPool {
   }
 
   function balanceOf(address sender) public view returns (uint) {
-    // todo: testcase check works
     return deposits[sender].value;
   }
 
@@ -92,7 +82,6 @@ contract HodlPool {
   }
   
   function _withdraw() internal {
-    // todo: testcase withdraw without depositing, withdraw twice
     Deposit memory dep = deposits[msg.sender];
     require(dep.value > 0, "nothing to withdraw");
 
@@ -100,8 +89,6 @@ contract HodlPool {
     // todo: testcase penalty for time held - 0, 50%, 100%, 150%
     uint penalty = _depositPenalty(dep);
     // only get bonus if no penalty
-    // todo: testcase, no bunus if penalty
-    // todo: testcase, bonus divided correctly between holders
     uint bonus = (penalty == 0) ? _depositBonus(dep) : 0;
     uint withdrawAmount = dep.value - penalty + bonus;
 
