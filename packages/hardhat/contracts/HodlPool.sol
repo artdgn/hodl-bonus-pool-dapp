@@ -83,7 +83,6 @@ contract HodlPool {
   
   function _withdraw() internal {
     Deposit memory dep = deposits[msg.sender];
-    require(dep.value > 0, "nothing to withdraw");
 
     // calculate penalty & bunus before making changes
     // todo: testcase penalty for time held - 0, 50%, 100%, 150%
@@ -114,7 +113,6 @@ contract HodlPool {
 
   function _depositPenalty(Deposit memory dep) internal view returns (uint) {
     uint timeHeld = _depositTimeHeld(dep);
-    assert (timeHeld >= 0);  // can't have deposited in future
     if (timeHeld >= commitPeriod) {
       return 0;
     } else {
@@ -128,7 +126,6 @@ contract HodlPool {
     if (dep.value == 0 || bonusesPool() == 0) {
       return 0;  // no luck
     } else {
-      assert (depositsSum > 0);  // could only get here if something was deposited
       // order important to prevent rounding to 0
       return (bonusesPool() * dep.value) / depositsSum;
     }

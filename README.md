@@ -1,12 +1,11 @@
 ![CI](https://github.com/artdgn/hodl-pool-dapp/workflows/CI/badge.svg)
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
-A small project for learning smart-contract-full-stack-whizz-bang-dApp-buidling with the incredible [scaffold-eth](https://github.com/austintgriffith/scaffold-eth).
+> A small project for learning smart-contract-full-stack-whizz-bang-dApp-buidling with the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth) framework**.
 
-### 💡 The idea
-> "Strong 💎 hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
+### 💡 The idea: "Strong 💎 hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
 
-Positive effects:
+What is this good for??:
 1. **Price effects** - like "staking", but without the inflation:
     - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
     - Raises the price by reducing amount in circulation 📥.
