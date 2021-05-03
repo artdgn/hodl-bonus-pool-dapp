@@ -1,3 +1,5 @@
+![CI](https://github.com/artdgn/hodl-pool-dapp/workflows/CI/badge.svg)
+
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 A small project for learning smart-contract-full-stack-whizz-bang-dApp-buidling with the incredible [scaffold-eth](https://github.com/austintgriffith/scaffold-eth).
 
@@ -39,7 +41,15 @@ Positive effects:
 
 System dependencies: [Node](https://nodejs.org/dist/latest-v12.x/) plus [Yarn](https://classic.yarnpkg.com/en/docs/install/)
 
+## Running local chain + contract + local frontend
 1. Install dependecies: `yarn install`
 1. Start a local chain: `yarn chain`
 1. In second terminal: deploy the contract to the chain - `yarn deploy` or `yarn watch`
 1. In third terminal: start the frontend react server `yarn start`
+
+## Testing:
+- All tests: `yarn test`
+- Run some tests matching a pattern (in their description strings):
+  1. Go to contracts package: `cd packages/hardhat`
+  2. Start a local chain: `yarn chain`
+  3. In second terminal: run e.g. "deployment" related tests - `yarn mocha -g deployment`
