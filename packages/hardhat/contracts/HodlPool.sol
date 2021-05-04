@@ -11,10 +11,10 @@ contract HodlPool {
     uint time;
   }
 
-  event Deposited(address sender, uint amount, uint time);
+  event Deposited(address indexed sender, uint amount, uint time);
   
   event Withdrawed(
-    address sender, 
+    address indexed sender, 
     uint amount, 
     uint depositAmount, 
     uint penalty, 

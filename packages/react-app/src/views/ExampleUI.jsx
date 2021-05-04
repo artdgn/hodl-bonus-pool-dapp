@@ -27,7 +27,7 @@ export default function ExampleUI(
 
         <div style={{margin:8}}>
           <Input onChange={(e)=>{setNewPurpose(e.target.value)}} />
-          <Button onClick={()=>{
+          <Button onClick={()=>{ 
             console.log("newPurpose",newPurpose)
             /* look how you call setPurpose on your contract: */
             tx( writeContracts[contractName].setPurpose(newPurpose) )
