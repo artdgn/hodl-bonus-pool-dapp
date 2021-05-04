@@ -13,6 +13,7 @@ describe(contractName, function () {
   let addr1;
   let addr2;
   let addrs;
+
   const maxPenaltyPercent = 100;
   const commitPeriod = 10;
   const deployArgs = [maxPenaltyPercent, commitPeriod];
@@ -65,12 +66,6 @@ describe(contractName, function () {
     })
   });
 
-  // advances EVM time into the future
-  const evmIncreaseTime = async (seconds) => {
-    await network.provider.send("evm_increaseTime", [seconds]);
-    await network.provider.send("evm_mine");
-  }
-
   describe("single account deposits & withdrawals", function () {
     let addr1Caller;
 
@@ -93,10 +88,19 @@ describe(contractName, function () {
 
     it("can deposit twice", async function () {
       const tx = { value: 1000 };
-      // deposit twice, check events emitted
-      await expect(addr1Caller.deposit(tx)).to.emit(deployed, "Deposited");
-      await expect(addr1Caller.deposit(tx)).to.emit(deployed, "Deposited");
-      const txBlock = await ethers.provider.getBlockNumber();
+
+      // make the calls
+      const depositTwice = await callCaptureMetadata(
+        addr1.address, 
+        deployed.filters.Deposited(), 
+        async () => {
+          await expect(addr1Caller.deposit(tx)).to.emit(deployed, "Deposited");
+          await expect(addr1Caller.deposit(tx)).to.emit(deployed, "Deposited");
+        }
+      );
+      
+      const blockTimestamp = (await ethers.provider.getBlock()).timestamp;
+
       const expectedSum = tx.value * 2;
       // check balanceOf()
       expect(await deployed.balanceOf(addr1.address)).to.equal(expectedSum);
@@ -105,12 +109,9 @@ describe(contractName, function () {
       // check contract address balance
       expect(await ethers.provider.getBalance(deployed.address)).to.equal(expectedSum);
       // check event
-      const filter = deployed.filters.Deposited();
-      const lastEvent = (await deployed.queryFilter(filter, txBlock, txBlock))[0].args;
-      const blockTimestamp = (await ethers.provider.getBlock(txBlock)).timestamp;
-      expect(lastEvent.sender).to.equal(addr1.address);
-      expect(lastEvent.amount).to.equal(tx.value);
-      expect(lastEvent.time).to.equal(blockTimestamp);
+      expect(depositTwice.lastEvent.sender).to.equal(addr1.address);
+      expect(depositTwice.lastEvent.amount).to.equal(tx.value);
+      expect(depositTwice.lastEvent.time).to.equal(blockTimestamp);
     });
 
     it("penaltyOf & withdrawWithBonus with time passage", async function () {
@@ -133,22 +134,23 @@ describe(contractName, function () {
       penalty = await deployed.penaltyOf(addr1.address);
       expect(penalty).to.equal(0);
 
-      // should be able to withdraw without penalty now
-      const startBalance = await ethers.provider.getBalance(addr1.address);
-      await expect(addr1Caller.withdrawWithBonus({ gasPrice: 0 }))
-        .to.emit(deployed, "Withdrawed");
-      const txBlock = await ethers.provider.getBlockNumber();
-      const endBalance = await ethers.provider.getBalance(addr1.address);
-      expect(endBalance.sub(startBalance)).to.equal(depositBalance);
+      const withdrawal = await callCaptureMetadata(
+        addr1.address, 
+        deployed.filters.Withdrawed(), 
+        async () => {
+          await expect(addr1Caller.withdrawWithBonus({ gasPrice: 0 }))
+            .to.emit(deployed, "Withdrawed");
+        }
+      );
 
-      // check event
-      const filter = deployed.filters.Withdrawed();
-      const lastEvent = (await deployed.queryFilter(filter, txBlock, txBlock))[0].args;
-      expect(lastEvent.sender).to.equal(addr1.address);
-      expect(lastEvent.amount).to.equal(depositBalance);
-      expect(lastEvent.penalty).to.equal(0);
-      expect(lastEvent.bonus).to.equal(0);
-      expect(lastEvent.timeHeld).to.gt(commitPeriod);
+      // should be able to withdraw without penalty now
+      expect(withdrawal.delta).to.equal(depositBalance);
+
+      expect(withdrawal.lastEvent.sender).to.equal(addr1.address);
+      expect(withdrawal.lastEvent.amount).to.equal(depositBalance);
+      expect(withdrawal.lastEvent.penalty).to.equal(0);
+      expect(withdrawal.lastEvent.bonus).to.equal(0);
+      expect(withdrawal.lastEvent.timeHeld).to.gt(commitPeriod);
 
       // check can't withdraw any more
       expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("nothing");
@@ -161,22 +163,24 @@ describe(contractName, function () {
       // back to the future to 50% time
       evmIncreaseTime((commitPeriod / 2) - 1);  // write transaction will add some time
 
-      // should be able to withdraw without penalty now
-      const startBalance = await ethers.provider.getBalance(addr1.address);
-      await expect(addr1Caller.withdrawWithPenalty({ gasPrice: 0 }))
-        .to.emit(deployed, "Withdrawed");
-      const txBlock = await ethers.provider.getBlockNumber();
-      const endBalance = await ethers.provider.getBalance(addr1.address);
-      expect(endBalance.sub(startBalance)).to.equal(tx.value / 2);
+      const withdrawal = await callCaptureMetadata(
+        addr1.address, 
+        deployed.filters.Withdrawed(), 
+        async () => {
+          await expect(addr1Caller.withdrawWithPenalty({ gasPrice: 0 }))
+            .to.emit(deployed, "Withdrawed");
+        }
+      );
+
+      // should be able to withdraw half now
+      expect(withdrawal.delta).to.equal(tx.value / 2);
 
       // check event
-      const filter = deployed.filters.Withdrawed();
-      const lastEvent = (await deployed.queryFilter(filter, txBlock, txBlock))[0].args;
-      expect(lastEvent.sender).to.equal(addr1.address);
-      expect(lastEvent.amount).to.equal(tx.value / 2);
-      expect(lastEvent.penalty).to.equal(tx.value / 2);
-      expect(lastEvent.bonus).to.equal(0);
-      expect(lastEvent.timeHeld).to.equal(commitPeriod / 2);
+      expect(withdrawal.lastEvent.sender).to.equal(addr1.address);
+      expect(withdrawal.lastEvent.amount).to.equal(tx.value / 2);
+      expect(withdrawal.lastEvent.penalty).to.equal(tx.value / 2);
+      expect(withdrawal.lastEvent.bonus).to.equal(0);
+      expect(withdrawal.lastEvent.timeHeld).to.equal(commitPeriod / 2);
 
       // check can't withdraw any more
       expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("nothing");
@@ -193,7 +197,7 @@ describe(contractName, function () {
       addr2Caller = deployed.connect(addr2);
     });
 
-    it("bonusOf & withdrawWithBonus & bonusesPool 1 penalty 1 bonus", async function () {
+    it("1 penalty 1 bonus", async function () {
       const tx1 = { value: 1000 };
       const tx2 = { value: 2000 };
       await addr1Caller.deposit(tx1);
@@ -206,12 +210,14 @@ describe(contractName, function () {
       expect(await deployed.depositsSum()).to.equal(tx1.value + tx2.value);
 
       // withdraw with penalty
-      const startBalance1 = await ethers.provider.getBalance(addr1.address);
-      await addr1Caller.withdrawWithPenalty({ gasPrice: 0 });
-      const endBalance1 = await ethers.provider.getBalance(addr1.address);
+      const withdrawal1 = await callCaptureMetadata(
+        addr1.address, 
+        deployed.filters.Withdrawed(), 
+        async () =>  await addr1Caller.withdrawWithPenalty({ gasPrice: 0 })
+      );
+      
       // check penalty was non-0
-      const withdrawal1 = endBalance1.sub(startBalance1);
-      const penalty1 = ethers.BigNumber.from(tx1.value).sub(withdrawal1);
+      const penalty1 = ethers.BigNumber.from(tx1.value).sub(withdrawal1.delta);
       expect(penalty1).to.gt(0);
 
       // check bonus of 2 is penalty of 1
@@ -225,39 +231,39 @@ describe(contractName, function () {
       evmIncreaseTime(commitPeriod);  
 
       // withdraw bonus
-      const startBalance2 = await ethers.provider.getBalance(addr2.address);
-      await addr2Caller.withdrawWithBonus({ gasPrice: 0 });
-      const txBlock = await ethers.provider.getBlockNumber();
-      const endBalance2 = await ethers.provider.getBalance(addr2.address);
-      // check bonus
-      const withdrawal2 = endBalance2.sub(startBalance2);
-      const bonus2 = ethers.BigNumber.from(withdrawal2).sub(tx2.value);
+      const withdrawal2 = await callCaptureMetadata(
+        addr2.address, 
+        deployed.filters.Withdrawed(), 
+        async () =>  await addr2Caller.withdrawWithBonus({ gasPrice: 0 })
+      );
+
+      const bonus2 = ethers.BigNumber.from(withdrawal2.delta).sub(tx2.value);
       // check withdrawal of correct bonus amount
       expect(bonus2).to.equal(penalty1);
 
       // check event
-      const filter = deployed.filters.Withdrawed();
-      const lastEvent = (await deployed.queryFilter(filter, txBlock, txBlock))[0].args;
-      expect(lastEvent.sender).to.equal(addr2.address);
-      expect(lastEvent.amount).to.be.equal(withdrawal2);
-      expect(lastEvent.penalty).to.equal(0);
-      expect(lastEvent.bonus).to.be.equal(bonus2);
-      expect(lastEvent.timeHeld).to.gt(commitPeriod);
+      expect(withdrawal2.lastEvent.sender).to.equal(addr2.address);
+      expect(withdrawal2.lastEvent.amount).to.be.equal(withdrawal2.delta);
+      expect(withdrawal2.lastEvent.penalty).to.equal(0);
+      expect(withdrawal2.lastEvent.bonus).to.be.equal(bonus2);
+      expect(withdrawal2.lastEvent.timeHeld).to.gt(commitPeriod);
 
       // check can't withdraw any more
       await expect(addr2Caller.withdrawWithPenalty()).to.revertedWith("nothing");
     });
 
-    it("bonusOf & withdrawWithBonus 2 penalty 2 bonus", async function () {
+    it("no bonus with penalty", async function () {
       const tx = { value: 1000 };
       await addr1Caller.deposit(tx);
       
       // withdraw with penalty
-      const startBalance1 = await ethers.provider.getBalance(addr1.address);
-      await addr1Caller.withdrawWithPenalty({ gasPrice: 0 });
-      const endBalance1 = await ethers.provider.getBalance(addr1.address);
-      const withdrawal1 = endBalance1.sub(startBalance1);
-      const penalty1 = ethers.BigNumber.from(tx.value).sub(withdrawal1);
+      const withdrawal1 = await callCaptureMetadata(
+        addr1.address, 
+        deployed.filters.Withdrawed(), 
+        async () =>  await addr1Caller.withdrawWithPenalty({ gasPrice: 0 })
+      );
+      
+      const penalty1 = ethers.BigNumber.from(tx.value).sub(withdrawal1.delta);
       expect(penalty1).to.gt(0);
 
       // deposit as 2
@@ -266,16 +272,17 @@ describe(contractName, function () {
       expect(await deployed.bonusOf(addr2.address)).to.equal(penalty1);
 
       // check penalty is not affected by bonus and no bonus is withdrawn by 2
-      const startBalance2 = await ethers.provider.getBalance(addr2.address);
-      await addr2Caller.withdrawWithPenalty({ gasPrice: 0 });
-      const endBalance2 = await ethers.provider.getBalance(addr2.address);
-      const withdrawal2 = endBalance2.sub(startBalance2);
-      const penalty2 = ethers.BigNumber.from(tx.value).sub(withdrawal2);
+      const withdrawal2 = await callCaptureMetadata(
+        addr2.address, 
+        deployed.filters.Withdrawed(), 
+        async () =>  await addr2Caller.withdrawWithPenalty({ gasPrice: 0 })
+      );
+      const penalty2 = ethers.BigNumber.from(tx.value).sub(withdrawal2.delta);
       expect(penalty2).to.be.equal(penalty1);
       expect(await deployed.bonusesPool()).to.be.equal(penalty1.add(penalty2));
     });
 
-    it("bonusOf & withdrawWithBonus bonus divided correctly", async function () {
+    it("bonus divided correctly between two holders", async function () {
       const tx = { value: 1000 };
       await addr1Caller.deposit(tx);
       
@@ -298,13 +305,37 @@ describe(contractName, function () {
       evmIncreaseTime(commitPeriod);
 
       // check actual withdrawal matches bonusOf
-      const startBalance2 = await ethers.provider.getBalance(addr2.address);
-      await addr2Caller.withdrawWithPenalty({ gasPrice: 0 });
-      const endBalance2 = await ethers.provider.getBalance(addr2.address);
-      const withdrawal2 = endBalance2.sub(startBalance2);
-      expect(await withdrawal2.sub(bonus1.mul(2))).to.be.equal(tx.value * 2);      
+      const withdrawal2 = await callCaptureMetadata(
+        addr2.address, 
+        deployed.filters.Withdrawed(), 
+        async () =>  await addr2Caller.withdrawWithPenalty({ gasPrice: 0 })
+      );
+      expect(withdrawal2.delta.sub(bonus1.mul(2))).to.be.equal(tx.value * 2);      
     });    
 
   });
 
+  //// test utils
+
+  // advances EVM time into the future
+  const evmIncreaseTime = async (seconds) => {
+    await network.provider.send("evm_increaseTime", [seconds]);
+    await network.provider.send("evm_mine");
+  }
+
+  // runs transactions and checks balance difference and last event
+  const callCaptureMetadata = async (address, eventFilter, callsFunc) => {      
+    const startBalance = await ethers.provider.getBalance(address);
+    await callsFunc();  // run the transactions
+    const txBlock = await ethers.provider.getBlockNumber();
+    const endBalance = await ethers.provider.getBalance(address);
+    // event
+    const lastEvent = (await deployed.queryFilter(eventFilter, txBlock, txBlock))[0].args;  
+    return {
+      delta: endBalance.sub(startBalance), 
+      lastEvent,
+    };
+  }
+  
 });
+

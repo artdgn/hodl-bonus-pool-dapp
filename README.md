@@ -5,7 +5,7 @@
 
 ### 💡 The idea: "Strong 💎 hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
 
-What is this good for??:
+### ❔ Why this may be a good idea:
 1. **Price effects** - like "staking", but without the inflation:
     - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
     - Raises the price by reducing amount in circulation 📥.
@@ -20,7 +20,7 @@ What is this good for??:
     - Asset price "moons" 🥳 - more "weak hands" will withdraw early to take profits, increasing the bonus 💸.
     - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.
 
-### Vague versions plan (roadmap? 🧭)
+### 🧭 Vague versions plan (roadmap?)
 1. v0 (internal)
     - goal: 🚀 end-to-end bare skeleton first version deployed (to testnet). 
     - scope: fixed commitment params, reward by ratio of current pool, only eth
