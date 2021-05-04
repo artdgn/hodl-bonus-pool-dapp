@@ -17,8 +17,10 @@ import { useState, useEffect } from "react";
   - Specify the provider 
 */
 
-export default function useEventListener(contracts, contractName, eventName, provider, startBlock, args) {
+export default function useEventListener(contracts, contractName, eventName, provider, startBlock, filterArgs) {
   const [updates, setUpdates] = useState([]);
+
+  filterArgs = filterArgs || [];
 
   useEffect(() => {
     if (typeof provider !== "undefined" && typeof startBlock !== "undefined") {
@@ -27,10 +29,12 @@ export default function useEventListener(contracts, contractName, eventName, pro
     }
     if (contracts && contractName && contracts[contractName]) {
       try {
-        contracts[contractName].on(eventName, (...args) => {
+        const eventFilter = contracts[contractName].filters[eventName](...filterArgs);
+        console.log({filterArgs, eventFilter});
+        contracts[contractName].on(eventFilter, (...args) => {
           let blockNumber = args[args.length-1].blockNumber
           let newMessage = Object.assign({blockNumber, eventName}, args.pop().args)
-          setUpdates(messages => [newMessage, ...messages]);
+          setUpdates(messages => [...new Set([newMessage, ...messages])]);
         });
         return () => {
           contracts[contractName].removeListener(eventName);
@@ -39,7 +43,7 @@ export default function useEventListener(contracts, contractName, eventName, pro
         console.log(e);
       }
     }
-  }, [provider, startBlock, contracts, contractName, eventName]);
+  }, [provider, startBlock, contracts, contractName, eventName, ...filterArgs]);
 
   return updates;
 }

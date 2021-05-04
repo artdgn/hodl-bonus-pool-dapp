@@ -3,12 +3,12 @@ import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 import "antd/dist/antd.css";
 import {  StaticJsonRpcProvider, JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, Menu, Alert, Switch as SwitchD, List } from "antd";
+import { Row, Col, Button, Menu, Alert, Switch as SwitchD, List, Divider } from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
 import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useContractReader, useEventListener, useBalance, useExternalContractLoader, useOnBlock } from "./hooks";
-import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address } from "./components";
+import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address, Balance} from "./components";
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
 //import Hints from "./Hints";
@@ -96,8 +96,8 @@ function App(props) {
   // 🏗 scaffold-eth is full of handy hooks like this one to get your balance:
   const yourLocalBalance = useBalance(localProvider, address);
 
-  // Just plug in different 🛰 providers to get your balance on different chains:
-  const yourMainnetBalance = useBalance(mainnetProvider, address);
+  // // Just plug in different 🛰 providers to get your balance on different chains:
+  // const yourMainnetBalance = useBalance(mainnetProvider, address);
 
   // Load in your local 📝 contract and read a value from it:
   const readContracts = useContractLoader(localProvider)
@@ -105,32 +105,39 @@ function App(props) {
   // If you want to make 🔐 write transactions to your contracts, use the userProvider:
   const writeContracts = useContractLoader(userProvider)
 
-  // EXTERNAL CONTRACT EXAMPLE:
-  //
-  // If you want to bring in the mainnet DAI contract it would look like:
-  const mainnetDAIContract = useExternalContractLoader(mainnetProvider, DAI_ADDRESS, DAI_ABI)
+  // // EXTERNAL CONTRACT EXAMPLE:
+  // //
+  // // If you want to bring in the mainnet DAI contract it would look like:
+  // const mainnetDAIContract = useExternalContractLoader(mainnetProvider, DAI_ADDRESS, DAI_ABI)
 
   // If you want to call a function on a new block
   useOnBlock(mainnetProvider, () => {
     console.log(`⛓ A new mainnet block is here: ${mainnetProvider._lastBlockNumber}`)
   })
 
-  // Then read your DAI balance like:
-  const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
+  // // Then read your DAI balance like:
+  // const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
 
   // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts, contractName, "purpose")
+  const contractState = {
+    balance: useContractReader(readContracts, contractName, "balanceOf", [address]),
+    bonus: useContractReader(readContracts, contractName, "bonusOf", [address]),
+    penalty: useContractReader(readContracts, contractName, "penaltyOf", [address]),
+    bonusesPool: useContractReader(readContracts, contractName, "bonusesPool"),
+    depositsSum: useContractReader(readContracts, contractName, "depositsSum"),
+    }
+
 
   //📟 Listen for broadcast events
-  const receivedDepositEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1);
-  const withdrawalEvents = useEventListener(readContracts, contractName, "Withdrawed", localProvider, 1);
-  const allEvents = receivedDepositEvents.concat(withdrawalEvents);
-  allEvents.sort((a, b) => b.blockNumber - a.blockNumber);
 
-  /*
-  const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
-  console.log("🏷 Resolved austingriffith.eth as:",addressFromENS)
-  */
+  const allDepositedEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1);
+  const addressDepositedEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1, [address]);
+  const allWithdrawedEvents = useEventListener(readContracts, contractName, "Withdrawed", localProvider, 1);
+  const addressWithdrawedEvents = useEventListener(readContracts, contractName, "Withdrawed", localProvider, 1, [address]);
+  const sortByBlockNumber = (a, b) => b.blockNumber - a.blockNumber;
+  const allEvents = allDepositedEvents.concat(allWithdrawedEvents).sort(sortByBlockNumber);
+  const addressEvents = addressDepositedEvents.concat(addressWithdrawedEvents).sort(sortByBlockNumber);
+
 
   //
   // 🧫 DEBUG 👨🏻‍🔬
@@ -150,6 +157,38 @@ function App(props) {
     }
   }, [mainnetProvider, address, selectedChainId, yourLocalBalance, yourMainnetBalance, readContracts, writeContracts, mainnetDAIContract])
 
+  const populateEvents = (dataSource) => {
+    return (
+      <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
+      <h2>Events:</h2>
+      <List
+        bordered
+        dataSource={dataSource}
+        renderItem={(item) => {
+            let eventText = "";
+            if (item.eventName == "Deposited") {
+              eventText = `deposited ${item.amount.toString()} at ${item.time.toString()}`;
+            } else if (item.eventName == "Withdrawed") {
+              eventText = (`withdrew ${item.amount.toString()} ` +
+                            `out of ${item.depositAmount.toString()} ` +
+                            `(held for ${item.timeHeld.toString()}s)`
+                            );
+              eventText += (item.penalty > 0) ? ` with ${item.penalty} penalty` : ''
+              eventText += (item.bonus > 0) ? ` with ${item.bonus} bonus` : ''
+            }
+            return (
+              <List.Item key={item.blockNumber + item.eventName + item.sender}>
+                block {item.blockNumber}: <Address
+                  address={item.sender}
+                  // ensProvider={mainnetProvider}
+                  fontSize={16}
+                />  {eventText}
+              </List.Item>
+            )
+        }}
+      />
+    </div>);
+      }
 
   let networkDisplay = ""
   if(localChainId && selectedChainId && localChainId != selectedChainId ){
@@ -214,17 +253,16 @@ function App(props) {
   return (
     <div className="App">
 
-      {/* ✏️ Edit the header and change the title to your project name */}
       <Header />
       {networkDisplay}
       <BrowserRouter>
 
         <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
           <Menu.Item key="/">
-            <Link onClick={()=>{setRoute("/")}} to="/">YourContract</Link>
+            <Link onClick={()=>{setRoute("/")}} to="/">Main UI</Link>
           </Menu.Item>
-          <Menu.Item key="/hints">
-            <Link onClick={()=>{setRoute("/hints")}} to="/hints">Hints</Link>
+          <Menu.Item key="/contract">
+            <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
           </Menu.Item>
           <Menu.Item key="/exampleui">
             <Link onClick={()=>{setRoute("/exampleui")}} to="/exampleui">ExampleUI</Link>
@@ -239,12 +277,41 @@ function App(props) {
 
         <Switch>
           <Route exact path="/">
-            {/*
-                🎛 this scaffolding is full of commonly used components
-                this <Contract/> component will automatically parse your ABI
-                and give you a form to interact with it locally
-            */}
 
+
+            <h2>Your wallet balance:
+              <Balance address={address} provider={localProvider} price={price} />
+            </h2>
+
+            <Divider/>
+
+            <h2>Your deposit balance:
+                <Balance balance={contractState.balance} price={price} />
+            </h2>
+            <h2>Your current bonus:
+                <Balance balance={contractState.bonus} price={price} />
+            </h2>
+            <h2>Your current penalty:
+                <Balance balance={contractState.penalty} price={price} />
+            </h2>
+
+            <Divider/>
+
+            <h2>Total deposits in pool:
+                <Balance balance={contractState.depositsSum} price={price} />
+            </h2>
+
+            <h2>Total bonus in pool:
+                <Balance balance={contractState.bonusesPool} price={price} />
+            </h2>
+
+            <Divider/>
+
+            {populateEvents(addressEvents)}
+
+          </Route>
+
+          <Route exact path="/contract">
             <Contract
               name={contractName}
               signer={userProvider.getSigner()}
@@ -253,39 +320,7 @@ function App(props) {
               blockExplorer={blockExplorer}
             />
 
-            {
-            // EVENTS:
-            }
-            <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
-              <h2>Events:</h2>
-              <List
-                bordered
-                dataSource={allEvents}
-                renderItem={(item) => {
-                    let eventText = "";
-                    if (item.eventName == "Deposited") {
-                      eventText = `deposited ${item.amount.toString()} at ${item.time.toString()}`;
-                    } else if (item.eventName == "Withdrawed") {
-                      eventText = (`withdrew ${item.amount.toString()} ` + 
-                                   `out of ${item.depositAmount.toString()} ` + 
-                                   `(held for ${item.timeHeld.toString()}s)`
-                                   );
-                      eventText += (item.penalty > 0) ? ` with ${item.penalty} penalty` : ''
-                      eventText += (item.bonus > 0) ? ` with ${item.bonus} bonus` : ''
-                    }
-                    return (
-                      <List.Item key={item.blockNumber + item.eventName + item.sender}>
-                        block {item.blockNumber}: <Address
-                          address={item.sender}
-                          ensProvider={mainnetProvider}
-                          fontSize={16}
-                        />  {eventText}
-                      </List.Item>
-                    )
-                }}
-              />
-            </div>
-
+            {populateEvents(allEvents)}
 
             { /* uncomment for a second contract:
             <Contract
@@ -308,14 +343,7 @@ function App(props) {
             />
             */ }
           </Route>
-          <Route path="/hints">
-            <Hints
-              address={address}
-              yourLocalBalance={yourLocalBalance}
-              mainnetProvider={mainnetProvider}
-              price={price}
-            />
-          </Route>
+
           <Route path="/exampleui">
             <ExampleUI
               address={address}
@@ -327,12 +355,10 @@ function App(props) {
               tx={tx}
               writeContracts={writeContracts}
               readContracts={readContracts}
-              purpose={purpose}
-              setPurposeEvents={receivedDepositEvents}
               contractName={contractName}
             />
           </Route>
-          <Route path="/mainnetdai">
+          {/* <Route path="/mainnetdai">
             <Contract
               name="DAI"
               customContract={mainnetDAIContract}
@@ -349,7 +375,7 @@ function App(props) {
             writeContracts={writeContracts}
             mainnetProvider={mainnetProvider}
             />
-          </Route>
+          </Route> */}
         </Switch>
       </BrowserRouter>
 
@@ -375,26 +401,12 @@ function App(props) {
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
        <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
          <Row align="middle" gutter={[4, 4]}>
-           <Col span={8}>
+           <Col span={12}>
              <Ramp price={price} address={address} networks={NETWORKS}/>
            </Col>
 
-           <Col span={8} style={{ textAlign: "center", opacity: 0.8 }}>
+           <Col span={12} style={{ textAlign: "center", opacity: 0.8 }}>
              <GasGauge gasPrice={gasPrice} />
-           </Col>
-           <Col span={8} style={{ textAlign: "center", opacity: 1 }}>
-             <Button
-               onClick={() => {
-                 window.open("https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA");
-               }}
-               size="large"
-               shape="round"
-             >
-               <span style={{ marginRight: 8 }} role="img" aria-label="support">
-                 💬
-               </span>
-               Support
-             </Button>
            </Col>
          </Row>
 
@@ -404,7 +416,7 @@ function App(props) {
 
                /*  if the local provider has a signer, let's show the faucet:  */
                faucetAvailable ? (
-                 <Faucet localProvider={localProvider} price={price} ensProvider={mainnetProvider}/>
+                 <Faucet localProvider={localProvider} price={price}/>
                ) : (
                  ""
                )
