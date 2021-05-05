@@ -30,7 +30,6 @@ export default function useEventListener(contracts, contractName, eventName, pro
     if (contracts && contractName && contracts[contractName]) {
       try {
         const eventFilter = contracts[contractName].filters[eventName](...filterArgs);
-        console.log({filterArgs, eventFilter});
         contracts[contractName].on(eventFilter, (...args) => {
           let blockNumber = args[args.length-1].blockNumber
           let newMessage = Object.assign({blockNumber, eventName}, args.pop().args)

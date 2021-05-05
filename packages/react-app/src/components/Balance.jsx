@@ -30,51 +30,59 @@ import { useBalance } from "../hooks"
 */
 
 
-export default function Balance(props) {
-  const [dollarMode, setDollarMode] = useState(true);
+export default function Balance({
+    address, balance, provider, price, size, symbol
+  }) {
+  const [dollarMode, setDollarMode] = useState(false && price);
 
   const [listening, setListening] = useState(false);
 
-  const balance = useBalance(props.provider, props.address)
+  const viewBalance = useBalance(provider, address)
+
+  symbol = symbol || "ETH"
 
   let floatBalance = parseFloat("0.00");
 
-  let usingBalance = balance;
+  let usingBalance = viewBalance;
 
-  if (typeof props.balance !== "undefined") {
-    usingBalance = props.balance;
-  }
-  if (typeof props.value !== "undefined") {
-    usingBalance = props.value;
+  if (typeof balance !== "undefined") {
+    usingBalance = balance;
   }
 
   if (usingBalance) {
     const etherBalance = formatEther(usingBalance);
-    parseFloat(etherBalance).toFixed(2);
     floatBalance = parseFloat(etherBalance);
   }
 
-  let displayBalance = floatBalance.toFixed(4);
-
-  const price = props.price || props.dollarMultiplier
-
-  if (price && dollarMode) {
-    displayBalance = "$" + (floatBalance * price).toFixed(2);
+  if (dollarMode) {
+    floatBalance *= price;
   }
 
+  const precision = dollarMode ? 2 : 3;
+
+  let displayBalance;
+  if (floatBalance > 1) {
+    displayBalance = floatBalance.toFixed(precision);
+  } else if (floatBalance == 0) {
+    displayBalance = 0;
+  } else {
+    // minimal precision that avoids scientific notation
+    const shortPrecision = Math.abs(Math.round(Math.log10(floatBalance))) + precision;
+    displayBalance = floatBalance.toFixed(shortPrecision);
+  }
   return (
     <span
       style={{
         verticalAlign: "middle",
-        fontSize: props.size ? props.size : 24,
+        fontSize: size ? size : 24,
         padding: 8,
         cursor: "pointer",
       }}
       onClick={() => {
-        setDollarMode(!dollarMode);
+        setDollarMode(!dollarMode && price);
       }}
     >
-      {displayBalance}
+      {dollarMode ? `$${displayBalance}` : `${displayBalance} ${symbol}`}
     </span>
   );
 }

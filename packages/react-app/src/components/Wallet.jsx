@@ -252,7 +252,7 @@ export default function Wallet(props) {
           <div>
             {selectedAddress ? <Address address={selectedAddress} ensProvider={props.ensProvider} /> : <Spin />}
             <div style={{ float: "right", paddingRight: 25 }}>
-              <Balance address={selectedAddress} provider={props.provider} dollarMultiplier={props.price} />
+              <Balance address={selectedAddress} provider={props.provider} price={props.price} />
             </div>
           </div>
         }
