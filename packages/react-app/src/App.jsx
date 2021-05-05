@@ -12,9 +12,10 @@ import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
 //import Hints from "./Hints";
-import { Hints, ExampleUI, Subgraph } from "./views"
+import { Hints, ExampleUI, Subgraph , BasicUI} from "./views"
 import { useThemeSwitcher } from "react-css-theme-switcher";
 import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS } from "./constants";
+import { BigNumber } from "ethers";
 /*
     Welcome to 🏗 scaffold-eth !
 
@@ -118,16 +119,6 @@ function App(props) {
   // // Then read your DAI balance like:
   // const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
 
-  // keep track of a variable from the contract in the local React state:
-  const contractState = {
-    balance: useContractReader(readContracts, contractName, "balanceOf", [address]),
-    bonus: useContractReader(readContracts, contractName, "bonusOf", [address]),
-    penalty: useContractReader(readContracts, contractName, "penaltyOf", [address]),
-    bonusesPool: useContractReader(readContracts, contractName, "bonusesPool"),
-    depositsSum: useContractReader(readContracts, contractName, "depositsSum"),
-    }
-
-
   //📟 Listen for broadcast events
 
   const allDepositedEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1);
@@ -139,23 +130,23 @@ function App(props) {
   const addressEvents = addressDepositedEvents.concat(addressWithdrawedEvents).sort(sortByBlockNumber);
 
 
-  //
-  // 🧫 DEBUG 👨🏻‍🔬
-  //
-  useEffect(()=>{
-    if(DEBUG && mainnetProvider && address && selectedChainId && yourLocalBalance && yourMainnetBalance && readContracts && writeContracts && mainnetDAIContract){
-      console.log("_____________________________________ 🏗 scaffold-eth _____________________________________")
-      console.log("🌎 mainnetProvider",mainnetProvider)
-      console.log("🏠 localChainId",localChainId)
-      console.log("👩‍💼 selected address:",address)
-      console.log("🕵🏻‍♂️ selectedChainId:",selectedChainId)
-      console.log("💵 yourLocalBalance",yourLocalBalance?formatEther(yourLocalBalance):"...")
-      console.log("💵 yourMainnetBalance",yourMainnetBalance?formatEther(yourMainnetBalance):"...")
-      console.log("📝 readContracts",readContracts)
-      console.log("🌍 DAI contract on mainnet:",mainnetDAIContract)
-      console.log("🔐 writeContracts",writeContracts)
-    }
-  }, [mainnetProvider, address, selectedChainId, yourLocalBalance, yourMainnetBalance, readContracts, writeContracts, mainnetDAIContract])
+  // //
+  // // 🧫 DEBUG 👨🏻‍🔬
+  // //
+  // useEffect(()=>{
+  //   if(DEBUG && mainnetProvider && address && selectedChainId && yourLocalBalance && yourMainnetBalance && readContracts && writeContracts && mainnetDAIContract){
+  //     console.log("_____________________________________ 🏗 scaffold-eth _____________________________________")
+  //     console.log("🌎 mainnetProvider",mainnetProvider)
+  //     console.log("🏠 localChainId",localChainId)
+  //     console.log("👩‍💼 selected address:",address)
+  //     console.log("🕵🏻‍♂️ selectedChainId:",selectedChainId)
+  //     console.log("💵 yourLocalBalance",yourLocalBalance?formatEther(yourLocalBalance):"...")
+  //     console.log("💵 yourMainnetBalance",yourMainnetBalance?formatEther(yourMainnetBalance):"...")
+  //     console.log("📝 readContracts",readContracts)
+  //     console.log("🌍 DAI contract on mainnet:",mainnetDAIContract)
+  //     console.log("🔐 writeContracts",writeContracts)
+  //   }
+  // }, [mainnetProvider, address, selectedChainId, yourLocalBalance, yourMainnetBalance, readContracts, writeContracts, mainnetDAIContract])
 
   const populateEvents = (dataSource) => {
     return (
@@ -278,32 +269,15 @@ function App(props) {
         <Switch>
           <Route exact path="/">
 
-
-            <h2>Your wallet balance:
-              <Balance address={address} provider={localProvider} price={price} />
-            </h2>
-
-            <Divider/>
-
-            <h2>Your deposit balance:
-                <Balance balance={contractState.balance} price={price} />
-            </h2>
-            <h2>Your current bonus:
-                <Balance balance={contractState.bonus} price={price} />
-            </h2>
-            <h2>Your current penalty:
-                <Balance balance={contractState.penalty} price={price} />
-            </h2>
-
-            <Divider/>
-
-            <h2>Total deposits in pool:
-                <Balance balance={contractState.depositsSum} price={price} />
-            </h2>
-
-            <h2>Total bonus in pool:
-                <Balance balance={contractState.bonusesPool} price={price} />
-            </h2>
+            <BasicUI
+              address={address}
+              localProvider={localProvider}
+              price={price}
+              tx={tx}
+              writeContracts={writeContracts}
+              readContracts={readContracts}
+              contractName={contractName}
+            />
 
             <Divider/>
 
