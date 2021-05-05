@@ -122,7 +122,7 @@ describe(contractName, function () {
       expect(await deployed.penaltyOf(addr1.address)).to.equal(depositBalance);
 
       // back to the future to 50% time
-      evmIncreaseTime(commitPeriod / 2)
+      await evmIncreaseTime(commitPeriod / 2)
       let penalty = await deployed.penaltyOf(addr1.address);
       expect(penalty).to.equal(depositBalance / 2);
 
@@ -130,7 +130,7 @@ describe(contractName, function () {
       await expect(addr1Caller.withdrawWithBonus()).to.revertedWith("penalty");
       
       // back to the future to 100% time
-      evmIncreaseTime(commitPeriod / 2)
+      await evmIncreaseTime(commitPeriod / 2)
       penalty = await deployed.penaltyOf(addr1.address);
       expect(penalty).to.equal(0);
 
@@ -161,7 +161,7 @@ describe(contractName, function () {
       await addr1Caller.deposit(tx);
 
       // back to the future to 50% time
-      evmIncreaseTime((commitPeriod / 2) - 1);  // write transaction will add some time
+      await evmIncreaseTime((commitPeriod / 2) - 1);  // write transaction will add some time
 
       const withdrawal = await callCaptureMetadata(
         addr1.address, 
@@ -228,7 +228,7 @@ describe(contractName, function () {
       await expect(addr2Caller.withdrawWithBonus()).to.revertedWith("penalty");
 
       // move time
-      evmIncreaseTime(commitPeriod);  
+      await evmIncreaseTime(commitPeriod);  
 
       // withdraw bonus
       const withdrawal2 = await callCaptureMetadata(
@@ -302,7 +302,7 @@ describe(contractName, function () {
       expect(await deployed.bonusesPool()).to.be.equal(bonus1.mul(3));
 
       // move time
-      evmIncreaseTime(commitPeriod);
+      await evmIncreaseTime(commitPeriod);
 
       // check actual withdrawal matches bonusOf
       const withdrawal2 = await callCaptureMetadata(
