@@ -79,11 +79,11 @@ describe(contractName, function () {
     })
 
     it("can't withdrawWithBonus if didn't deposit", async function () {
-      expect(addr1Caller.withdrawWithBonus()).to.revertedWith("nothing");
+      expect(addr1Caller.withdrawWithBonus()).to.revertedWith("no deposit");
     });
 
     it("can't withdrawWithPenalty if didn't deposit", async function () {
-      expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("nothing");
+      expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("no deposit");
     });
 
     it("can deposit twice", async function () {
@@ -153,7 +153,7 @@ describe(contractName, function () {
       expect(withdrawal.lastEvent.timeHeld).to.gt(commitPeriod);
 
       // check can't withdraw any more
-      expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("nothing");
+      expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("no deposit");
     });
 
     it("withdrawWithPenalty before commit period end", async function () {
@@ -183,7 +183,7 @@ describe(contractName, function () {
       expect(withdrawal.lastEvent.timeHeld).to.equal(commitPeriod / 2);
 
       // check can't withdraw any more
-      expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("nothing");
+      expect(addr1Caller.withdrawWithPenalty()).to.revertedWith("no deposit");
     });
 
   });
@@ -249,7 +249,7 @@ describe(contractName, function () {
       expect(withdrawal2.lastEvent.timeHeld).to.gt(commitPeriod);
 
       // check can't withdraw any more
-      await expect(addr2Caller.withdrawWithPenalty()).to.revertedWith("nothing");
+      await expect(addr2Caller.withdrawWithPenalty()).to.revertedWith("no deposit");
     });
 
     it("no bonus with penalty", async function () {

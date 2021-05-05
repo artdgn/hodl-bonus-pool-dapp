@@ -31,6 +31,11 @@ contract HodlPool {
   mapping(address => Deposit) internal deposits;
   uint public depositsSum;
 
+  modifier onlyDepositors() {
+    require(deposits[msg.sender].value > 0, "no deposit");
+    _;
+  }
+
   // payable to enable seeding the contract's bonus pool
   constructor (uint maxPenaltyPercent_, uint commitPeriod_) payable {
     require(maxPenaltyPercent_ <= 100, "max penalty > 100%"); 
@@ -53,14 +58,12 @@ contract HodlPool {
     emit Deposited(msg.sender, msg.value, block.timestamp);
   }
 
-  function withdrawWithBonus() external {
-    require(deposits[msg.sender].value > 0, "nothing to withdraw");
+  function withdrawWithBonus() external onlyDepositors {
     require(penaltyOf(msg.sender) == 0, "cannot withdraw without penalty yet");
     _withdraw();
   }
 
-  function withdrawWithPenalty() external {
-    require(deposits[msg.sender].value > 0, "nothing to withdraw");
+  function withdrawWithPenalty() external onlyDepositors {
     _withdraw();
   }
 
@@ -79,6 +82,12 @@ contract HodlPool {
 
   function bonusOf(address sender) public view returns (uint) {
     return _depositBonus(deposits[sender]);
+  }
+
+  function timeLeftToHoldOf(address sender) public view returns (uint) {
+    if (balanceOf(sender) == 0) return 0;
+    uint timeHeld = _depositTimeHeld(deposits[sender]);
+    return (timeHeld < commitPeriod) ? (commitPeriod - timeHeld) : 0;
   }
   
   function _withdraw() internal {

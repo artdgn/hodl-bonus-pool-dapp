@@ -9,29 +9,29 @@
 1. **Price effects** - like "staking", but without the inflation:
     - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
     - Raises the price by reducing amount in circulation 📥.
-    - Builds trust in the asset by proving a commitment to hold 💍.
-1. **Social / network effects** - like "time lock", but with an upside:
+    - Builds trust in the asset by proving an amount commited to be held 💍.
+1. **Social / network effects** - like "time lock", but with an incentive to participate:
     - Makes HODLing provable and shareable 🐦 .
-    - Increases trust in the asset's community / project team by providing a social incentive to "signal" "skin in the game" 🙋‍♀️ .
-1. **Yield generating** - like AMMs LP / lending, but without impermanent loss (AMMs) and regardless of borrowing demand:
+    - Increases trust in the community's / project team's long term commitment, provides a social incentive to demonstrate "skin in the game" 🙋‍♀️ .
+1. **Yield generating** - like AMMs LP or lending, but without AMM's impermanent loss and doesn't depend on borrowing demand:
     - Vs. liquidity providing in AMMs: no dependence on trading volume, no exposure to additional assets, no bleeding value to arbitrageurs (~~not-so~~""impermanent"" loss) 🩸.
     - Vs. lending: earns yield on tokens that don't have a borrowing market with high interest rates 🔄 (or any borrowing market).
-1. **Volatility bonus** - market volatility generates higher rewards:
+1. **Volatility bonus** - market volatility causes higher bonuses:
     - Asset price "moons" 🥳 - more "weak hands" will withdraw early to take profits, increasing the bonus 💸.
     - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.
 
 ### 🧭 Vague versions plan (roadmap?)
-1. v0 (internal)
+1. v0 ⌛ (PoC)
     - goal: 🚀 end-to-end bare skeleton first version deployed (to testnet). 
-    - scope: fixed commitment params, reward by ratio of current pool, only eth
-    - stretch scope: erc20 support
-    - deliver: repo, tests, deployed contract and frontend for testnet
+    - scope: fixed commitment params & bonus depends on ratio of current pool, only eth
+    - deliver ⌛: repo ✅, tests + CI ✅, basic UI ⌛, testnet deployed contract ⌛ and frontend ⌛
+    - stretch ⌛: erc20 support
 1. v0.5 (alpha):
     - goal: 🧠 better incentives mechanism, slightly more complex calc and interaction 
-    - scope: fixed commitment params, reward by time held, erc20 support
-    - stretch scope: contract creation flow + contract
+    - scope: fixed commitment params, bonus depends on time held, erc20 support
     - deliver: clear UI, FAQ, initial feedback, more testing on testnet
-1. v1 (beta): 🍕+🍔 flexible commitment params UI + calc, reward by time held and commitment time
+    - stretch: contract creation flow + contract
+1. v1 (beta): 🍕+🍔 flexible commitment params UI + calc, bonus depends on time held and commitment time
 1. v2: 🚢 single contract for all tokens?
 
 ---
