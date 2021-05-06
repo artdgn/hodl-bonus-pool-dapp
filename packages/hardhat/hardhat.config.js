@@ -4,7 +4,6 @@ const chalk = require("chalk");
 
 require("@nomiclabs/hardhat-waffle");
 require("@tenderly/hardhat-tenderly")
-require('hardhat-ethernal');
 
 require("@nomiclabs/hardhat-etherscan");
 

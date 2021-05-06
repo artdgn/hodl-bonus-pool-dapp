@@ -1,4 +1,4 @@
-![CI](https://github.com/artdgn/hodl-pool-dapp/workflows/CI/badge.svg)
+![CI](https://github.com/artdgn/hodl-bonus-pool-dapp/workflows/CI/badge.svg)
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A small project for learning smart-contract-full-stack-whizz-bang-dApp-buidling with the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth) framework**.
