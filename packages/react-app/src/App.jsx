@@ -113,7 +113,7 @@ function App(props) {
 
   // If you want to call a function on a new block
   useOnBlock(mainnetProvider, () => {
-    console.log(`⛓ A new mainnet block is here: ${mainnetProvider._lastBlockNumber}`)
+    // console.log(`⛓ A new mainnet block is here: ${mainnetProvider._lastBlockNumber}`)
   })
 
   // // Then read your DAI balance like:

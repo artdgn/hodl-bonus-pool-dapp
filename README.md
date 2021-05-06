@@ -1,4 +1,5 @@
-![CI](https://github.com/artdgn/hodl-bonus-pool-dapp/workflows/CI/badge.svg)
+![CI](https://github.com/artdgn/hodl-bonus-pool-dapp/workflows/CI/badge.svg) 
+<a href=https://hodl-pool-dapp.surge.sh/><img src=https://img.shields.io/badge/UI--Demo-Surge-blueviolet></img></a>
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A small project for learning smart-contract-full-stack-whizz-bang-dApp-buidling with the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth) framework**.
@@ -24,7 +25,7 @@
 1. v0 ⌛ (PoC)
     - goal: 🚀 end-to-end bare skeleton first version deployed (to testnet). 
     - scope: fixed commitment params & bonus depends on ratio of current pool, only eth
-    - deliver ⌛: repo ✅, tests + CI ✅, basic UI ⌛, testnet deployed contract ⌛ and frontend ⌛
+    - deliver ⌛: repo ✅, tests + CI ✅, basic UI ✅, testnet deployed contract ⌛ and [frontend ✅](https://hodl-pool-dapp.surge.sh/)
     - stretch ⌛: erc20 support
 1. v0.5 (alpha):
     - goal: 🧠 better incentives mechanism, slightly more complex calc and interaction 

@@ -3,7 +3,6 @@ name: CI
 on: [push]
 jobs:
   build:
-    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -12,3 +11,16 @@ jobs:
         run: yarn install
       - name: Contract tests
         run: yarn test
+
+      ## building and publishing in CI doesn't make much sense
+      ## because local contract interaction depends on local deployed address
+      ## and remote contract interaction depends on hardcoded address and ABI
+      
+      # - name: compile and publish contract to frontend
+      #   run: |
+      #     yarn workspace @scaffold-eth/hardhat compile 
+      #     yarn workspace @scaffold-eth/hardhat postdeploy
+      # - name: build react-app
+      #   run: CI='' yarn build
+      # - name: publish frontend to surge
+      #   run: yarn ship "hodl-pool-dapp.surge.sh" --token ${{ secrets.SURGE_TOKEN }}

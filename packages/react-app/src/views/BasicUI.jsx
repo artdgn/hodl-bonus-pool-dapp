@@ -37,7 +37,8 @@ export default function BasicUI(
   { address, provider, blockExplorer, price, tx, readContracts, writeContracts, contractName }) {
 
   // contract is there
-  const contractAddress = readContracts ? readContracts[contractName].address: "";
+  const contractAddress = readContracts && readContracts[contractName] ? 
+    readContracts[contractName].address: "";
   const contractIsDeployed = useContractExistsAtAddress(provider, contractAddress);
 
   // contract state hooks
