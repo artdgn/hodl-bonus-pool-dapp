@@ -228,12 +228,13 @@ function App(props) {
           <Route exact path="/">
             <BasicUI
               address={address}
-              localProvider={localProvider}
               price={price}
               tx={tx}
               writeContracts={writeContracts}
               readContracts={readContracts}
               contractName={contractName}
+              provider={localProvider}
+              blockExplorer={blockExplorer}
             />
           </Route>
 

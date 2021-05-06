@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { Button, List, Divider, Input, Card, DatePicker, Slider, Switch, Progress, Spin, Row, Col, Modal } from "antd";
-import { Address, Balance } from "../components";
+import { Account, Address, Balance } from "../components";
 import { parseEther, formatEther } from "@ethersproject/units";
-import { useContractReader, useEventListener } from "../hooks";
+import { useContractExistsAtAddress, useContractReader, useEventListener } from "../hooks";
 
 
 class ContractStateHooks {
@@ -34,14 +34,18 @@ class ContractStateHooks {
 }
 
 export default function BasicUI(
-  { address, localProvider, price, tx, readContracts, writeContracts, contractName }) {
+  { address, provider, blockExplorer, price, tx, readContracts, writeContracts, contractName }) {
+
+  // contract is there
+  const contractAddress = readContracts ? readContracts[contractName].address: "";
+  const contractIsDeployed = useContractExistsAtAddress(provider, contractAddress);
 
   // contract state hooks
   const contractState = new ContractStateHooks(readContracts, contractName, address);
 
   // events
-  const depositedEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1, [address]);
-  const withdrawedEvents = useEventListener(readContracts, contractName, "Withdrawed", localProvider, 1, [address]);
+  const depositedEvents = useEventListener(readContracts, contractName, "Deposited", provider, 1, [address]);
+  const withdrawedEvents = useEventListener(readContracts, contractName, "Withdrawed", provider, 1, [address]);
   const allEvents = depositedEvents.concat(withdrawedEvents)
     .sort((a, b) => b.blockNumber - a.blockNumber);
 
@@ -50,8 +54,12 @@ export default function BasicUI(
 
   return (
     <div>
-      <div style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}>
-        <h2>Basic UI:</h2>
+      <Card
+        style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
+        title={<h2>{contractName} basic UI: </h2>}
+        size="large"
+        loading={!contractIsDeployed}
+      >        
 
         <Divider dashed>Deposit</Divider>
 
@@ -94,6 +102,15 @@ export default function BasicUI(
 
         <Divider dashed>Pool info</Divider>
 
+        <Account
+          address={contractAddress}
+          localProvider={provider}
+          injectedProvider={provider}
+          mainnetProvider={provider}
+          price={price}
+          blockExplorer={blockExplorer}
+        />
+
         <h2>Total deposits in pool:
             <Balance balance={contractState.depositsSum} price={price} />
         </h2>
@@ -106,7 +123,7 @@ export default function BasicUI(
 
         <h2>Maximum penalty percent: {(contractState.maxPenaltyPercent || "").toString()}%</h2>
 
-      </div>
+      </Card>
 
       <EventsList eventsArray={allEvents}/>
 
