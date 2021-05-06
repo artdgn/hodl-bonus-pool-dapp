@@ -119,17 +119,6 @@ function App(props) {
   // // Then read your DAI balance like:
   // const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
 
-  //📟 Listen for broadcast events
-
-  const allDepositedEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1);
-  const addressDepositedEvents = useEventListener(readContracts, contractName, "Deposited", localProvider, 1, [address]);
-  const allWithdrawedEvents = useEventListener(readContracts, contractName, "Withdrawed", localProvider, 1);
-  const addressWithdrawedEvents = useEventListener(readContracts, contractName, "Withdrawed", localProvider, 1, [address]);
-  const sortByBlockNumber = (a, b) => b.blockNumber - a.blockNumber;
-  const allEvents = allDepositedEvents.concat(allWithdrawedEvents).sort(sortByBlockNumber);
-  const addressEvents = addressDepositedEvents.concat(addressWithdrawedEvents).sort(sortByBlockNumber);
-
-
   // //
   // // 🧫 DEBUG 👨🏻‍🔬
   // //
@@ -148,38 +137,7 @@ function App(props) {
   //   }
   // }, [mainnetProvider, address, selectedChainId, yourLocalBalance, yourMainnetBalance, readContracts, writeContracts, mainnetDAIContract])
 
-  const populateEvents = (dataSource) => {
-    return (
-      <div style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
-      <h2>Events:</h2>
-      <List
-        bordered
-        dataSource={dataSource}
-        renderItem={(item) => {
-            let eventText = "";
-            if (item.eventName == "Deposited") {
-              eventText = `deposited ${item.amount.toString()} at ${item.time.toString()}`;
-            } else if (item.eventName == "Withdrawed") {
-              eventText = (`withdrew ${item.amount.toString()} ` +
-                            `out of ${item.depositAmount.toString()} ` +
-                            `(held for ${item.timeHeld.toString()}s)`
-                            );
-              eventText += (item.penalty > 0) ? ` with ${item.penalty} penalty` : ''
-              eventText += (item.bonus > 0) ? ` with ${item.bonus} bonus` : ''
-            }
-            return (
-              <List.Item key={item.blockNumber + item.eventName + item.sender}>
-                block {item.blockNumber}: <Address
-                  address={item.sender}
-                  // ensProvider={mainnetProvider}
-                  fontSize={16}
-                />  {eventText}
-              </List.Item>
-            )
-        }}
-      />
-    </div>);
-      }
+  
 
   let networkDisplay = ""
   if(localChainId && selectedChainId && localChainId != selectedChainId ){
@@ -268,7 +226,6 @@ function App(props) {
 
         <Switch>
           <Route exact path="/">
-
             <BasicUI
               address={address}
               localProvider={localProvider}
@@ -278,11 +235,6 @@ function App(props) {
               readContracts={readContracts}
               contractName={contractName}
             />
-
-            <Divider/>
-
-            {populateEvents(addressEvents)}
-
           </Route>
 
           <Route exact path="/contract">
@@ -293,8 +245,6 @@ function App(props) {
               address={address}
               blockExplorer={blockExplorer}
             />
-
-            {populateEvents(allEvents)}
 
             { /* uncomment for a second contract:
             <Contract
