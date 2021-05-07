@@ -27,8 +27,8 @@ describe(contractName, function () {
   describe("deployment", function () {
 
     describe("successful deployment public params", function () {
-      it("maxDeposit value 1 ETH", async function () {
-        expect(await deployed.maxDeposit()).to.equal(ethers.utils.parseEther("1.0"));
+      it("MAX_DEPOSIT value 1 ETH", async function () {
+        expect(await deployed.MAX_DEPOSIT()).to.equal(ethers.utils.parseEther("1.0"));
       });
       it("maxPenaltyPercent value", async function () {
         expect(await deployed.maxPenaltyPercent()).to.equal(deployArgs[0]);
@@ -42,6 +42,10 @@ describe(contractName, function () {
       it("should not deploy maxPenaltyPercent > 100", async function () {
         const badArgs = [101, commitPeriod];
         expect(contract.deploy(...badArgs)).to.be.revertedWith("100%");
+      });
+      it("should not deploy maxPenaltyPercent == 0", async function () {
+        const badArgs = [0, commitPeriod];
+        expect(contract.deploy(...badArgs)).to.be.revertedWith("no penalty");
       });
       it("should not deploy commitPeriod < 10s", async function () {
         const badArgs = [maxPenaltyPercent, 2];
@@ -76,6 +80,10 @@ describe(contractName, function () {
     it("can't deposit more than 1 ETH", async function () {
       const tooMuchEthTx = { value: ethers.utils.parseEther("1.001") };
       expect(addr1Caller.deposit(tooMuchEthTx)).to.revertedWith("too large");
+    })
+
+    it("can't deposit 0", async function () {
+      expect(addr1Caller.deposit()).to.revertedWith("too small");
     })
 
     it("can't withdrawWithBonus if didn't deposit", async function () {
