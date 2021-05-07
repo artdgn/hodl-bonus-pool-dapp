@@ -14,7 +14,8 @@ const main = async () => {
 
   const yourContract = await deploy(contractName, args) // <-- add in constructor args like line 19 vvvv
 
-  //const yourContract = await ethers.getContractAt(contractName, "0xaAC799eC2d00C013f1F11c37E654e59B0429DF6A") //<-- if you want to instantiate a version of a contract at a specific address!
+  // const yourContract = await ethers.getContractAt(contractName, "0xaD00093d69829C61c952eF9A354B14D41F38BEA3") //<-- if you want to instantiate a version of a contract at a specific address!
+
   //const secondContract = await deploy("SecondContract")
 
   // const exampleToken = await deploy("ExampleToken")
@@ -57,13 +58,12 @@ const main = async () => {
   */
 
   // If you want to verify your contract on etherscan
-  /*
+  await sleep(3000);  // to let etherscan catch up
   console.log(chalk.blue('verifying on etherscan'))
   await run("verify:verify", {
     address: yourContract.address,
-    // constructorArguments: args // If your contract has constructor arguments, you can pass them as an array
+    constructorArguments: args // If your contract has constructor arguments, you can pass them as an array
   })
-  */
 
   console.log(
     " 💾  Artifacts (address, abi, and args) saved to: ",
