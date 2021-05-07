@@ -114,17 +114,44 @@ describe(contractName, function () {
       expect(depositTwice.lastEvent.time).to.equal(blockTimestamp);
     });
 
-    it("penaltyOf & withdrawWithBonus with time passage", async function () {
+    it("smaller max penalty accounting", async function () {
+      // only 10% max penalty deployment
+      const penaltyPercent = 10
+      const penaltyRatio = penaltyPercent / 100;
+      deployed = await contract.deploy(penaltyPercent, commitPeriod);
+      addr1Caller = deployed.connect(addr1);
+      const deposit = { value: 1000 };
+      await addr1Caller.deposit(deposit);
+
+      // should be full penalty
+      expect(await deployed.penaltyOf(addr1.address))
+        .to.equal(deposit.value * penaltyRatio);
+
+      // back to the future to 50% time
+      await evmIncreaseTime(commitPeriod / 2)
+      expect(await deployed.penaltyOf(addr1.address))
+        .to.equal(deposit.value * penaltyRatio / 2);
+      
+      // back to the future to 100% time
+      await evmIncreaseTime(commitPeriod / 2)
+      expect(await deployed.penaltyOf(addr1.address)).to.equal(0);
+    });
+
+    it("penaltyOf & withdrawWithBonus & timeLeftToHoldOf with time passage", async function () {
       await addr1Caller.deposit({ value: 1000 });
       const depositBalance = await addr1Caller.balanceOf(addr1.address);
 
       // should be full penalty
       expect(await deployed.penaltyOf(addr1.address)).to.equal(depositBalance);
+      // should need to wait full commit period
+      expect(await deployed.timeLeftToHoldOf(addr1.address)).to.equal(commitPeriod);
 
       // back to the future to 50% time
       await evmIncreaseTime(commitPeriod / 2)
       let penalty = await deployed.penaltyOf(addr1.address);
       expect(penalty).to.equal(depositBalance / 2);
+      // only half the time left to wait
+      expect(await deployed.timeLeftToHoldOf(addr1.address)).to.equal(commitPeriod / 2);
 
       // try to withdraw without penalty and fail
       await expect(addr1Caller.withdrawWithBonus()).to.revertedWith("penalty");
@@ -133,6 +160,8 @@ describe(contractName, function () {
       await evmIncreaseTime(commitPeriod / 2)
       penalty = await deployed.penaltyOf(addr1.address);
       expect(penalty).to.equal(0);
+      // no need to wait any longer
+      expect(await deployed.timeLeftToHoldOf(addr1.address)).to.equal(0);
 
       const withdrawal = await callCaptureMetadata(
         addr1.address, 
@@ -319,7 +348,7 @@ describe(contractName, function () {
 
   // advances EVM time into the future
   const evmIncreaseTime = async (seconds) => {
-    await network.provider.send("evm_increaseTime", [seconds]);
+    await network.provider.send("evm_increaseTime", [seconds + 0.5]);
     await network.provider.send("evm_mine");
   }
 
