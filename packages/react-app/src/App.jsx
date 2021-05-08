@@ -35,8 +35,8 @@ import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS } from "./constants"
 
 
 /// 📡 What chain are your contracts deployed to?
-const defaultNetwork = "localhost";
-// const defaultNetwork = "kovan";
+// const defaultNetwork = "localhost";
+const defaultNetwork = "kovan";
 const targetNetwork = NETWORKS[defaultNetwork]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging

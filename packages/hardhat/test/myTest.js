@@ -7,6 +7,9 @@ const contractName = config.contractName;
 use(solidity);
 
 describe(contractName, function () {
+
+  this.retries(3);  // some time dependant tests are flaky
+  
   let contract;
   let deployed;
   let owner;
