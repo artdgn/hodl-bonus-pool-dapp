@@ -17,7 +17,7 @@ pragma solidity ^0.8.0;
  * - Withdrawal before commitment period is not entitled to any part of the bonus
  *   and is instead "slashed" with a penalty (that is added to the bonus pool).
  * - The penalty percent is decreasing linearly from 
- *   maxPenaltyPercent to 0 with time (for the duration of the commitPeriod). 
+ *   initialPenaltyPercent to 0 with time (for the duration of the commitPeriod). 
  * - Any additional deposit is added to the current deposit and "resets" the
  *   commitment period required to wait.
  * @dev For safety and clarity, the withdrawal functionality is split into 
@@ -26,7 +26,7 @@ pragma solidity ^0.8.0;
  * The total deposits amount is tracked in depositsSum, any other ETH in the contract's
  * balance is "the bonus pool".
  */
-contract HodlPool {
+contract HodlPoolEthV0 {
 
   struct Deposit {
     uint value;
@@ -36,8 +36,8 @@ contract HodlPool {
   /// @notice a cap on a single deposit for safety
   uint public constant MAX_DEPOSIT = 1 ether;
 
-  /// @notice maximum percent of penalty
-  uint public immutable maxPenaltyPercent;  
+  /// @notice initial maximum percent of penalty
+  uint public immutable initialPenaltyPercent;  
 
   /// @notice time it takes for withdrawal penalty to be reduced to 0
   uint public immutable commitPeriod;
@@ -78,20 +78,20 @@ contract HodlPool {
   }
 
   /*
-   * @param maxPenaltyPercent_ the penalty percent for early withdrawal penalty 
+   * @param initialPenaltyPercent_ the penalty percent for early withdrawal penalty 
    *   calculations.
    * @param commitPeriod_ the time in seconds after the deposit at which the 
    *   penalty becomes 0
    * @dev the contstructor is payable in order to allow "seeding" the bonus pool.
   */
-  constructor (uint maxPenaltyPercent_, uint commitPeriod_) payable {
-    require(maxPenaltyPercent_ > 0, "no penalty"); 
-    require(maxPenaltyPercent_ <= 100, "max penalty > 100%"); 
+  constructor (uint initialPenaltyPercent_, uint commitPeriod_) payable {
+    require(initialPenaltyPercent_ > 0, "no penalty"); 
+    require(initialPenaltyPercent_ <= 100, "initial penalty > 100%"); 
     // TODO: remove the short commitment check (that's required for testing)
     require(commitPeriod_ >= 10 seconds, "commitment period too short");
     // require(commitPeriod_ >= 7 days, "commitment period too short");
     require(commitPeriod_ <= 365 days, "commitment period too long");
-    maxPenaltyPercent = maxPenaltyPercent_;
+    initialPenaltyPercent = initialPenaltyPercent_;
     commitPeriod = commitPeriod_;
   }
 
@@ -206,7 +206,7 @@ contract HodlPool {
     } else {
       uint timeLeft = commitPeriod - timeHeld;
       // order important to prevent rounding to 0
-      return ((dep.value * maxPenaltyPercent * timeLeft) / commitPeriod) / 100;
+      return ((dep.value * initialPenaltyPercent * timeLeft) / commitPeriod) / 100;
     }
   }
 

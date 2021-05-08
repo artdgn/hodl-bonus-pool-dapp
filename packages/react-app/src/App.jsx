@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
+// import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 import "antd/dist/antd.css";
 import {  StaticJsonRpcProvider, JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
@@ -11,11 +11,9 @@ import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useC
 import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address, Balance} from "./components";
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
-//import Hints from "./Hints";
-import { Hints, ExampleUI, Subgraph , BasicUI} from "./views"
-import { useThemeSwitcher } from "react-css-theme-switcher";
+import { BasicUI} from "./views"
+// import { Hints, ExampleUI, Subgraph } from "./views"
 import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS } from "./constants";
-import { BigNumber } from "ethers";
 /*
     Welcome to 🏗 scaffold-eth !
 
@@ -37,14 +35,14 @@ import { BigNumber } from "ethers";
 
 
 /// 📡 What chain are your contracts deployed to?
-// const defaultNetwork = "localhost";
-const defaultNetwork = "kovan";
+const defaultNetwork = "localhost";
+// const defaultNetwork = "kovan";
 const targetNetwork = NETWORKS[defaultNetwork]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging
 const DEBUG = true
 
-const contractName = "HodlPool";
+const contractName = "HodlPoolEthV0";
 
 
 // 🛰 providers
@@ -206,9 +204,9 @@ function App(props) {
 
       <Header />
       {networkDisplay}
-      <BrowserRouter>
+      {/* <BrowserRouter> */}
 
-        <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
+        {/* <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
           <Menu.Item key="/">
             <Link onClick={()=>{setRoute("/")}} to="/">Main UI</Link>
           </Menu.Item>
@@ -224,10 +222,10 @@ function App(props) {
           <Menu.Item key="/subgraph">
             <Link onClick={()=>{setRoute("/subgraph")}} to="/subgraph">Subgraph</Link>
           </Menu.Item>
-        </Menu>
+        </Menu> */}
 
-        <Switch>
-          <Route exact path="/">
+        {/* <Switch>
+          <Route exact path="/"> */}
             <BasicUI
               address={address}
               price={price}
@@ -238,16 +236,16 @@ function App(props) {
               provider={localProvider}
               blockExplorer={blockExplorer}
             />
-          </Route>
+          {/* </Route> */}
 
-          <Route exact path="/contract">
-            <Contract
+          {/* <Route exact path="/contract"> */}
+            {/* <Contract
               name={contractName}
               signer={userProvider.getSigner()}
               provider={localProvider}
               address={address}
               blockExplorer={blockExplorer}
-            />
+            /> */}
 
             { /* uncomment for a second contract:
             <Contract
@@ -269,9 +267,9 @@ function App(props) {
               blockExplorer={blockExplorer}
             />
             */ }
-          </Route>
+          {/* </Route> */}
 
-          <Route path="/exampleui">
+          {/* <Route path="/exampleui">
             <ExampleUI
               address={address}
               userProvider={userProvider}
@@ -284,7 +282,8 @@ function App(props) {
               readContracts={readContracts}
               contractName={contractName}
             />
-          </Route>
+          </Route> */}
+
           {/* <Route path="/mainnetdai">
             <Contract
               name="DAI"
@@ -303,8 +302,8 @@ function App(props) {
             mainnetProvider={mainnetProvider}
             />
           </Route> */}
-        </Switch>
-      </BrowserRouter>
+        {/* </Switch>
+      </BrowserRouter> */}
 
       <ThemeSwitch />
 

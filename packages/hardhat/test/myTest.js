@@ -1,8 +1,8 @@
-const { ethers, network } = require("hardhat");
+const { ethers, network, config } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 
-const contractName = "HodlPool";
+const contractName = config.contractName;
 
 use(solidity);
 
@@ -14,9 +14,9 @@ describe(contractName, function () {
   let addr2;
   let addrs;
 
-  const maxPenaltyPercent = 100;
+  const initialPenaltyPercent = 100;
   const commitPeriod = 10;
-  const deployArgs = [maxPenaltyPercent, commitPeriod];
+  const deployArgs = [initialPenaltyPercent, commitPeriod];
 
   beforeEach(async () => {
     contract = await ethers.getContractFactory(contractName);
@@ -30,8 +30,8 @@ describe(contractName, function () {
       it("MAX_DEPOSIT value 1 ETH", async function () {
         expect(await deployed.MAX_DEPOSIT()).to.equal(ethers.utils.parseEther("1.0"));
       });
-      it("maxPenaltyPercent value", async function () {
-        expect(await deployed.maxPenaltyPercent()).to.equal(deployArgs[0]);
+      it("initialPenaltyPercent value", async function () {
+        expect(await deployed.initialPenaltyPercent()).to.equal(deployArgs[0]);
       });
       it("commitPeriod value", async function () {
         expect(await deployed.commitPeriod()).to.equal(deployArgs[1]);
@@ -39,20 +39,20 @@ describe(contractName, function () {
     });
 
     describe("bad deployment params", function () {
-      it("should not deploy maxPenaltyPercent > 100", async function () {
+      it("should not deploy initialPenaltyPercent > 100", async function () {
         const badArgs = [101, commitPeriod];
         expect(contract.deploy(...badArgs)).to.be.revertedWith("100%");
       });
-      it("should not deploy maxPenaltyPercent == 0", async function () {
+      it("should not deploy initialPenaltyPercent == 0", async function () {
         const badArgs = [0, commitPeriod];
         expect(contract.deploy(...badArgs)).to.be.revertedWith("no penalty");
       });
       it("should not deploy commitPeriod < 10s", async function () {
-        const badArgs = [maxPenaltyPercent, 2];
+        const badArgs = [initialPenaltyPercent, 2];
         expect(contract.deploy(...badArgs)).to.be.revertedWith("too short");
       });
       it("should not deploy commitPeriod > 365 days", async function () {
-        const badArgs = [maxPenaltyPercent, 366 * 86400];
+        const badArgs = [initialPenaltyPercent, 366 * 86400];
         expect(contract.deploy(...badArgs)).to.be.revertedWith("too long");
       });
     });
@@ -122,8 +122,7 @@ describe(contractName, function () {
       expect(depositTwice.lastEvent.time).to.equal(blockTimestamp);
     });
 
-    it("smaller max penalty accounting", async function () {
-      // only 10% max penalty deployment
+    it("smaller initial penalty accounting", async function () {
       const penaltyPercent = 10
       const penaltyRatio = penaltyPercent / 100;
       deployed = await contract.deploy(penaltyPercent, commitPeriod);

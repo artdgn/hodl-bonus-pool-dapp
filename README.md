@@ -1,5 +1,5 @@
 ![CI](https://github.com/artdgn/hodl-bonus-pool-dapp/workflows/CI/badge.svg) 
-<a href=https://hodl-pool-dapp-v0-kovan.surge.sh/><img src=https://img.shields.io/badge/KOVAN--V0-Surge-blueviolet></img></a>
+<a href=https://hodl-pool-dapp-v0-kovan.surge.sh/><img src=https://img.shields.io/badge/Kovan--V0-Surge-blueviolet></img></a>
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A small project for learning smart-contract-full-stack-whizz-bang-dApp-buidling with the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth) framework**.

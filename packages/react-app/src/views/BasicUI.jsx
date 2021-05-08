@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState } from "react";
-import { Button, List, Divider, Input, Card, DatePicker, Slider, Switch, Progress, Spin, Row, Col, Modal } from "antd";
+import { Button, List, Divider, Input, Card, DatePicker, Slider, Switch, Progress, Spin, Row, Col, Modal, Collapse, Checkbox, Typography, Drawer } from "antd";
 import { Account, Address, Balance } from "../components";
 import { parseEther, formatEther } from "@ethersproject/units";
 import { useContractExistsAtAddress, useContractReader, useEventListener } from "../hooks";
@@ -17,7 +17,7 @@ class ContractStateHooks {
     this.bonusesPool = useContractReader(readContracts, contractName, "bonusesPool");
     this.depositsSum = useContractReader(readContracts, contractName, "depositsSum");
     this.commitPeriod = useContractReader(readContracts, contractName, "commitPeriod");
-    this.maxPenaltyPercent = useContractReader(readContracts, contractName, "maxPenaltyPercent");
+    this.initialPenaltyPercent = useContractReader(readContracts, contractName, "initialPenaltyPercent");
 
     // time convenience variables
     this.commitDays = parseFloat((this.commitPeriod || "0").toString()) / 86400;
@@ -57,37 +57,36 @@ export default function BasicUI(
     <div>
       <Card
         style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
-        title={<h2>{contractName} basic UI: </h2>}
+        title={<h2>{contractName}</h2>}
         size="large"
         loading={!contractIsDeployed}
       >        
-
         <Divider dashed>Deposit</Divider>
 
         <DepositElement contractState={contractState} txFn={transactionFn} />
 
         <Divider dashed>Withdraw</Divider>
 
-        <h2>Your deposit:
-            <Balance balance={contractState.balance} price={price} />
+        <h2>Current deposit:
+            <Balance balance={contractState.balance} price={price} size="20"/>
         </h2>
 
         {(contractState.balance && contractState.balance.gt(0)) ? (
           <div>
             <h2>Time left to hold: {contractState.timeLeftString}</h2>
 
-            <h2>Your current penalty:
-                <Balance balance={contractState.penalty} price={price} />
+            <h2>Current penalty:
+                <Balance balance={contractState.penalty} price={price} size="20"/>
             </h2>
 
-            <h2>Your current bonus:
-                <Balance balance={contractState.bonus} price={price} />
+            <h2>Current bonus:
+                <Balance balance={contractState.bonus} price={price} size="20"/>
             </h2>
 
             <h2>Available to withdraw:
                 <Balance
                 balance={"" + (contractState.withdrawWithBonus || contractState.withdrawWithPenalty)}
-                price={price} />
+                price={price} size="20"/>
             </h2>
 
             {contractState.withdrawWithBonus > 0 ?
@@ -103,26 +102,21 @@ export default function BasicUI(
 
         <Divider dashed>Pool info</Divider>
 
-        <Account
-          address={contractAddress}
-          localProvider={provider}
-          injectedProvider={provider}
-          mainnetProvider={provider}
-          price={price}
-          blockExplorer={blockExplorer}
-        />
+        <h2>
+            Contract address: <Address address={contractAddress} blockExplorer={blockExplorer} fontSize="20"/> 
+        </h2>
 
         <h2>Total deposits in pool:
-            <Balance balance={contractState.depositsSum} price={price} />
+            <Balance balance={contractState.depositsSum} price={price} size="20"/>
         </h2>
 
         <h2>Total bonus in pool:
-            <Balance balance={contractState.bonusesPool} price={price} />
+            <Balance balance={contractState.bonusesPool} price={price} size="20"/>
         </h2>
 
         <h2>Commitment period: {contractState.commitString}</h2>
 
-        <h2>Maximum penalty percent: {(contractState.maxPenaltyPercent || "").toString()}%</h2>
+        <h2>Initial penalty percent: {(contractState.initialPenaltyPercent || "").toString()}%</h2>
 
       </Card>
 
@@ -136,12 +130,30 @@ function DepositElement({ contractState, txFn }) {
   const [amountToSend, setAmountToSend] = useState(0);
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
+  // show rules description
+  const [showRules, setShowRules] = useState(false);
 
   return (
     <div style={{ margin: 8 }}>
-      <Row>
+      <Row gutter={24}>
+        <Col span={6}>
+          <Button 
+            onClick={()=>setShowRules(true)}
+            size="large">
+            Show rules
+          </Button>
 
-        <Col span={16}>
+          <Drawer
+            placement="bottom"
+            height="40%"
+            closable={false}
+            onClose={()=>setShowRules(false)}
+            visible={showRules}>
+              <RulesDescription/>
+          </Drawer>
+        </Col>
+
+        <Col span={10}>
           <Input
             onChange={(e) => {
               setAmountToSend(e.target.value);
@@ -149,13 +161,12 @@ function DepositElement({ contractState, txFn }) {
             }}
             size="large"
             allowClear={true}
-            addonBefore="Deposit amount"
             suffix="ETH"
             style={{ textAlign: "right" }}
           />
         </Col>
 
-        <Col span={8}>
+        <Col span={6}>
           <Button
             onClick={() => setDepositModalVisible(true)}
             type="primary"
@@ -206,6 +217,7 @@ function WithdrawWithPenaltyButton({ contractState, txFn }) {
                 ${formatEther("" + contractState.withdrawWithPenalty)} ETH with penalty`}
         okText="Withdraw with penalty"
         visible={penaltyModalVisible}
+        okButtonProps={{ danger: true }}
         onOk={() => {
           setPenaltyModalVisible(false);
           txFn("withdrawWithPenalty");
@@ -261,7 +273,7 @@ function EventsList({eventsArray}) {
   return (
     <Card
       style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}
-      title="User events"
+      title="Your past contract events"
     >
       <List
         bordered
@@ -289,4 +301,40 @@ function EventsList({eventsArray}) {
         }}
       />
     </Card>);
+}
+
+function RulesDescription() {
+  return (
+    <Typography style={{textAlign: "left"}}>
+      <Typography.Title level={4}>The pool allows ETH deposits and withdrawals with penalty
+          and bonus mechanisms to encaurage long term holding:
+      </Typography.Title>
+      <Typography.Paragraph>
+        <ul>
+          <li> Depositor commits for a "commitment period", after which the deposit 
+            can be withdrawn with any bonus.
+          </li>          
+          <li> The the bonus pool share is equal to the share of the deposit from all deposits
+              at the time of withdrawal. E.g. if when you withdraw, the bonus pool is 2 ETH, 
+              total deposits are 10 ETH, and your deposit is 1 ETH - you get 
+              0.2 ETH ( = 2 * (1 / 10)) as bonus.
+          </li>
+          <li> Bonus pool is collected from penalties paid by early withdrawals 
+            (withdrawals before the commitment period).
+          </li>
+          <li> Withdrawal before commitment period is does not get any bonus. 
+              Instead, it is "slashed" with a penalty (that is added to the bonus pool).
+          </li>
+          <li> The penalty percent is decreasing linearly with time from 
+              "initialPenaltyPercent" to 0 (for the duration of the commitPeriod). 
+              E.g. if initialPenaltyPercent was 10%, and you withdraw after half the 
+              commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
+          </li>
+          <li> Any additional deposits are added to current deposit, and "reset" the
+              commitment period required to wait.
+          </li>
+        </ul>
+      </Typography.Paragraph>
+    </Typography>
+  )
 }

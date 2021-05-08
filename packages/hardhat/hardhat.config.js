@@ -18,25 +18,20 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
       plus it will use *.args for constructor args
 */
 
-//
-// Select the network you want to deploy to here:
-//
-// const defaultNetwork = "localhost";
-const defaultNetwork = "kovan";
-
-function mnemonic() {
-  try {
-    return fs.readFileSync("./mnemonic.txt").toString().trim();
-  } catch (e) {
-    if (defaultNetwork !== "localhost") {
-      console.log("☢️ WARNING: No mnemonic file created for a deploy account. Try `yarn run generate` and then `yarn run account`.")
-    }
-  }
-  return "";
-}
-
 module.exports = {
-  defaultNetwork,
+  //
+  // Select the network you want to deploy to here:
+  //
+
+  defaultNetwork: "localhost",
+  // defaultNetwork: "kovan",
+
+  contractName: "HodlPoolEthV0",
+
+  deployArgs: {
+    localhost: [100, 60], // for quick testing
+    kovan: [10, 86400],  // for longer testing with multiple addresses
+  },
 
   // don't forget to set your provider like:
   // REACT_APP_PROVIDER=https://dai.poa.network in packages/react-app/.env
@@ -136,6 +131,17 @@ module.exports = {
 };
 
 const DEBUG = false;
+
+function mnemonic() {
+  try {
+    return fs.readFileSync("./mnemonic.txt").toString().trim();
+  } catch (e) {
+    if (defaultNetwork !== "localhost") {
+      console.log("☢️ WARNING: No mnemonic file created for a deploy account. Try `yarn run generate` and then `yarn run account`.")
+    }
+  }
+  return "";
+}
 
 function debug(text) {
   if (DEBUG) {
