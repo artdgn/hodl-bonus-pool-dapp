@@ -22,10 +22,10 @@
     - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.
 
 ### 🧭 Vague versions plan (roadmap?)
-1. v0 ✅ (PoC)
+1. v0 ✔️ (PoC)
     - goal: 🚀 end-to-end bare skeleton first version deployed (to testnet). 
     - scope: fixed commitment params & bonus depends on ratio of current pool, only eth
-    - deliver ✅: repo ✅, tests + CI ✅, basic UI ✅, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xaD00093d69829C61c952eF9A354B14D41F38BEA3#code) ✅ and [frontend ✅](https://hodl-pool-dapp-v0-kovan.surge.sh/)
+    - deliver ✔️ repo ✔️, tests + CI ✔️, basic UI ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xaD00093d69829C61c952eF9A354B14D41F38BEA3#code) ✔️ and [frontend ✔️](https://hodl-pool-dapp-v0-kovan.surge.sh/)
     - stretch ⌛: erc20 support
 1. v0.5 (alpha):
     - goal: 🧠 better incentives mechanism, slightly more complex calc and interaction 

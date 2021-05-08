@@ -17,14 +17,15 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
       out of the box it will auto deploy anything in the `contracts` folder and named *.sol
       plus it will use *.args for constructor args
 */
+//
+// Select the network you want to deploy to here:
+//
+const defaultNetwork = "localhost";
+// const defaultNetwork = "kovan";
 
 module.exports = {
-  //
-  // Select the network you want to deploy to here:
-  //
-
-  defaultNetwork: "localhost",
-  // defaultNetwork: "kovan",
+    
+  defaultNetwork,
 
   contractName: "HodlPoolEthV0",
 

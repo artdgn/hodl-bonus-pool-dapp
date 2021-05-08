@@ -13,7 +13,7 @@ const main = async () => {
 
   const yourContract = await deploy(config.contractName, args) // <-- add in constructor args like line 19 vvvv
 
-  // const yourContract = await ethers.getContractAt(contractName, "0xaD00093d69829C61c952eF9A354B14D41F38BEA3") //<-- if you want to instantiate a version of a contract at a specific address!
+  // const yourContract = await ethers.getContractAt(config.contractName, "0xAd0019EACBbB1BC9dE70f25420c3aB96E4f09aec") //<-- if you want to instantiate a version of a contract at a specific address!
 
   //const secondContract = await deploy("SecondContract")
 
@@ -58,7 +58,7 @@ const main = async () => {
 
   // If you want to verify your contract on etherscan
   if (config.defaultNetwork != "localhost") {
-    await sleep(3000);  // to let etherscan catch up
+    await sleep(10000);  // to let etherscan catch up
     console.log(chalk.blue('verifying on etherscan'))
     await run("verify:verify", {
       address: yourContract.address,
