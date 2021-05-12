@@ -1,10 +1,12 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState } from "react";
-import { Button, List, Divider, Input, Card, DatePicker, Slider, Switch, Progress, Spin, Row, Col, Modal, Collapse, Checkbox, Typography, Drawer } from "antd";
-import { Account, Address, Balance } from "../components";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer } from "antd";
+import { Address, Balance } from "../components";
 import { parseEther, formatEther } from "@ethersproject/units";
 import { useContractExistsAtAddress, useContractReader, useEventListener } from "../hooks";
+import ReactMarkdown from "react-markdown";
+import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone } from "@ant-design/icons";
 
 
 class ContractStateHooks {
@@ -21,10 +23,11 @@ class ContractStateHooks {
 
     // time convenience variables
     this.commitDays = parseFloat((this.commitPeriod || "0").toString()) / 86400;
-    this.commitString = `${(this.commitPeriod || "").toString()} seconds 
-                                  (${(this.commitDays).toPrecision(2)} days)`;
-    this.timeLeftString = `${(this.timeLeft || "").toString()} seconds (out of 
-                                    ${(this.commitPeriod || "").toString()} seconds)`;
+    this.timeLeftDays = parseFloat((this.timeLeft || "0").toString()) / 86400;
+    this.commitString = `${(this.commitPeriod || "").toString()}s 
+                        or ${(this.commitDays).toPrecision(2)} days`;
+    this.timeLeftString = `${(this.timeLeft || "").toString()}s
+                           or ${(this.timeLeftDays.toPrecision(2)).toString()} days`;
     // withdrawal convenience variables
     this.withdrawWithPenalty = this.balance && this.penalty && this.penalty.gt(0) ?
       parseFloat(this.balance.sub(this.penalty).toString()) : 0;
@@ -57,7 +60,19 @@ export default function BasicUI(
     <div>
       <Card
         style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
-        title={<h2>{contractName}</h2>}
+        title={
+        <div>
+          <h2>{contractName}</h2>
+          <Row gutter={24} justify="center">
+            <Col span={10}>
+              <MotivationButton/>
+            </Col>
+            <Col span={10}>
+              <RulesButton/>
+            </Col>
+          </Row>
+        </div>
+        }
         size="large"
         loading={!contractIsDeployed}
       >        
@@ -130,53 +145,36 @@ function DepositElement({ contractState, txFn }) {
   const [amountToSend, setAmountToSend] = useState(0);
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
-  // show rules description
-  const [showRules, setShowRules] = useState(false);
-
+  
   return (
-    <div style={{ margin: 8 }}>
-      <Row gutter={24}>
-        <Col span={6}>
-          <Button 
-            onClick={()=>setShowRules(true)}
-            size="large">
-            Show rules
+    <div style={{ margin: 8}}>
+      <Row gutter={24} justify="center">
+        
+        <Col span={8}>
+          <Button
+            onClick={() => setDepositModalVisible(true)}
+            type="primary"
+            size="large"
+            disabled={!depositButtonEnabled}
+            style={{ width: "100%", textAlign: "center"}}
+          >
+            {contractState.balance && contractState.balance.gt(0) ?
+              "Add to deposit" : "Make a deposit"}
           </Button>
-
-          <Drawer
-            placement="bottom"
-            height="40%"
-            closable={false}
-            onClose={()=>setShowRules(false)}
-            visible={showRules}>
-              <RulesDescription/>
-          </Drawer>
         </Col>
 
-        <Col span={10}>
+        <Col span={8}>
           <Input
             onChange={(e) => {
               setAmountToSend(e.target.value);
               setDepositButtonEnabled(parseFloat(e.target.value) > 0);
             }}
             size="large"
-            allowClear={true}
             suffix="ETH"
-            style={{ textAlign: "right" }}
+            style={{ width: "100%", textAlign: "center"}}
           />
         </Col>
 
-        <Col span={6}>
-          <Button
-            onClick={() => setDepositModalVisible(true)}
-            type="primary"
-            size="large"
-            disabled={!depositButtonEnabled}
-          >
-            {contractState.balance && contractState.balance.gt(0) ?
-              "Add to deposit" : "Make a deposit"}
-          </Button>
-        </Col>
 
         <Modal
           title={`Confirm deposit of ${amountToSend} ETH`}
@@ -191,7 +189,9 @@ function DepositElement({ contractState, txFn }) {
           onCancel={() => setDepositModalVisible(false)}>
           <h2>Commitment period: {contractState.commitString}</h2>
           <Divider />
-          <h2>⚠️ Withdrawing without penalty before that time won't be possible!!</h2>
+          <h2>
+            <WarningTwoTone twoToneColor="red"/> Withdrawing without
+            penalty before that time won't be possible!!</h2>
         </Modal>
 
       </Row>
@@ -226,9 +226,13 @@ function WithdrawWithPenaltyButton({ contractState, txFn }) {
         <h2>Withdraw {formatEther("" + contractState.withdrawWithPenalty)} ETH out of
             deposited {(formatEther(contractState.balance || "0").toString())} due
             to {formatEther((contractState.penalty || "0").toString())} penalty.</h2>
-        <h2>⚠️ Wait until end of commitment period (
-          {(contractState.timeLeft || "").toString()} seconds)
-          to withdraw full deposit + any bonus!</h2>
+        <h2> 
+          <WarningTwoTone twoToneColor="red"/> Wait until end of commitment period
+          ({contractState.timeLeftString})
+          to withdraw full deposit + any bonus share!
+          {contractState.bonus ?
+            ` Current bonus share ${formatEther("" + (contractState.bonus || "0"))} ETH.` : ""}
+          </h2>
       </Modal>
 
     </div>
@@ -257,10 +261,11 @@ function WithdrawWithBonusButton({ contractState, txFn }) {
           txFn("withdrawWithBonus");
         }}
         onCancel={() => setBonusModalVisible(false)}>
-        <h2>Withdraw {formatEther("" + contractState.withdrawWithBonus)} ETH out of
-            deposited {formatEther("" + (contractState.balance || "0"))} ETH
-            {contractState.bonus ?
-            ` with ${formatEther("" + (contractState.bonus || "0"))} ETH bonus!` : ""}
+        <h2>
+          Withdraw {formatEther("" + contractState.withdrawWithBonus)} ETH out of
+          deposited {formatEther("" + (contractState.balance || "0"))} ETH
+          {contractState.bonus ?
+          ` with ${formatEther("" + (contractState.bonus || "0"))} ETH bonus!` : ""}
         </h2>
         <h2>⚠️ Waiting for longer may increase available bonus</h2>
       </Modal>
@@ -303,38 +308,78 @@ function EventsList({eventsArray}) {
     </Card>);
 }
 
-function RulesDescription() {
+function RulesButton() {
+  const markdown = `
+## Pool Rules
+- Depositor commits for a "commitment period", after which the deposit 
+can be withdrawn with any bonus share.
+- The bonus pool share is equal to the share of the deposit from all deposits
+at the time of withdrawal. E.g. if when you withdraw, the bonus pool is 2 ETH, 
+total deposits are 10 ETH, and your deposit is 1 ETH - you get 
+0.2 ETH ( = 2 * (1 / 10)) as bonus.
+- Bonus pool is collected from penalties paid by early withdrawals 
+(withdrawals before the commitment period).
+- Withdrawal before commitment period is does not get any bonus. 
+Instead, it is "slashed" with a penalty (that is added to the bonus pool).  
+- The penalty percent is decreasing linearly with time from 
+"initialPenaltyPercent" to 0 (for the duration of the commitPeriod). 
+E.g. if initialPenaltyPercent was 10%, and you withdraw after half the 
+commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
+- Any additional deposits are added to current deposit, and "reset" the
+  commitment period required to wait.`
+  
+  return <MarkdownDrawerButton 
+    markdown={markdown} 
+    title={<div><InfoCircleTwoTone /> Show rules</div>}
+  />
+}
+
+function MotivationButton() {
+    const markdown = `
+### 💡 The idea: "Strong 💎 hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
+
+### ❔ Why this may be a good idea:
+1. **Price effects** - like "staking", but without the inflation:
+    - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
+    - Raises the price by reducing amount in circulation 📥.
+    - Builds trust in the asset by proving an amount commited to be held 💍.
+1. **Social / network effects** - like "time lock", but with an incentive to participate:
+    - Makes HODLing provable and shareable 🐦 .
+    - Increases trust in the community's / project team's long term commitment, provides a social incentive to demonstrate "skin in the game" 🙋‍♀️ .
+1. **Yield generating** - like AMMs LP or lending, but without AMM's impermanent loss and doesn't depend on borrowing demand:
+    - Vs. liquidity providing in AMMs: no dependence on trading volume, no exposure to additional assets, no bleeding value to arbitrageurs (~~not-so~~""impermanent"" loss) 🩸.
+    - Vs. lending: earns yield on tokens that don't have a borrowing market with high interest rates 🔄 (or any borrowing market).
+1. **Volatility bonus** - market volatility causes higher bonuses:
+    - Asset price "moons" 🥳 - more "weak hands" will withdraw early to take profits, increasing the bonus 💸.
+    - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.`
+    
+      return <MarkdownDrawerButton 
+      markdown={markdown} 
+      title={<div><QuestionCircleTwoTone /> Show motivation </div>}
+    />
+}
+
+function MarkdownDrawerButton({title, markdown}) {
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
   return (
-    <Typography style={{textAlign: "left"}}>
-      <Typography.Title level={4}>The pool allows ETH deposits and withdrawals with penalty
-          and bonus mechanisms to encaurage long term holding:
-      </Typography.Title>
-      <Typography.Paragraph>
-        <ul>
-          <li> Depositor commits for a "commitment period", after which the deposit 
-            can be withdrawn with any bonus.
-          </li>          
-          <li> The the bonus pool share is equal to the share of the deposit from all deposits
-              at the time of withdrawal. E.g. if when you withdraw, the bonus pool is 2 ETH, 
-              total deposits are 10 ETH, and your deposit is 1 ETH - you get 
-              0.2 ETH ( = 2 * (1 / 10)) as bonus.
-          </li>
-          <li> Bonus pool is collected from penalties paid by early withdrawals 
-            (withdrawals before the commitment period).
-          </li>
-          <li> Withdrawal before commitment period is does not get any bonus. 
-              Instead, it is "slashed" with a penalty (that is added to the bonus pool).
-          </li>
-          <li> The penalty percent is decreasing linearly with time from 
-              "initialPenaltyPercent" to 0 (for the duration of the commitPeriod). 
-              E.g. if initialPenaltyPercent was 10%, and you withdraw after half the 
-              commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
-          </li>
-          <li> Any additional deposits are added to current deposit, and "reset" the
-              commitment period required to wait.
-          </li>
-        </ul>
-      </Typography.Paragraph>
-    </Typography>
-  )
+    <div>
+      <Button 
+        onClick={()=>setDrawerVisible(true)}
+        size="large"
+        style={{fontSize: 20}}
+        >{title}</Button>
+
+      <Drawer
+        placement="bottom"
+        height="50%"
+        closable={false}
+        onClose={()=>setDrawerVisible(false)}
+        visible={drawerVisible}>
+          <Typography style={{textAlign: "left"}}>
+            <ReactMarkdown children={markdown}/>
+          </Typography>
+      </Drawer>
+    </div>
+  );
 }

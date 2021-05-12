@@ -3,7 +3,7 @@ const fs = require("fs");
 const chalk = require("chalk");
 
 require("@nomiclabs/hardhat-waffle");
-require("@tenderly/hardhat-tenderly")
+require("@tenderly/hardhat-tenderly");
 
 require("@nomiclabs/hardhat-etherscan");
 
@@ -27,7 +27,7 @@ module.exports = {
 
   defaultNetwork,
 
-  contractName: "HodlPoolEthV0",
+  contractName: "HodlPoolEthV0",  
 
   deployArgs: {
     localhost: [100, 60], // for quick testing
