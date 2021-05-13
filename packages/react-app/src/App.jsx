@@ -13,37 +13,13 @@ import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
 import { BasicUI} from "./views"
 // import { Hints, ExampleUI, Subgraph } from "./views"
-import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS } from "./constants";
-/*
-    Welcome to 🏗 scaffold-eth !
-
-    Code:
-    https://github.com/austintgriffith/scaffold-eth
-
-    Support:
-    https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA
-    or DM @austingriffith on twitter or telegram
-
-    You should get your own Infura.io ID and put it in `constants.js`
-    (this is your connection to the main Ethereum network for ENS etc.)
-
-
-    🌏 EXTERNAL CONTRACTS:
-    You can also bring in contract artifacts in `constants.js`
-    (and then use the `useExternalContractLoader()` hook!)
-*/
+import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS, contractName, defaultNetwork} from "./constants";
 
 
 /// 📡 What chain are your contracts deployed to?
-// const defaultNetwork = "localhost";
-const defaultNetwork = "kovan";
-const targetNetwork = NETWORKS[defaultNetwork]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+const targetNetwork = NETWORKS[defaultNetwork]; 
 
-// 😬 Sorry for all the console logging
 const DEBUG = true
-
-const contractName = "HodlPoolEthV0";
-
 
 // 🛰 providers
 if(DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
@@ -97,9 +73,6 @@ function App(props) {
   // 🏗 scaffold-eth is full of handy hooks like this one to get your balance:
   const yourLocalBalance = useBalance(localProvider, address);
 
-  // // Just plug in different 🛰 providers to get your balance on different chains:
-  // const yourMainnetBalance = useBalance(mainnetProvider, address);
-
   // Load in your local 📝 contract and read a value from it:
   const readContracts = useContractLoader(localProvider)
 
@@ -111,38 +84,12 @@ function App(props) {
   // // If you want to bring in the mainnet DAI contract it would look like:
   // const mainnetDAIContract = useExternalContractLoader(mainnetProvider, DAI_ADDRESS, DAI_ABI)
 
-  // If you want to call a function on a new block
-  useOnBlock(mainnetProvider, () => {
-    // console.log(`⛓ A new mainnet block is here: ${mainnetProvider._lastBlockNumber}`)
-  })
-
   // // Then read your DAI balance like:
   // const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
 
-  // //
-  // // 🧫 DEBUG 👨🏻‍🔬
-  // //
-  // useEffect(()=>{
-  //   if(DEBUG && mainnetProvider && address && selectedChainId && yourLocalBalance && yourMainnetBalance && readContracts && writeContracts && mainnetDAIContract){
-  //     console.log("_____________________________________ 🏗 scaffold-eth _____________________________________")
-  //     console.log("🌎 mainnetProvider",mainnetProvider)
-  //     console.log("🏠 localChainId",localChainId)
-  //     console.log("👩‍💼 selected address:",address)
-  //     console.log("🕵🏻‍♂️ selectedChainId:",selectedChainId)
-  //     console.log("💵 yourLocalBalance",yourLocalBalance?formatEther(yourLocalBalance):"...")
-  //     console.log("💵 yourMainnetBalance",yourMainnetBalance?formatEther(yourMainnetBalance):"...")
-  //     console.log("📝 readContracts",readContracts)
-  //     console.log("🌍 DAI contract on mainnet:",mainnetDAIContract)
-  //     console.log("🔐 writeContracts",writeContracts)
-  //   }
-  // }, [mainnetProvider, address, selectedChainId, yourLocalBalance, yourMainnetBalance, readContracts, writeContracts, mainnetDAIContract])
-
-  
-
-  let networkDisplay = ""
-  if(localChainId && selectedChainId && localChainId != selectedChainId ){
-    networkDisplay = (
-      <div style={{zIndex:2, position:'absolute', right:0,top:60,padding:16}}>
+  const wrongNetwork = localChainId && selectedChainId && localChainId != selectedChainId;
+  const networkDisplay = ( wrongNetwork ?
+    <div style={{zIndex:2, position:'absolute', right:0,top:60,padding:16}}>
         <Alert
           message={"⚠️ Wrong Network"}
           description={(
@@ -154,14 +101,11 @@ function App(props) {
           closable={false}
         />
       </div>
-    )
-  }else{
-    networkDisplay = (
-      <div style={{zIndex:-1, position:'absolute', right:154,top:28,padding:16,color:targetNetwork.color}}>
+      :
+      <h3 style={{zIndex:-1, position:'absolute', right:12,top:40,padding:16,color:targetNetwork.color}}>
         {targetNetwork.name}
-      </div>
-    )
-  }
+      </h3>
+  )
 
   const loadWeb3Modal = useCallback(async () => {
     const provider = await web3Modal.connect();
@@ -204,109 +148,20 @@ function App(props) {
 
       <Header />
       {networkDisplay}
-      {/* <BrowserRouter> */}
-
-        {/* <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
-          <Menu.Item key="/">
-            <Link onClick={()=>{setRoute("/")}} to="/">Main UI</Link>
-          </Menu.Item>
-          <Menu.Item key="/contract">
-            <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
-          </Menu.Item>
-          <Menu.Item key="/exampleui">
-            <Link onClick={()=>{setRoute("/exampleui")}} to="/exampleui">ExampleUI</Link>
-          </Menu.Item>
-          <Menu.Item key="/mainnetdai">
-            <Link onClick={()=>{setRoute("/mainnetdai")}} to="/mainnetdai">Mainnet DAI</Link>
-          </Menu.Item>
-          <Menu.Item key="/subgraph">
-            <Link onClick={()=>{setRoute("/subgraph")}} to="/subgraph">Subgraph</Link>
-          </Menu.Item>
-        </Menu> */}
-
-        {/* <Switch>
-          <Route exact path="/"> */}
-            <BasicUI
-              address={address}
-              price={price}
-              tx={tx}
-              writeContracts={writeContracts}
-              readContracts={readContracts}
-              contractName={contractName}
-              provider={localProvider}
-              blockExplorer={blockExplorer}
-            />
-          {/* </Route> */}
-
-          {/* <Route exact path="/contract"> */}
-            {/* <Contract
-              name={contractName}
-              signer={userProvider.getSigner()}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-            /> */}
-
-            { /* uncomment for a second contract:
-            <Contract
-              name="SecondContract"
-              signer={userProvider.getSigner()}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-            />
-            */ }
-
-            { /* Uncomment to display and interact with an external contract (DAI on mainnet):
-            <Contract
-              name="DAI"
-              customContract={mainnetDAIContract}
-              signer={userProvider.getSigner()}
-              provider={mainnetProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-            />
-            */ }
-          {/* </Route> */}
-
-          {/* <Route path="/exampleui">
-            <ExampleUI
-              address={address}
-              userProvider={userProvider}
-              mainnetProvider={mainnetProvider}
-              localProvider={localProvider}
-              yourLocalBalance={yourLocalBalance}
-              price={price}
-              tx={tx}
-              writeContracts={writeContracts}
-              readContracts={readContracts}
-              contractName={contractName}
-            />
-          </Route> */}
-
-          {/* <Route path="/mainnetdai">
-            <Contract
-              name="DAI"
-              customContract={mainnetDAIContract}
-              signer={userProvider.getSigner()}
-              provider={mainnetProvider}
-              address={address}
-              blockExplorer={"https://etherscan.io/"}
-            />
-          </Route>
-          <Route path="/subgraph">
-            <Subgraph
-            subgraphUri={props.subgraphUri}
-            tx={tx}
-            writeContracts={writeContracts}
-            mainnetProvider={mainnetProvider}
-            />
-          </Route> */}
-        {/* </Switch>
-      </BrowserRouter> */}
+      { wrongNetwork ? "" : 
+        <BasicUI
+          address={address}
+          price={price}
+          tx={tx}
+          writeContracts={writeContracts}
+          readContracts={readContracts}
+          contractName={contractName}
+          provider={localProvider}
+          blockExplorer={blockExplorer}
+        />
+      }
 
       <ThemeSwitch />
-
 
       {/* 👨‍💼 Your account is in the top right with a wallet at connect options */}
       <div style={{ position: "fixed", textAlign: "right", right: 0, top: 0, padding: 10 }}>
@@ -314,6 +169,7 @@ function App(props) {
            address={address}
            localProvider={localProvider}
            userProvider={userProvider}
+           minimized={injectedProvider}
            mainnetProvider={mainnetProvider}
            price={price}
            web3Modal={web3Modal}
@@ -326,15 +182,6 @@ function App(props) {
 
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
        <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
-         <Row align="middle" gutter={[4, 4]}>
-           <Col span={12}>
-             <Ramp price={price} address={address} networks={NETWORKS}/>
-           </Col>
-
-           <Col span={12} style={{ textAlign: "center", opacity: 0.8 }}>
-             <GasGauge gasPrice={gasPrice} />
-           </Col>
-         </Row>
 
          <Row align="middle" gutter={[4, 4]}>
            <Col span={24}>

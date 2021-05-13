@@ -22,6 +22,12 @@ export const NETWORK = (chainId)=>{
   }
 }
 
+// default network to use
+export const defaultNetwork = "kovan";
+
+// deployed contract
+export const contractName = "HodlPoolEthV0";
+
 export const NETWORKS = {
     localhost: {
         name: "localhost",
