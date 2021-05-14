@@ -12,11 +12,11 @@ import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, SettingOutlin
 // swap imports
 import { ChainId, Token, WETH, Fetcher, Trade, TokenAmount, Percent } from '@uniswap/sdk'
 import { usePoller } from "eth-hooks";
-import { isAddress } from "@ethersproject/address";
 
 class HodlPoolERC20V0StateHooks {
 
   constructor(contract, address) {
+    this.address = contract && contract.address;
     this.balance = useContractReader(contract, "balanceOf", [address]);
     this.bonus = useContractReader(contract, "bonusOf", [address]);
     this.penalty = useContractReader(contract, "penaltyOf", [address]);
@@ -63,7 +63,7 @@ function useTokenState(contract, userAddress, spenderAddress) {
   }
   const [tokenState, setTokenState] = useState(emptyState);
 
-  useEffect(() => {
+  const updateFn = () => {
     const updateState = async () => {
       if (contract.address && contract) {
         try {
@@ -94,7 +94,10 @@ function useTokenState(contract, userAddress, spenderAddress) {
       }
     }
     updateState();
-  }, [contract, userAddress, spenderAddress])
+  }
+
+  useEffect(updateFn, [contract, userAddress, spenderAddress]);
+  usePoller(updateFn, 2000);
 
   return tokenState;
 }
@@ -104,7 +107,7 @@ function useContractAtAddress(address, abi, provider) {
 
   const readContract = async () => {
     if (address && provider) {
-      const contract = new ethers.Contract(address, abi, provider);
+      const contract = new ethers.Contract(address, abi, provider, provider.getSigner());
       setContract(contract);
     }
   }
@@ -132,16 +135,18 @@ export function HodlPoolERC20V0UI(
   const allEvents = depositedEvents.concat(withdrawedEvents)
     .sort((a, b) => b.blockNumber - a.blockNumber);
 
-  // transaction callbacks
-  const transactionFn = (method, ...args) => tx(writeContracts[contractName][method](...args));
-
+  
   const [tokenAddress, setTokenAddress] = useState();
 
-  useEffect(()=>setTokenAddress(contractState.tokenAddress), [contractState.tokenAddress])
+  useEffect(() => setTokenAddress(contractState.tokenAddress), [contractState.tokenAddress])
 
   const tokenContract = useContractAtAddress(tokenAddress, erc20Abi, provider);
 
   const tokenState = useTokenState(tokenContract, address, contractAddress);
+
+  // transaction callbacks
+  const contractTx = (method, ...args) => tx(writeContracts[contractName][method](...args));
+  const tokenTx = (method, ...args) => tx(tokenContract.connect(provider.getSigner())[method](...args));
 
   return (
     <div>
@@ -165,33 +170,12 @@ export function HodlPoolERC20V0UI(
         /> */}
         <Divider dashed>Token</Divider>
 
-        <Space>
-
-          <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
-
-          <Balance
-            balance={tokenState.balance}
-            symbol={tokenState.symbol}
-            size="20" />
-
-          <Input defaultValue={tokenState.address} onChange={(e) => {
-            if (isAddress(e.target.value)) {
-              setTokenAddress(e.target.value);
-            } else {
-              notification.open({
-                message: 'Not an address',
-                description:
-                `${e.target.value} is not a valid address`,
-              });
-            }
-          }}>
-          </Input>
-
-        </Space>
+        <TokenControl tokenState={tokenState} addessUpdateFn={setTokenAddress} blockExplorer={blockExplorer}/>
 
         <Divider dashed>Deposit</Divider>
         
-        <DepositElement contractState={contractState} txFn={transactionFn} tokenState={tokenState} />
+        <DepositElement 
+          contractState={contractState} contractTx={contractTx} tokenTx={tokenTx} tokenState={tokenState} />
 
         <Divider dashed>Withdraw</Divider>
 
@@ -221,14 +205,14 @@ export function HodlPoolERC20V0UI(
             {contractState.withdrawWithBonus > 0 ?
               <WithdrawWithBonusButton
                 contractState={contractState}
-                txFn={transactionFn}
+                txFn={contractTx}
                 tokenState={tokenState} />
               : ""}
 
             {contractState.withdrawWithPenalty > 0 ?
               <WithdrawWithPenaltyButton
                 contractState={contractState}
-                txFn={transactionFn}
+                txFn={contractTx}
                 tokenState={tokenState} />
               : ""}
 
@@ -261,14 +245,80 @@ export function HodlPoolERC20V0UI(
   );
 }
 
-function DepositElement({ contractState, txFn, tokenState }) {
-  const [amountToSend, setAmountToSend] = useState(0);
+function TokenControl({tokenState, addessUpdateFn, blockExplorer}) {
+  return (
+    <Space direction="vertical">
+
+      <Space size="large" align="start">
+
+        <Space align="center" direction="vertical">
+          <h3>Wallet balance</h3>
+          <Balance
+            balance={tokenState.balance}
+            symbol={tokenState.symbol}
+            size="20" />
+        </Space>
+
+        <Space align="center" direction="vertical">
+          <h3>Allowance</h3>
+          <Balance
+            balance={tokenState.allowance}
+            symbol={tokenState.symbol}
+            size="20" />
+        </Space>
+
+        <Space align="center" direction="vertical">
+          <h3>Token address</h3>
+          <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
+        </Space>
+
+      </Space>
+
+      <Input
+        defaultValue={tokenState.address}
+        prefix="Switch token: "
+        onPressEnter={e => addessUpdateFn(e.target.value)}>
+      </Input>
+
+    </Space>
+  )
+}
+
+function DepositElement({ contractState, contractTx, tokenState, tokenTx }) {
+  const [amountToSend, setAmountToSend] = useState("0");
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
+  const [approveButtonEnabled, setApproveButtonEnabled] = useState(false);
+
+  useEffect(() => {
+    const sendAmountBig = tokenState.decimals && parseUnits(amountToSend, tokenState.decimals);
+    setDepositButtonEnabled(
+      (sendAmountBig > 0) && (tokenState.allowance && tokenState.allowance.gte(sendAmountBig))
+    );
+    setApproveButtonEnabled(tokenState.allowance && tokenState.allowance.lt(sendAmountBig));
+  }, [amountToSend, tokenState.address, tokenState.allowance, tokenState.decimals])
 
   return (
     <div style={{ margin: 8 }}>
       <Row gutter={24} justify="center">
+
+        <Col span={8}>
+          <Button
+            onClick={() => {
+              if (amountToSend && amountToSend > 0 && tokenState.decimals) {
+                tokenTx("approve", contractState.address, parseUnits(amountToSend, tokenState.decimals));
+              }
+              setApproveButtonEnabled(false);
+            }}
+            type="primary"
+            size="large"
+            disabled={!approveButtonEnabled}
+            style={{ width: "100%", textAlign: "center" }}
+          >
+            {approveButtonEnabled ? `Approve ${amountToSend} ${tokenState.symbol}` : "Approved ✔️"}
+          </Button>
+
+        </Col>
 
         <Col span={8}>
           <Button
@@ -286,24 +336,23 @@ function DepositElement({ contractState, txFn, tokenState }) {
         <Col span={8}>
           <Input
             onChange={(e) => {
-              setAmountToSend(e.target.value);
-              setDepositButtonEnabled(parseFloat(e.target.value) > 0);
+              const newAmount = e.target.value;
+              setAmountToSend(newAmount);
             }}
             size="large"
             suffix={tokenState.symbol}
             style={{ width: "100%", textAlign: "center" }}
           />
         </Col>
-
-
+        
         <Modal
           title={`Confirm deposit of ${amountToSend} ${tokenState.symbol}`}
           okText="Confirm and commit"
           visible={depositModalVisible}
           onOk={() => {
             setDepositModalVisible(false);
-            if (amountToSend && amountToSend > 0) {
-              txFn("deposit", parseEther(amountToSend));
+            if (amountToSend && amountToSend > 0 && tokenState.decimals) {
+              contractTx("deposit", parseUnits(amountToSend, tokenState.decimals));
             }
           }}
           onCancel={() => setDepositModalVisible(false)}>
