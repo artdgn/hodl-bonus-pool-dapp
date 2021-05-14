@@ -8,7 +8,12 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract SomeToken is ERC20 {
-  constructor() ERC20("Some", "SOME") {
-    _mint(msg.sender, 10 * (10 ** 18));
+  constructor(
+    string memory name, 
+    string memory symbol, 
+    address recipient,
+    uint amount
+  ) ERC20(name, symbol) {
+    _mint(recipient, amount);
   }
 }

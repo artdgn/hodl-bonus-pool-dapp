@@ -52,7 +52,7 @@ const erc20Abi = [
 ];
 
 function useTokenState(contract, userAddress, spenderAddress) {
-  const [tokenState, setTokenState] = useState({
+  const emptyState = {
     tokenContract: contract,
     address: contract.address,
     decimals: undefined,
@@ -60,24 +60,41 @@ function useTokenState(contract, userAddress, spenderAddress) {
     symbol: undefined,
     balance: undefined,
     allowance: undefined,
-  });
+  }
+  const [tokenState, setTokenState] = useState(emptyState);
 
   useEffect(() => {
     const updateState = async () => {
       if (contract.address && contract) {
-        setTokenState({
-          tokenContract: contract,
-          address: contract.address,
-          decimals: await contract.decimals(),
-          name: await contract.name(),
-          symbol: await contract.symbol(),
-          balance: await contract.balanceOf(userAddress),
-          allowance: await contract.allowance(userAddress, spenderAddress),
-        });
+        try {
+          setTokenState({
+            tokenContract: contract,
+            address: contract.address,
+            decimals: await contract.decimals(),
+            name: await contract.name(),
+            symbol: await contract.symbol(),
+            balance: await contract.balanceOf(userAddress),
+            allowance: await contract.allowance(userAddress, spenderAddress),
+          });
+          if (tokenState.address && tokenState.address != contract.address) {
+            notification.open({
+              message: 'Switched token contract',
+              description:
+              `From ${tokenState.address} to ${contract.address}`,
+            });  
+          }
+        } catch (e) {
+          console.log(e);
+          notification.open({
+            message: 'Failed to read ERC20 contract',
+            description:
+            `${contract.address} is not a valid ERC20 contract address`,
+          });
+        }
       }
     }
     updateState();
-  }, [contract])
+  }, [contract, userAddress, spenderAddress])
 
   return tokenState;
 }
