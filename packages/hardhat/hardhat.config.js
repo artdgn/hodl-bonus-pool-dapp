@@ -20,14 +20,17 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-// const defaultNetwork = "localhost";
-const defaultNetwork = "kovan";
+const defaultNetwork = "localhost";
+// const defaultNetwork = "kovan";
 
 module.exports = {
 
   defaultNetwork,
 
-  contractName: "HodlPoolEthV0",  
+  // contractName: "HodlPoolEthV0",  
+  contractName: "HodlPoolERC20V0",  
+  tokenContractName: "SomeToken",  
+  wethContractName: "WETH",  
 
   deployArgs: {
     localhost: [100, 60], // for quick testing

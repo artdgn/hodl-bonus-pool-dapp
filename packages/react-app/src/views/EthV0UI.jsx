@@ -9,7 +9,7 @@ import ReactMarkdown from "react-markdown";
 import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone } from "@ant-design/icons";
 
 
-class ContractStateHooks {
+class HodlPoolEthV0StateHooks {
 
   constructor(readContracts, contractName, address) {
     this.balance = useContractReader(readContracts, contractName, "balanceOf", [address]);
@@ -36,7 +36,7 @@ class ContractStateHooks {
   }
 }
 
-export default function BasicUI(
+export function HodlPoolEthV0UI(
   { address, provider, blockExplorer, price, tx, readContracts, writeContracts, contractName }) {
 
   // contract is there
@@ -45,7 +45,7 @@ export default function BasicUI(
   const contractIsDeployed = useContractExistsAtAddress(provider, contractAddress);
 
   // contract state hooks
-  const contractState = new ContractStateHooks(readContracts, contractName, address);
+  const contractState = new HodlPoolEthV0StateHooks(readContracts, contractName, address);
 
   // events
   const depositedEvents = useEventListener(readContracts, contractName, "Deposited", provider, 1, [address]);

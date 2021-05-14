@@ -3,8 +3,6 @@ import usePoller from "./Poller";
 import useOnBlock from "./OnBlock";
 import { Provider } from "@ethersproject/providers";
 
-const DEBUG = false;
-
 /*
   ~ What it does? ~
 
@@ -23,7 +21,7 @@ const DEBUG = false;
   - Pass pollTime - if no pollTime is specified, the function will update on every new block
 */
 
-export default function useContractReader(contracts, contractName, functionName, args, pollTime, formatter, onChange) {
+export default function useContractReader(contract, functionName, args, pollTime, formatter, onChange) {
   let adjustPollTime = 0;
   if (pollTime) {
     adjustPollTime = pollTime;
@@ -42,13 +40,10 @@ export default function useContractReader(contracts, contractName, functionName,
   const updateValue = async () => {
     try {
       let newValue;
-      if (DEBUG) console.log("CALLING ", contractName, functionName, "with args", args);
       if (args && args.length > 0) {
-        newValue = await contracts[contractName][functionName](...args);
-        if (DEBUG)
-          console.log("contractName", contractName, "functionName", functionName, "args", args, "RESULT:", newValue);
+        newValue = await contract[functionName](...args);
       } else {
-        newValue = await contracts[contractName][functionName]();
+        newValue = await contract[functionName]();
       }
       if (formatter && typeof formatter === "function") {
         newValue = formatter(newValue);
@@ -62,22 +57,21 @@ export default function useContractReader(contracts, contractName, functionName,
     }
   }
 
-// Only pass a provider to watch on a block if we have a contract and no PollTime
+  // Only pass a provider to watch on a block if we have a contract and no PollTime
   useOnBlock(
-    (contracts && contracts[contractName] && adjustPollTime === 0)&&contracts[contractName].provider,
+    (contract && adjustPollTime === 0) && contract.provider,
     () => {
-    if (contracts && contracts[contractName] && adjustPollTime === 0) {
-      updateValue()
-  }
-  })
+      if (contract && adjustPollTime === 0) {
+        updateValue()
+      }
+    })
 
-// Use a poller if a pollTime is provided
-usePoller(async () => {
-  if (contracts && contracts[contractName] && adjustPollTime > 0) {
-    if (DEBUG) console.log('polling!', contractName, functionName)
-    updateValue()
-  }
-}, adjustPollTime, contracts && contracts[contractName])
+  // Use a poller if a pollTime is provided
+  usePoller(async () => {
+    if (contract && adjustPollTime > 0) {
+      updateValue()
+    }
+  }, adjustPollTime, contract)
 
   return value;
 }

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import "antd/dist/antd.css";
 import {  StaticJsonRpcProvider, JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, Menu, Alert, Switch as SwitchD, List, Divider } from "antd";
+import { Row, Col, Button, Menu, Alert, Switch as SwitchD, List, Divider} from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
@@ -11,9 +11,10 @@ import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useC
 import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address, Balance} from "./components";
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
-import { BasicUI} from "./views"
+import { HodlPoolERC20V1UI } from "./views"
 // import { Hints, ExampleUI, Subgraph } from "./views"
-import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS, contractName, defaultNetwork} from "./constants";
+import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS, contractName, defaultNetwork, tokenContractName} from "./constants";
+import { BrowserRouter, Link,  Route, Switch } from "react-router-dom";
 
 
 /// 📡 What chain are your contracts deployed to?
@@ -148,8 +149,71 @@ function App(props) {
 
       <Header />
       {networkDisplay}
+      <BrowserRouter>
+
+        <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
+          <Menu.Item key="/">
+            <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
+          </Menu.Item>
+          <Menu.Item key="/contract">
+            <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
+          </Menu.Item>
+          <Menu.Item key="/token">
+            <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
+          </Menu.Item>
+        </Menu>
+
+        <Switch>
+          <Route exact path="/">
+            <HodlPoolERC20V1UI
+              address={address}
+              tx={tx}
+              writeContracts={writeContracts}
+              readContracts={readContracts}
+              contractName={contractName}
+              provider={userProvider}
+              blockExplorer={blockExplorer}
+            />
+          </Route>
+
+          <Route exact path="/contract">            
+            <Contract
+              name={contractName}
+              signer={userProvider.getSigner()}
+              provider={localProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+            />
+            { /* Uncomment to display and interact with an external contract (DAI on mainnet):
+            <Contract
+              name="DAI"
+              customContract={mainnetDAIContract}
+              signer={userProvider.getSigner()}
+              provider={mainnetProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+            />
+            */ }
+          </Route>
+
+          <Route exact path="/token">            
+            <Contract
+              name={tokenContractName}
+              signer={userProvider.getSigner()}
+              provider={localProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+            />
+          </Route>
+
+        </Switch>
+
+      </BrowserRouter>
+
+      {/* <Header />
+      {networkDisplay}
       { wrongNetwork ? "" : 
-        <BasicUI
+        <HoldPoolEthV0UI
           address={address}
           price={price}
           tx={tx}
@@ -159,7 +223,7 @@ function App(props) {
           provider={localProvider}
           blockExplorer={blockExplorer}
         />
-      }
+      } */}
 
       <ThemeSwitch />
 

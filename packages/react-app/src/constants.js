@@ -23,10 +23,13 @@ export const NETWORK = (chainId)=>{
 }
 
 // default network to use
-export const defaultNetwork = "kovan";
+export const defaultNetwork = "localhost";
+// export const defaultNetwork = "kovan";
 
 // deployed contract
-export const contractName = "HodlPoolEthV0";
+// export const contractName = "HodlPoolEthV0";
+export const contractName = "HodlPoolERC20V0";
+export const tokenContractName = "SomeToken";
 
 export const NETWORKS = {
     localhost: {
@@ -49,7 +52,8 @@ export const NETWORKS = {
         chainId: 42,
         rpcUrl: `https://kovan.infura.io/v3/${INFURA_ID}`,
         blockExplorer: "https://kovan.etherscan.io/",
-        faucet: "https://gitter.im/kovan-testnet/faucet",//https://faucet.kovan.network/
+        faucet: "https://gitter.im/kovan-testnet/faucet", //https://faucet.kovan.network/
+        weth: "0xd0A1E359811322d97991E03f863a0C30C2cF029C"
     },
     rinkeby: {
         name: "rinkeby",

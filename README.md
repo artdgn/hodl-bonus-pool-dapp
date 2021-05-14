@@ -27,13 +27,13 @@
     - scope: fixed commitment params & bonus depends on ratio of current pool, only eth
     - deliver ✔️ repo ✔️, tests + CI ✔️, basic UI ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xaD00093d69829C61c952eF9A354B14D41F38BEA3#code) ✔️ and [frontend ✔️](https://hodl-pool-dapp-v0-kovan.surge.sh/)
     - stretch ⌛: erc20 support
-1. v0.5 (alpha):
+1. v1 (alpha):
     - goal: 🧠 better incentives mechanism, slightly more complex calc and interaction 
     - scope: fixed commitment params, bonus depends on time held, erc20 support
     - deliver: clear UI, FAQ, initial feedback, more testing on testnet
     - stretch: contract creation flow + contract
-1. v1 (beta): 🍕+🍔 flexible commitment params UI + calc, bonus depends on time held and commitment time
-1. v2: 🚢 single contract for all tokens?
+1. v2 (beta): 🍕+🍔 flexible commitment params UI + calc, bonus depends on time held and commitment time
+1. v3: 🚢 single contract for all tokens?
 
 ---
 

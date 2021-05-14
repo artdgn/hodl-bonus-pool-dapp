@@ -11,7 +11,12 @@ const main = async () => {
 
   const args = config.deployArgs[config.defaultNetwork]
 
-  const yourContract = await deploy(config.contractName, args) // <-- add in constructor args like line 19 vvvv
+  const tokenContract = await deploy(config.tokenContractName) 
+  await tokenContract.transfer("0x555cFBB56A31325de28054AC506898a5539C835f", await tokenContract.totalSupply());
+  
+  const wethContract = await deploy(config.wethContractName) 
+  
+  const yourContract = await deploy(config.contractName, [...args, tokenContract.address])
 
   // const yourContract = await ethers.getContractAt(config.contractName, "0xAd0019EACBbB1BC9dE70f25420c3aB96E4f09aec") //<-- if you want to instantiate a version of a contract at a specific address!
 
