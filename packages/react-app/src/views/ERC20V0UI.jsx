@@ -150,14 +150,6 @@ export function HodlPoolERC20V0UI(
         size="large"
         loading={!contractIsDeployed}
       >
-        {/* <Divider dashed>Swap</Divider>
-
-        <Swap
-          selectedProvider={provider}
-          contract={readContracts && readContracts[contractName]}
-          tokenState={tokenState}
-          address={address}
-        /> */}
         <Divider dashed>Token</Divider>
 
         <TokenControl tokenState={tokenState} addessUpdateFn={setTokenAddress} blockExplorer={blockExplorer}/>

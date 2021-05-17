@@ -2,12 +2,12 @@ const { ethers, network, config } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 
-const contractName = config.contractName;
+const contractName = "HodlPoolEthV0";
 
 use(solidity);
 
 describe(contractName, function () {
-
+  
   this.retries(3);  // some time dependant tests are flaky
   
   let contract;

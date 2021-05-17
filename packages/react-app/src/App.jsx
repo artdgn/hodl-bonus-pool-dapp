@@ -103,9 +103,9 @@ function App(props) {
         />
       </div>
       :
-      <h3 style={{zIndex:-1, position:'absolute', right:12,top:40,padding:16,color:targetNetwork.color}}>
+      <h4 style={{zIndex:-1, position:'absolute', right:12,top:40,padding:16,color:targetNetwork.color}}>
         {targetNetwork.name}
-      </h3>
+      </h4>
   )
 
   const loadWeb3Modal = useCallback(async () => {

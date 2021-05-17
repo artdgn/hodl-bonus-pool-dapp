@@ -25,15 +25,14 @@
 1. v0 ✔️ (PoC)
     - goal: 🚀 end-to-end bare skeleton first version deployed (to testnet). 
     - scope: fixed commitment params & bonus depends on ratio of current pool, only eth
-    - deliver ✔️ repo ✔️, tests + CI ✔️, basic UI ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xaD00093d69829C61c952eF9A354B14D41F38BEA3#code) ✔️ and [frontend ✔️](https://hodl-pool-dapp-v0-kovan.surge.sh/)
-    - stretch ⌛: erc20 support
+    - deliver ✔️ repo ✔️, tests + CI ✔️, basic UI ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xaD00093d69829C61c952eF9A354B14D41F38BEA3#code) ✔️ and [frontend (eth) ✔️](https://hodl-pool-dapp-v0-kovan.surge.sh/)
+    - stretch ✔️: erc20 support ✔️ (supporting a single token)
 1. v1 (alpha):
-    - goal: 🧠 better incentives mechanism, slightly more complex calc and interaction 
-    - scope: fixed commitment params, bonus depends on time held, erc20 support
+    - goal: 🧠 any ERC20 token, better incentives mechanism & slightly more complex calc and interaction 
+    - scope: fixed commitment params, bonus depends on time held, single contract for all tokens ⌛
     - deliver: clear UI, FAQ, initial feedback, more testing on testnet
-    - stretch: contract creation flow + contract
+    - stretch: handle ETH as WETH 
 1. v2 (beta): 🍕+🍔 flexible commitment params UI + calc, bonus depends on time held and commitment time
-1. v3: 🚢 single contract for all tokens?
 
 ---
 
