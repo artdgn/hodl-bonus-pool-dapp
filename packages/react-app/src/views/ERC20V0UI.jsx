@@ -5,13 +5,12 @@ import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer
 import { Address, Balance } from "../components";
 import { parseEther, formatEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { useContractExistsAtAddress, useContractReader, useEventListener, useExternalContractLoader, useOnBlock } from "../hooks";
+import { useContractExistsAtAddress, useContractReader, useEventListener, useExternalContractLoader, useOnBlock, usePoller } from "../hooks";
 import ReactMarkdown from "react-markdown";
 import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, SettingOutlined, RetweetOutlined, LoadingOutlined } from "@ant-design/icons";
 
 // swap imports
 import { ChainId, Token, WETH, Fetcher, Trade, TokenAmount, Percent } from '@uniswap/sdk'
-import { usePoller } from "eth-hooks";
 
 class HodlPoolERC20V0StateHooks {
 
@@ -63,41 +62,39 @@ function useTokenState(contract, userAddress, spenderAddress) {
   }
   const [tokenState, setTokenState] = useState(emptyState);
 
-  const updateFn = () => {
-    const updateState = async () => {
-      if (contract.address && contract) {
-        try {
-          setTokenState({
-            tokenContract: contract,
-            address: contract.address,
-            decimals: await contract.decimals(),
-            name: await contract.name(),
-            symbol: await contract.symbol(),
-            balance: await contract.balanceOf(userAddress),
-            allowance: await contract.allowance(userAddress, spenderAddress),
-          });
-          if (tokenState.address && tokenState.address != contract.address) {
-            notification.open({
-              message: 'Switched token contract',
-              description:
-              `From ${tokenState.address} to ${contract.address}`,
-            });  
-          }
-        } catch (e) {
-          console.log(e);
+  const updateValues = async () => {
+    if (contract.address && contract) {
+      try {
+        setTokenState({
+          tokenContract: contract,
+          address: contract.address,
+          decimals: await contract.decimals(),
+          name: await contract.name(),
+          symbol: await contract.symbol(),
+          balance: await contract.balanceOf(userAddress),
+          allowance: await contract.allowance(userAddress, spenderAddress),
+        });
+        if (tokenState.address && tokenState.address != contract.address) {
           notification.open({
-            message: 'Failed to read ERC20 contract',
+            message: 'Switched token contract',
             description:
-            `${contract.address} is not a valid ERC20 contract address`,
-          });
+            `From ${tokenState.address} to ${contract.address}`,
+          });  
         }
+      } catch (e) {
+        console.log(e);
+        notification.open({
+          message: 'Failed to read ERC20 contract',
+          description:
+          `${contract.address} is not a valid ERC20 contract address`,
+        });
       }
     }
-    updateState();
   }
 
-  useEffect(updateFn, [contract, userAddress, spenderAddress]);
-  usePoller(updateFn, 2000);
+  useEffect(() => { if (contract) updateValues() }, [contract]); 
+  
+  useOnBlock(contract && contract.provider, () => updateValues());
 
   return tokenState;
 }
@@ -122,26 +119,19 @@ export function HodlPoolERC20V0UI(
   { address, provider, blockExplorer, tx, readContracts, writeContracts, contractName }) {
 
   // contract is there
-  const contractAddress = readContracts && readContracts[contractName] ?
-    readContracts[contractName].address : "";
+  const contract = readContracts && readContracts[contractName];
+  const contractAddress = contract ? contract.address : "";
   const contractIsDeployed = useContractExistsAtAddress(provider, contractAddress);
-
+  
   // contract state hooks
-  const contractState = new HodlPoolERC20V0StateHooks(readContracts && readContracts[contractName], address);
-
-  // events
-  const depositedEvents = useEventListener(readContracts, contractName, "Deposited", provider, 1, [address]);
-  const withdrawedEvents = useEventListener(readContracts, contractName, "Withdrawed", provider, 1, [address]);
-  const allEvents = depositedEvents.concat(withdrawedEvents)
-    .sort((a, b) => b.blockNumber - a.blockNumber);
-
+  const contractState = new HodlPoolERC20V0StateHooks(contract, address);
   
   const [tokenAddress, setTokenAddress] = useState();
 
   useEffect(() => setTokenAddress(contractState.tokenAddress), [contractState.tokenAddress])
 
   const tokenContract = useContractAtAddress(tokenAddress, erc20Abi, provider);
-
+  
   const tokenState = useTokenState(tokenContract, address, contractAddress);
 
   // transaction callbacks
@@ -239,7 +229,7 @@ export function HodlPoolERC20V0UI(
 
       </Card>
 
-      <EventsList eventsArray={allEvents} />
+      <EventsList contract={contract} address={address} />
 
     </div>
   );
@@ -467,7 +457,14 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState }) {
   );
 }
 
-function EventsList({ eventsArray }) {
+function EventsList({ contract, address }) {
+  const depositedEvents = useEventListener(
+    contract, "Deposited", contract && contract.provider, 0, [address]);
+  const withdrawedEvents = useEventListener(
+    contract, "Withdrawed", contract && contract.provider, 0, [address]);
+  const allEvents = depositedEvents.concat(withdrawedEvents)
+    .sort((a, b) => b.blockNumber - a.blockNumber);
+
   return (
     <Card
       style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}
@@ -475,7 +472,7 @@ function EventsList({ eventsArray }) {
     >
       <List
         bordered
-        dataSource={eventsArray}
+        dataSource={allEvents}
         renderItem={(item) => {
           let eventText = "";
           if (item.eventName == "Deposited") {

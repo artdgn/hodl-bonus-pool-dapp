@@ -57,6 +57,11 @@ export default function useContractReader(contract, functionName, args, pollTime
     }
   }
 
+  // do once always on mount
+  useEffect(() => {
+    if (contract) updateValue()  
+  }, [contract]);
+
   // Only pass a provider to watch on a block if we have a contract and no PollTime
   useOnBlock(
     (contract && adjustPollTime === 0) && contract.provider,

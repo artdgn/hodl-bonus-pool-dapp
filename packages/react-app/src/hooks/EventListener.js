@@ -17,7 +17,7 @@ import { useState, useEffect } from "react";
   - Specify the provider 
 */
 
-export default function useEventListener(contracts, contractName, eventName, provider, startBlock, filterArgs) {
+export default function useEventListener(contract, eventName, provider, startBlock, filterArgs) {
   const [updates, setUpdates] = useState([]);
 
   filterArgs = filterArgs || [];
@@ -27,22 +27,22 @@ export default function useEventListener(contracts, contractName, eventName, pro
       // if you want to read _all_ events from your contracts, set this to the block number it is deployed
       provider.resetEventsBlock(startBlock);
     }
-    if (contracts && contractName && contracts[contractName]) {
+    if (contract) {
       try {
-        const eventFilter = contracts[contractName].filters[eventName](...filterArgs);
-        contracts[contractName].on(eventFilter, (...args) => {
+        const eventFilter = contract.filters[eventName](...filterArgs);
+        contract.on(eventFilter, (...args) => {
           let blockNumber = args[args.length-1].blockNumber
           let newMessage = Object.assign({blockNumber, eventName}, args.pop().args)
           setUpdates(messages => [...new Set([newMessage, ...messages])]);
         });
         return () => {
-          contracts[contractName].removeListener(eventName);
+          contract.removeListener(eventName);
         };
       } catch (e) {
         console.log(e);
       }
     }
-  }, [provider, startBlock, contracts, contractName, eventName, ...filterArgs]);
+  }, [provider, startBlock, contract, eventName, ...filterArgs]);
 
   return updates;
 }

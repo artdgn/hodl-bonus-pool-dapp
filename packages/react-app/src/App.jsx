@@ -7,7 +7,7 @@ import { Row, Col, Button, Menu, Alert, Switch as SwitchD, List, Divider} from "
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
-import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useContractReader, useEventListener, useBalance, useExternalContractLoader, useOnBlock } from "./hooks";
+import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useContractReader, useBalance, useExternalContractLoader, useOnBlock } from "./hooks";
 import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address, Balance} from "./components";
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
