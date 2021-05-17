@@ -1,13 +1,13 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer, Space, InputNumber, notification, Select, Descriptions, Tooltip } from "antd";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer, Space, InputNumber, notification, Select, Descriptions, Tooltip, Steps } from "antd";
 import { Address, Balance } from "../components";
 import { parseEther, formatEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
 import { useContractExistsAtAddress, useContractReader, useEventListener, useExternalContractLoader, useOnBlock } from "../hooks";
 import ReactMarkdown from "react-markdown";
-import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, SettingOutlined, RetweetOutlined } from "@ant-design/icons";
+import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, SettingOutlined, RetweetOutlined, LoadingOutlined } from "@ant-design/icons";
 
 // swap imports
 import { ChainId, Token, WETH, Fetcher, Trade, TokenAmount, Percent } from '@uniswap/sdk'
@@ -289,35 +289,59 @@ function DepositElement({ contractState, contractTx, tokenState, tokenTx }) {
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
   const [approveButtonEnabled, setApproveButtonEnabled] = useState(false);
+  const [approving, approvingSet] = useState(false);
+  const [depositting, deposittingSet] = useState(false);
 
   useEffect(() => {
     const sendAmountBig = tokenState.decimals && parseUnits(amountToSend, tokenState.decimals);
+    setApproveButtonEnabled(tokenState.allowance && tokenState.allowance.lt(sendAmountBig));
     setDepositButtonEnabled(
       (sendAmountBig > 0) && (tokenState.allowance && tokenState.allowance.gte(sendAmountBig))
     );
-    setApproveButtonEnabled(tokenState.allowance && tokenState.allowance.lt(sendAmountBig));
   }, [amountToSend, tokenState.address, tokenState.allowance, tokenState.decimals])
 
   return (
     <div style={{ margin: 8 }}>
+      <Row justify="center" style={{ margin: 12 }}>
+        <Col span={20}>
+          <Steps current={
+            (depositting || depositButtonEnabled) ? 2 : ((approving || approveButtonEnabled) ? 1 : 0)
+          } size="small">
+            <Steps.Step title="Set amount"/>
+            <Steps.Step title="Approve" icon={approving ? <LoadingOutlined /> : null}/>
+            <Steps.Step title="Deposit" icon={depositting ? <LoadingOutlined /> : null}/>
+          </Steps>
+        </Col>
+      </Row>
+
       <Row gutter={24} justify="center">
+        <Col span={8}>
+          <Input
+            onChange={(e) => {
+              setAmountToSend(parseFloat(e.target.value) > 0 ? e.target.value : "0");
+            }}
+            size="large"
+            suffix={tokenState.symbol}
+            style={{ width: "100%", textAlign: "center" }}
+          />
+        </Col>
 
         <Col span={8}>
           <Button
             onClick={() => {
+              approvingSet(true);
               if (amountToSend && amountToSend > 0 && tokenState.decimals) {
                 tokenTx("approve", contractState.address, parseUnits(amountToSend, tokenState.decimals));
               }
-              setApproveButtonEnabled(false);
+              setTimeout(()=>approvingSet(false), 1000);
             }}
             type="primary"
             size="large"
             disabled={!approveButtonEnabled}
             style={{ width: "100%", textAlign: "center" }}
           >
-            {approveButtonEnabled ? `Approve ${amountToSend} ${tokenState.symbol}` : "Approved ✔️"}
+            {approveButtonEnabled ? `Approve ${amountToSend} ${tokenState.symbol}` : "Approved"}
           </Button>
-
         </Col>
 
         <Col span={8}>
@@ -332,18 +356,6 @@ function DepositElement({ contractState, contractTx, tokenState, tokenTx }) {
               "Add to deposit" : "Make a deposit"}
           </Button>
         </Col>
-
-        <Col span={8}>
-          <Input
-            onChange={(e) => {
-              const newAmount = e.target.value;
-              setAmountToSend(newAmount);
-            }}
-            size="large"
-            suffix={tokenState.symbol}
-            style={{ width: "100%", textAlign: "center" }}
-          />
-        </Col>
         
         <Modal
           title={`Confirm deposit of ${amountToSend} ${tokenState.symbol}`}
@@ -351,9 +363,11 @@ function DepositElement({ contractState, contractTx, tokenState, tokenTx }) {
           visible={depositModalVisible}
           onOk={() => {
             setDepositModalVisible(false);
+            deposittingSet(true);
             if (amountToSend && amountToSend > 0 && tokenState.decimals) {
               contractTx("deposit", parseUnits(amountToSend, tokenState.decimals));
             }
+            setTimeout(()=>deposittingSet(false), 1000);
           }}
           onCancel={() => setDepositModalVisible(false)}>
           <h2>Commitment period: {contractState.commitString}</h2>
