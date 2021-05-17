@@ -1,1 +1,1 @@
-module.exports = ["HodlPoolERC20V0","HodlPoolEthV0","SomeToken","WETH"];
+module.exports = ["HodlPoolERC20V0","HodlPoolEthV0","HodlPoolV1","SomeToken","WETH"];

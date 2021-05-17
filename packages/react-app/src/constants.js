@@ -28,7 +28,8 @@ export const defaultNetwork = "localhost";
 
 // deployed contract
 // export const contractName = "HodlPoolEthV0";
-export const contractName = "HodlPoolERC20V0";
+// export const contractName = "HodlPoolERC20V0";
+export const contractName = "HodlPoolV1";
 export const tokenContractName = "SomeToken";
 
 export const NETWORKS = {

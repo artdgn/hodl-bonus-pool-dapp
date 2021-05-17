@@ -28,7 +28,8 @@ module.exports = {
   defaultNetwork,
 
   // contractName: "HodlPoolEthV0",  
-  contractName: "HodlPoolERC20V0",  
+  // contractName: "HodlPoolERC20V0",  
+  contractName: "HodlPoolV1",  
   tokenContractName: "SomeToken",  
   wethContractName: "WETH",  
 
