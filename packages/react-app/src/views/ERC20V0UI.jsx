@@ -397,7 +397,8 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState }) {
 
       <Modal
         title={`Confirm withdrawal of 
-                ${formatEther("" + contractState.withdrawWithPenalty)} 
+                ${tokenState.decimals && 
+                  formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)} 
                 ${tokenState.symbol} with penalty`}
         okText="Withdraw with penalty"
         visible={penaltyModalVisible}
@@ -407,15 +408,17 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState }) {
           txFn("withdrawWithPenalty");
         }}
         onCancel={() => setPenaltyModalVisible(false)}>
-        <h2>Withdraw {formatEther("" + contractState.withdrawWithPenalty)} {tokenState.symbol} out of
-            deposited {(formatEther(contractState.balance || "0").toString())} due
-            to {formatEther((contractState.penalty || "0").toString())} penalty.</h2>
+        <h2>Withdraw&nbsp;
+          {formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)}&nbsp;
+          {tokenState.symbol} out of deposited&nbsp;
+          {formatUnits(contractState.balance, tokenState.decimals)} due to&nbsp;
+          {formatUnits(contractState.penalty, tokenState.decimals)} penalty.</h2>
         <h2>
           <WarningTwoTone twoToneColor="red" /> Wait until end of commitment period
           ({contractState.timeLeftString})
           to withdraw full deposit + any bonus share!
-          {contractState.bonus ?
-            ` Current bonus share ${formatEther("" + (contractState.bonus || "0"))} 
+          {contractState.bonus && contractState.bonus.gt(0) ?
+            ` Current bonus share ${formatUnits(contractState.bonus, tokenState.decimals)} 
             ${tokenState.symbol}.` : ""}
         </h2>
       </Modal>
@@ -438,8 +441,9 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState }) {
       </Button>
 
       <Modal
-        title={`Confirm withdrawal of ${formatEther("" + contractState.withdrawWithBonus)} 
-                ${tokenState.symbol}`}
+        title={`Confirm withdrawal of 
+              ${formatUnits("" + contractState.withdrawWithBonus, tokenState.decimals)} 
+              ${tokenState.symbol}`}
         okText="Withdraw"
         visible={bonusModalVisible}
         onOk={() => {
@@ -448,13 +452,15 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState }) {
         }}
         onCancel={() => setBonusModalVisible(false)}>
         <h2>
-          Withdraw {formatEther("" + contractState.withdrawWithBonus)}
-          {tokenState.symbol} out of
-          deposited {formatEther("" + (contractState.balance || "0"))} {tokenState.symbol}
-          {contractState.bonus ?
-            ` with ${formatEther("" + (contractState.bonus || "0"))} ${tokenState.symbol} bonus!` : ""}
+          Withdraw&nbsp;
+          {formatUnits("" + contractState.withdrawWithBonus, tokenState.decimals)}&nbsp;
+          {tokenState.symbol} out of deposited&nbsp;
+          {formatUnits(contractState.balance, tokenState.decimals)} {tokenState.symbol}
+          {contractState.bonus && contractState.bonus.gt(0) ?
+            ` with ${formatUnits(contractState.bonus, tokenState.decimals)} 
+            ${tokenState.symbol} bonus!` : "."}
         </h2>
-        <h2>⚠️ Waiting for longer may increase available bonus</h2>
+        <h2>⚠️ Waiting for longer may increase available bonus.</h2>
       </Modal>
 
     </div>
