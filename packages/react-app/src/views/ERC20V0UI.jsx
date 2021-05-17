@@ -9,9 +9,6 @@ import { useContractExistsAtAddress, useContractReader, useEventListener, useExt
 import ReactMarkdown from "react-markdown";
 import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, SettingOutlined, RetweetOutlined, LoadingOutlined } from "@ant-design/icons";
 
-// swap imports
-import { ChainId, Token, WETH, Fetcher, Trade, TokenAmount, Percent } from '@uniswap/sdk'
-
 class HodlPoolERC20V0StateHooks {
 
   constructor(contract, address) {
@@ -145,6 +142,14 @@ export function HodlPoolERC20V0UI(
         title={
           <div>
             <h2>{contractName}</h2>
+            <Row gutter={24} justify="center">
+            <Col span={10}>
+              <MotivationButton/>
+            </Col>
+            <Col span={10}>
+              <RulesButton/>
+            </Col>
+          </Row>
           </div>
         }
         size="large"
@@ -256,11 +261,12 @@ function TokenControl({tokenState, addessUpdateFn, blockExplorer}) {
 
       </Space>
 
-      <Input
+      
+      {/* <Input
         defaultValue={tokenState.address}
         prefix="Switch token: "
         onPressEnter={e => addessUpdateFn(e.target.value)}>
-      </Input>
+      </Input> */}
 
     </Space>
   )
@@ -490,234 +496,79 @@ function EventsList({ contract, address }) {
     </Card>);
 }
 
-
-const makeCall = async (callName, contract, args, metadata = {}) => {
-  if (contract[callName]) {
-    let result
-    if (args) {
-      result = await contract[callName](...args, metadata)
-    } else {
-      result = await contract[callName]()
-    }
-    return result
-  } else {
-    console.log('no call of that name!')
-  }
+function RulesButton() {
+  const markdown = `
+## Pool Rules
+### TL;DR: 1. Deposit and don't withdraw early 💎✊. 2. Get bonus if other people withdraw early 🤑.
+- Depositor commits for a "commitment period", after which the deposit 
+can be withdrawn with any bonus share.
+- The bonus pool share is equal to the share of the deposit from all deposits
+at the time of withdrawal. E.g. if when you withdraw, the bonus pool is 2 Token, 
+total deposits are 10 Token, and your deposit is 1 Token - you get 
+0.2 Token ( = 2 * (1 / 10)) as bonus.
+- Bonus pool is collected from penalties paid by early withdrawals 
+(withdrawals before the commitment period).
+- Withdrawal before commitment period is does not get any bonus. 
+Instead, it is "slashed" with a penalty (that is added to the bonus pool).  
+- The penalty percent is decreasing linearly with time from 
+"initialPenaltyPercent" to 0 (for the duration of the commitPeriod). 
+E.g. if initialPenaltyPercent was 10%, and you withdraw after half the 
+commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
+- Any additional deposits are added to current deposit, and "reset" the
+  commitment period required to wait.`
+  
+  return <MarkdownDrawerButton 
+    markdown={markdown} 
+    title={<div><InfoCircleTwoTone /> Show rules</div>}
+  />
 }
 
+function MotivationButton() {
+    const markdown = `
+### 💡 The idea: "Strong 💎 hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
 
+### ❔ Why this may be a good idea:
+1. **Price effects** - like "staking", but without the inflation:
+    - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
+    - Raises the price by reducing amount in circulation 📥.
+    - Builds trust in the asset by proving an amount commited to be held 💍.
+1. **Social / network effects** - like "time lock", but with an incentive to participate:
+    - Makes HODLing provable and shareable 🐦 .
+    - Increases trust in the community's / project team's long term commitment, provides a social incentive to demonstrate "skin in the game" 🙋‍♀️ .
+1. **Yield generating** - like AMMs LP or lending, but without AMM's impermanent loss and doesn't depend on borrowing demand:
+    - Vs. liquidity providing in AMMs: no dependence on trading volume, no exposure to additional assets, no bleeding value to arbitrageurs (~~not-so~~""impermanent"" loss) 🩸.
+    - Vs. lending: earns yield on tokens that don't have a borrowing market with high interest rates 🔄 (or any borrowing market).
+1. **Volatility bonus** - market volatility causes higher bonuses:
+    - Asset price "moons" 🥳 - more "weak hands" will withdraw early to take profits, increasing the bonus 💸.
+    - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.`
+    
+      return <MarkdownDrawerButton 
+      markdown={markdown} 
+      title={<div><QuestionCircleTwoTone /> Show motivation </div>}
+    />
+}
 
-const tokenListToObject = (array) =>
-  array.reduce((obj, item) => {
-    obj[item.symbol] = new Token(item.chainId, item.address, item.decimals, item.symbol, item.name)
-    return obj
-  }, {})
-
-function Swap({ address, selectedProvider, contract, tokenState }) {
-
-  const [tokenIn, setTokenIn] = useState()
-  const [amountIn, setAmountIn] = useState()
-  const [routerAllowance, setRouterAllowance] = useState()
-  const [balanceIn, setBalanceIn] = useState()
-
-  const [tokenList, setTokenList] = useState([])
-  const [tokens, setTokens] = useState()
-
-  let signer = selectedProvider.getSigner()
-  let routerContract = contract.connect(signer);
-
-  let _tokenListUri = 'https://gateway.ipfs.io/ipns/tokens.uniswap.org'
-
-  const activeChainId = (process.env.REACT_APP_NETWORK === 'kovan' ? ChainId.KOVAN : ChainId.MAINNET)
-
-  useEffect(() => {
-    const getTokenList = async () => {
-      console.log(_tokenListUri)
-      try {
-        let tokenList = await fetch(_tokenListUri)
-        let tokenListJson = await tokenList.json()
-        let filteredTokens = tokenListJson.tokens.filter(function (t) {
-          return t.chainId === activeChainId
-        })
-
-        let someToken = {
-          name: tokenState.name,
-          symbol: tokenState.symbol,
-          address: tokenState.address,
-          chainId: activeChainId,
-          decimals: tokenState.decimals,
-        }
-
-        let ethToken = WETH[activeChainId]
-        ethToken.name = 'Ethereum'
-        ethToken.symbol = 'ETH'
-        let _tokenList = [someToken, ethToken, ...filteredTokens]
-        setTokenList(_tokenList)
-        let _tokens = tokenListToObject(_tokenList)
-        setTokens(_tokens)
-      } catch (e) {
-        console.log(e)
-      }
-    }
-    getTokenList()
-  }, [tokenState.address, tokenState.name, tokenState.symbol, tokenState.decimals])
-
-  const getBalance = async (_token, _account, _contract) => {
-
-    let newBalance
-    if (_token === 'ETH') {
-      newBalance = await selectedProvider.getBalance(_account)
-    } else {
-      newBalance = await makeCall('balanceOf', _contract, [_account])
-    }
-    return newBalance
-  }
-
-  const getAccountInfo = async () => {
-
-    if (tokens) {
-
-      if (tokenIn) {
-        let tempContractIn = new ethers.Contract(tokens[tokenIn].address, erc20Abi, selectedProvider);
-        let newBalanceIn = await getBalance(tokenIn, address, tempContractIn)
-        setBalanceIn(newBalanceIn)
-
-        let allowance
-
-        if (tokenIn === 'ETH') {
-          setRouterAllowance()
-        } else {
-          allowance = await makeCall('allowance', tempContractIn, [address, contract.address])
-          setRouterAllowance(allowance)
-        }
-      }
-    }
-  }
-
-  usePoller(getAccountInfo, 2000)
-
-  const updateRouterAllowance = async (newAllowance) => {
-    try {
-      let tempContract = new ethers.Contract(tokens[tokenIn].address, erc20Abi, signer);
-      console.log(signer)
-      let result = await makeCall('approve', tempContract, [contract.address, newAllowance])
-      console.log(result)
-      return true
-    } catch (e) {
-      notification.open({
-        message: 'Approval unsuccessful',
-        description:
-          `Error: ${e.message}`,
-      });
-    }
-  }
-
-  const approveRouter = async () => {
-    let approvalAmount = ethers.utils.hexlify(parseUnits(amountIn.toString(), tokens[tokenIn].decimals));
-    console.log(approvalAmount)
-    let approval = updateRouterAllowance(approvalAmount)
-    if (approval) {
-      notification.open({
-        message: 'Token transfer approved',
-        description:
-          `You can now swap up to ${amountIn} ${tokenIn}`,
-      });
-    }
-  }
-
-  const executeSwap = async () => {
-    let args
-    let metadata = {}
-    let call
-
-    let _amountIn = ethers.utils.hexlify(parseUnits(amountIn.toString(), tokens[tokenIn].decimals))
-    if (tokenIn === 'ETH') {
-      call = 'depositETH';
-      args = []
-      metadata['value'] = _amountIn
-    } else {
-      call = 'deposit';
-      args = [_amountIn]
-    }
-    console.log(call, args, metadata)
-    let result = await makeCall(call, routerContract, args, metadata)
-  }
-
-  let insufficientBalance = balanceIn ? parseFloat(formatUnits(balanceIn, tokens[tokenIn].decimals)) < amountIn : null
-  let inputIsToken = tokenIn !== 'ETH'
-  let insufficientAllowance = !inputIsToken ? false : routerAllowance ?
-    parseFloat(formatUnits(routerAllowance, tokens[tokenIn].decimals)) < amountIn : null
-  let formattedBalanceIn = balanceIn ? parseFloat(formatUnits(balanceIn, tokens[tokenIn].decimals)).toPrecision(6) : null
-
-  let metaIn = tokens && tokenList && tokenIn ? tokenList.filter(function (t) {
-    return t.address === tokens[tokenIn].address
-  })[0] : null
-
-  const cleanIpfsURI = (uri) => {
-    try {
-      return uri ? (uri).replace('ipfs://', 'https://ipfs.io/ipfs/') : uri
-    } catch (e) {
-      console.log(e, uri)
-      return uri
-    }
-  }
-
-  let logoIn = metaIn ? cleanIpfsURI(metaIn.logoURI) : null
+function MarkdownDrawerButton({title, markdown}) {
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   return (
     <div>
-      <Space direction="vertical">
-        <Row justify="center" align="middle">
-          <Card
-            size="small" type="inner"
-            title={`Deposit ${tokenState.symbol} token`}
-            extra={
-              <><img src={logoIn} alt={tokenIn} width='30' />
-                <Button type="link" onClick={() => {
-                  setAmountIn(formatUnits(balanceIn, tokens[tokenIn].decimals))
-                }}>{formattedBalanceIn}
-                </Button></>}
-            style={{ width: 400, textAlign: 'left' }}>
-            <InputNumber style={{ width: '160px' }} min={0} size={'large'} value={amountIn} onChange={(e) => {
-              setAmountIn(e)
-            }} />
-            <Select
-              showSearch value={tokenIn} style={{ width: '120px' }} size={'large'}
-              bordered={true}
-              value={tokenState.symbol}
-              onChange={(value) => {
-                console.log(value)
-                setTokenIn(value)
-                setAmountIn()
-                setBalanceIn()
-              }}
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-              optionFilterProp="children">
-              {tokenList.map(token => (
-                <Select.Option key={token.symbol} value={token.symbol}>{token.symbol}</Select.Option>
-              ))}
-            </Select>
-          </Card>
-        </Row>
+      <Button 
+        onClick={()=>setDrawerVisible(true)}
+        size="large"
+        style={{fontSize: 20}}
+        >{title}</Button>
 
-        <Row justify="center" align="middle">
-          <Space>
-            {inputIsToken ?
-              <Button size="large" disabled={!insufficientAllowance}
-                onClick={approveRouter}>
-                {(!insufficientAllowance && amountIn) ? 'Approved' : 'Approve'}
-              </Button>
-              : null}
-            <Button size="large" disabled={insufficientAllowance || insufficientBalance || !amountIn}
-              onClick={executeSwap}>
-              {insufficientBalance ? 'Insufficient balance' : 'Swap!'}
-            </Button>
-          </Space>
-        </Row>
-      </Space>
+      <Drawer
+        placement="bottom"
+        height="50%"
+        closable={false}
+        onClose={()=>setDrawerVisible(false)}
+        visible={drawerVisible}>
+          <Typography style={{textAlign: "left"}}>
+            <ReactMarkdown children={markdown}/>
+          </Typography>
+      </Drawer>
     </div>
-  )
-
+  );
 }
