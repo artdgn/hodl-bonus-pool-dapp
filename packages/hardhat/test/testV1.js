@@ -91,6 +91,12 @@ describe(contractName, function () {
       addr1TokenCaller = deployedToken.connect(addr1);
     });
 
+    it("fails on non-token address", async function () {
+      expect(
+        addr1Caller.deposit(ethers.constants.AddressZero, 1000))
+        .to.revertedWith("non-contract");
+    });
+
     it("can't deposit more than token balance", async function () {
       expect(
         addr1Caller.deposit(deployedToken.address, parseUnits("1.001", 18)))
@@ -151,6 +157,39 @@ describe(contractName, function () {
       expect(depositTwice.lastEvent.sender).to.equal(addr1.address);
       expect(depositTwice.lastEvent.amount).to.equal(tx);
       expect(depositTwice.lastEvent.time).to.equal(blockTimestamp);
+    });
+
+    it("can deposit different tokens", async function () {
+      // deploy second token
+      tokenContract2 = await ethers.getContractFactory(tokenContractName);
+      deployedToken2 = await tokenContract2.deploy(
+        "Token2", "TK2", addr1.address, parseUnits("2", 18));
+      addr1Token2Caller = deployedToken2.connect(addr1);
+
+      const tx = 1000;
+      // approve tokens
+      await addr1TokenCaller.approve(deployed.address, tx);
+      await addr1Token2Caller.approve(deployed.address, tx);
+
+      // make deposits
+      await addr1Caller.deposit(deployedToken.address, tx);
+      await addr1Caller.deposit(deployedToken2.address, tx);
+
+      // check balanceOf()
+      expect(await deployed.balanceOf(deployedToken.address, addr1.address))
+        .to.equal(tx);
+      expect(await deployed.balanceOf(deployedToken2.address, addr1.address))
+        .to.equal(tx);
+
+      // check depositsSum
+      expect(await deployed.depositsSum(deployedToken.address))
+        .to.equal(tx);
+      expect(await deployed.depositsSum(deployedToken2.address))
+        .to.equal(tx);
+
+      // check contract token balance
+      expect(await deployedToken.balanceOf(deployed.address)).to.equal(tx);
+      expect(await deployedToken2.balanceOf(deployed.address)).to.equal(tx);      
     });
 
     it("smaller initial penalty accounting", async function () {
