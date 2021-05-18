@@ -18,7 +18,7 @@ const main = async () => {
   const token2 = await deploy(config.tokenContractName, ["Token2", "TK2", address, parseUnits("2", 18)]);  
   const wethContract = await deploy(config.wethContractName) 
   
-  const yourContract = await deploy(config.contractName, [...args])
+  const yourContract = await deploy(config.contractName, [...args, wethContract.address])
 
   // const yourContract = await ethers.getContractAt(config.contractName, "0xAd0019EACBbB1BC9dE70f25420c3aB96E4f09aec") //<-- if you want to instantiate a version of a contract at a specific address!
 
