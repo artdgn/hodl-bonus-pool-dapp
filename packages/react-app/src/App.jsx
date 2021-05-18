@@ -11,7 +11,7 @@ import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useC
 import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address, Balance} from "./components";
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
-import { HodlPoolERC20V0UI } from "./views"
+import { HodlPoolV1UI } from "./views"
 // import { Hints, ExampleUI, Subgraph } from "./views"
 import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS, contractName, defaultNetwork, tokenContractName} from "./constants";
 import { BrowserRouter, Link,  Route, Switch } from "react-router-dom";
@@ -165,7 +165,7 @@ function App(props) {
 
         <Switch>
           <Route exact path="/">
-            <HodlPoolERC20V0UI
+            <HodlPoolV1UI
               address={address}
               tx={tx}
               writeContracts={writeContracts}
