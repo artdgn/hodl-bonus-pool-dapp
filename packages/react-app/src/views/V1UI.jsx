@@ -15,8 +15,10 @@ import { ChainId, Token, WETH, Fetcher, Trade, TokenAmount, Percent } from '@uni
 class HodlPoolV1StateHooks {
 
   constructor(contract, address, tokenAddress) {
+    tokenAddress = tokenAddress || ethers.constants.AddressZero;
     this.address = contract && contract.address;
     this.tokenAddress = tokenAddress;
+    this.WETHAddress = useContractReader(contract, "WETH");
     this.balance = useContractReader(contract, "balanceOf", [tokenAddress, address]);
     this.bonus = useContractReader(contract, "bonusOf", [tokenAddress, address]);
     this.penalty = useContractReader(contract, "penaltyOf", [tokenAddress, address]);
@@ -124,18 +126,30 @@ export function HodlPoolV1UI(
   const contractIsDeployed = useContractExistsAtAddress(provider, contractAddress);
     
   // token contract state hooks
+  const [tokenChoice, setTokenChoice] = useState("");
+  const [ethMode, ethModeSet] = useState(true);
   const [tokenAddress, setTokenAddress] = useState();
+  
+  // contract state hooks
+  const contractState = new HodlPoolV1StateHooks(contract, address, tokenAddress);
+
   const tokenContract = useContractAtAddress(tokenAddress, erc20Abi, provider);  
   const tokenState = useTokenState(tokenContract, address, contractAddress);
 
-  // contract state hooks
-  const contractState = new HodlPoolV1StateHooks(contract, address, tokenAddress);
+  useEffect(() => {
+    const normChoice = (tokenChoice || "").toLowerCase();
+    setTokenAddress(
+      ["weth", "eth", ""].includes(normChoice) ? contractState.WETHAddress : tokenChoice);
+    ethModeSet(["eth", ""].includes(normChoice));
+  }, [tokenChoice, contractState.WETHAddress])
 
   // transaction wrappers
   const contractTx = (method, ...args) => 
     tx(writeContracts[contractName][method](...args));
   const tokenTx = (method, ...args) => 
     tx(tokenContract.connect(provider.getSigner())[method](...args));
+
+  const symbol = ethMode ? "ETH" : tokenState.symbol;
 
   return (
     <div>
@@ -149,27 +163,39 @@ export function HodlPoolV1UI(
         size="large"
         loading={!contractIsDeployed}
       >
-        <Divider dashed>Token</Divider>
+        <Divider dashed>Token Choice</Divider>
 
         <TokenControl 
           tokenState={tokenState} 
-          addessUpdateFn={setTokenAddress} 
+          addessUpdateFn={setTokenChoice} 
           blockExplorer={blockExplorer}
+          ethMode={ethMode}
+          address={address} 
+          provider={provider}
         />
 
         <Divider dashed>Deposit</Divider>
         
-        <DepositElement 
-          contractState={contractState} 
-          contractTx={contractTx} 
-          tokenTx={tokenTx} 
-          tokenState={tokenState} 
-        />
+        {ethMode ? 
+          <DepositElementETH 
+            contractState={contractState} 
+            contractTx={contractTx} 
+          />
+        :
+          <DepositElementToken 
+            contractState={contractState} 
+            contractTx={contractTx} 
+            tokenTx={tokenTx} 
+            tokenState={tokenState} 
+            ethMode={ethMode}
+          />
+        }
+        
 
         <Divider dashed>Withdraw</Divider>
 
         <h2>Current deposit:
-            <Balance balance={contractState.balance} symbol={tokenState.symbol} size="20" />
+            <Balance balance={contractState.balance} symbol={symbol} size="20" />
         </h2>
 
         {(contractState.balance && contractState.balance.gt(0)) ? (
@@ -177,17 +203,17 @@ export function HodlPoolV1UI(
             <h2>Time left to hold: {contractState.timeLeftString}</h2>
 
             <h2>Current penalty:
-                <Balance balance={contractState.penalty} symbol={tokenState.symbol} size="20" />
+                <Balance balance={contractState.penalty} symbol={symbol} size="20" />
             </h2>
 
             <h2>Current bonus:
-                <Balance balance={contractState.bonus} symbol={tokenState.symbol} size="20" />
+                <Balance balance={contractState.bonus} symbol={symbol} size="20" />
             </h2>
 
             <h2>Available to withdraw:
                 <Balance
                   balance={"" + (contractState.withdrawWithBonus || contractState.withdrawWithPenalty)}
-                  symbol={tokenState.symbol}
+                  symbol={symbol}
                   size="20" />
             </h2>
 
@@ -195,14 +221,18 @@ export function HodlPoolV1UI(
               <WithdrawWithBonusButton
                 contractState={contractState}
                 txFn={contractTx}
-                tokenState={tokenState} />
+                tokenState={tokenState} 
+                ethMode={ethMode}
+              />
               : ""}
 
             {contractState.withdrawWithPenalty > 0 ?
               <WithdrawWithPenaltyButton
                 contractState={contractState}
                 txFn={contractTx}
-                tokenState={tokenState} />
+                tokenState={tokenState} 
+                ethMode={ethMode}
+              />
               : ""}
 
           </div>
@@ -215,11 +245,11 @@ export function HodlPoolV1UI(
         </h2>
 
         <h2>Total deposits in pool:
-            <Balance balance={contractState.depositsSum} symbol={tokenState.symbol} size="20" />
+            <Balance balance={contractState.depositsSum} symbol={symbol} size="20" />
         </h2>
 
         <h2>Total bonus in pool:
-            <Balance balance={contractState.bonusesPool} symbol={tokenState.symbol} size="20" />
+            <Balance balance={contractState.bonusesPool} symbol={symbol} size="20" />
         </h2>
 
         <h2>Commitment period: {contractState.commitString}</h2>
@@ -235,12 +265,16 @@ export function HodlPoolV1UI(
   );
 }
 
-function TokenControl({tokenState, addessUpdateFn, blockExplorer}) {
+function TokenControl({tokenState, addessUpdateFn, blockExplorer, ethMode, address, provider}) {
   return (
     <Space direction="vertical">
-
+      {ethMode ? 
+        <Space align="center" direction="vertical">
+          <h3>Wallet balance</h3>
+          <Balance address={address} provider={provider} size="20"/>
+        </Space>
+      :
       <Space size="large" align="start">
-
         <Space align="center" direction="vertical">
           <h3>Wallet balance</h3>
           <Balance
@@ -261,8 +295,8 @@ function TokenControl({tokenState, addessUpdateFn, blockExplorer}) {
           <h3>Token address</h3>
           <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
         </Space>
-
       </Space>
+      }
 
       <Input
         defaultValue={tokenState.address}
@@ -274,7 +308,7 @@ function TokenControl({tokenState, addessUpdateFn, blockExplorer}) {
   )
 }
 
-function DepositElement({ contractState, contractTx, tokenState, tokenTx }) {
+function DepositElementToken({ contractState, contractTx, tokenState, tokenTx }) {
   const [amountToSend, setAmountToSend] = useState("0");
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
@@ -377,8 +411,80 @@ function DepositElement({ contractState, contractTx, tokenState, tokenTx }) {
     </div>)
 }
 
-function WithdrawWithPenaltyButton({ contractState, txFn, tokenState }) {
+function DepositElementETH({ contractState, contractTx }) {
+  const [amountToSend, setAmountToSend] = useState("0");
+  const [depositModalVisible, setDepositModalVisible] = useState(false);
+  const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
+  const [depositting, deposittingSet] = useState(false);
+
+  useEffect(() => {
+    const sendAmountBig = parseEther(amountToSend);
+    setDepositButtonEnabled(sendAmountBig > 0);
+  }, [amountToSend])
+
+  return (
+    <div style={{ margin: 8 }}>
+      <Row justify="center" style={{ margin: 12 }}>
+        <Col span={12}>
+          <Steps current={ (depositting || depositButtonEnabled) ? 1 : 0 } size="small">
+            <Steps.Step title="Set amount"/>
+            <Steps.Step title="Deposit" icon={depositting ? <LoadingOutlined /> : null}/>
+          </Steps>
+        </Col>
+      </Row>
+
+      <Row gutter={24} justify="center">
+        <Col span={8}>
+          <Input
+            onChange={(e) => {
+              setAmountToSend(parseFloat(e.target.value) > 0 ? e.target.value : "0");
+            }}
+            size="large"
+            suffix="ETH"
+            style={{ width: "100%", textAlign: "center" }}
+          />
+        </Col>
+
+        <Col span={8}>
+          <Button
+            onClick={() => setDepositModalVisible(true)}
+            type="primary"
+            size="large"
+            disabled={!depositButtonEnabled}
+            style={{ width: "100%", textAlign: "center" }}
+          >
+            {contractState.balance && contractState.balance.gt(0) ?
+              "Add to deposit" : "Make a deposit"}
+          </Button>
+        </Col>
+        
+        <Modal
+          title={`Confirm deposit of ${amountToSend} ETH`}
+          okText="Confirm and commit"
+          visible={depositModalVisible}
+          onOk={() => {
+            setDepositModalVisible(false);
+            deposittingSet(true);
+            if (amountToSend && amountToSend > 0) {
+              contractTx("depositETH", {value: parseEther(amountToSend)});
+            }
+            setTimeout(()=>deposittingSet(false), 1000);
+          }}
+          onCancel={() => setDepositModalVisible(false)}>
+          <h2>Commitment period: {contractState.commitString}</h2>
+          <Divider />
+          <h2>
+            <WarningTwoTone twoToneColor="red" /> Withdrawing without
+            penalty before that time won't be possible!!</h2>
+        </Modal>
+
+      </Row>
+    </div>)
+}
+
+function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode }) {
   const [penaltyModalVisible, setPenaltyModalVisible] = useState(false);
+  const symbol = ethMode ? "ETH" : tokenState.symbol;
   return (
     <div>
 
@@ -395,18 +501,22 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState }) {
         title={`Confirm withdrawal of 
                 ${tokenState.decimals && 
                   formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)} 
-                ${tokenState.symbol} with penalty`}
+                ${symbol} with penalty`}
         okText="Withdraw with penalty"
         visible={penaltyModalVisible}
         okButtonProps={{ danger: true }}
         onOk={() => {
           setPenaltyModalVisible(false);
-          txFn("withdrawWithPenalty", tokenState.address);
+          if (ethMode) {
+            txFn("withdrawWithPenaltyETH");  
+          } else {
+            txFn("withdrawWithPenalty", tokenState.address);
+          }
         }}
         onCancel={() => setPenaltyModalVisible(false)}>
         <h2>Withdraw&nbsp;
           {formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)}&nbsp;
-          {tokenState.symbol} out of deposited&nbsp;
+          {symbol} out of deposited&nbsp;
           {formatUnits(contractState.balance, tokenState.decimals)} due to&nbsp;
           {formatUnits(contractState.penalty, tokenState.decimals)} penalty.</h2>
         <h2>
@@ -415,7 +525,7 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState }) {
           to withdraw full deposit + any bonus share!
           {contractState.bonus && contractState.bonus.gt(0) ?
             ` Current bonus share ${formatUnits(contractState.bonus, tokenState.decimals)} 
-            ${tokenState.symbol}.` : ""}
+            ${symbol}.` : ""}
         </h2>
       </Modal>
 
@@ -423,8 +533,9 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState }) {
   );
 }
 
-function WithdrawWithBonusButton({ contractState, txFn, tokenState }) {
+function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
   const [bonusModalVisible, setBonusModalVisible] = useState(false);
+  const symbol = ethMode ? "ETH" : tokenState.symbol;
   return (
     <div>
 
@@ -439,22 +550,26 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState }) {
       <Modal
         title={`Confirm withdrawal of 
               ${formatUnits("" + contractState.withdrawWithBonus, tokenState.decimals)} 
-              ${tokenState.symbol}`}
+              ${symbol}`}
         okText="Withdraw"
         visible={bonusModalVisible}
         onOk={() => {
           setBonusModalVisible(false);
-          txFn("withdrawWithBonus", tokenState.address);
+          if (ethMode) {
+            txFn("withdrawWithBonusETH");  
+          } else {
+            txFn("withdrawWithBonus", tokenState.address);
+          }
         }}
         onCancel={() => setBonusModalVisible(false)}>
         <h2>
           Withdraw&nbsp;
           {formatUnits("" + contractState.withdrawWithBonus, tokenState.decimals)}&nbsp;
-          {tokenState.symbol} out of deposited&nbsp;
-          {formatUnits(contractState.balance, tokenState.decimals)} {tokenState.symbol}
+          {symbol} out of deposited&nbsp;
+          {formatUnits(contractState.balance, tokenState.decimals)} {symbol}
           {contractState.bonus && contractState.bonus.gt(0) ?
             ` with ${formatUnits(contractState.bonus, tokenState.decimals)} 
-            ${tokenState.symbol} bonus!` : "."}
+            ${symbol} bonus!` : "."}
         </h2>
         <h2>⚠️ Waiting for longer may increase available bonus.</h2>
       </Modal>

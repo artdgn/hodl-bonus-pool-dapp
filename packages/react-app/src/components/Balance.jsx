@@ -35,8 +35,6 @@ export default function Balance({
   }) {
   const [dollarMode, setDollarMode] = useState(false && price);
 
-  const [listening, setListening] = useState(false);
-
   const viewBalance = useBalance(provider, address)
 
   symbol = symbol || "ETH"
