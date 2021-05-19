@@ -266,37 +266,39 @@ export function HodlPoolV1UI(
 }
 
 function TokenControl({tokenState, addessUpdateFn, blockExplorer, ethMode, address, provider}) {
+  
+  const ethBalance = (
+    <h3>Wallet balance: <Balance address={address} provider={provider} size="20"/></h3>
+  );
+
+  const tokenBalance = (
+  <Space size="large" align="start">
+    <Space align="center" direction="vertical">
+      <h3>Wallet balance</h3>
+      <Balance
+        balance={tokenState.balance}
+        symbol={tokenState.symbol}
+        size="20" />
+    </Space>
+
+    <Space align="center" direction="vertical">
+      <h3>Allowance</h3>
+      <Balance
+        balance={tokenState.allowance}
+        symbol={tokenState.symbol}
+        size="20" />
+    </Space>
+
+    <Space align="center" direction="vertical">
+      <h3>Token address</h3>
+      <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
+    </Space>
+  </Space>);
+
   return (
     <Space direction="vertical">
-      {ethMode ? 
-        <Space align="center" direction="vertical">
-          <h3>Wallet balance</h3>
-          <Balance address={address} provider={provider} size="20"/>
-        </Space>
-      :
-      <Space size="large" align="start">
-        <Space align="center" direction="vertical">
-          <h3>Wallet balance</h3>
-          <Balance
-            balance={tokenState.balance}
-            symbol={tokenState.symbol}
-            size="20" />
-        </Space>
 
-        <Space align="center" direction="vertical">
-          <h3>Allowance</h3>
-          <Balance
-            balance={tokenState.allowance}
-            symbol={tokenState.symbol}
-            size="20" />
-        </Space>
-
-        <Space align="center" direction="vertical">
-          <h3>Token address</h3>
-          <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
-        </Space>
-      </Space>
-      }
+      { ethMode ? ethBalance : tokenBalance }
 
       <Input
         defaultValue={tokenState.address}

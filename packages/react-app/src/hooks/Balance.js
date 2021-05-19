@@ -33,6 +33,13 @@ const pollBalance = useCallback(async (provider, address) => {
   }
 }, [provider, address]);
 
+// do once always on mount
+useEffect(() => {
+  if (provider && address) {
+    pollBalance(provider, address);
+  }
+}, [provider, address]);
+
 // Only pass a provider to watch on a block if there is no pollTime
 useOnBlock((pollTime === 0)&&provider, () => {
   if (provider && address && pollTime === 0) {
