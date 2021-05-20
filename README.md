@@ -2,7 +2,7 @@
 <a href=https://hodl-pool-dapp-v0-kovan.surge.sh/><img src=https://img.shields.io/badge/Kovan--V0-Surge-blueviolet></img></a>
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
-> A small project for learning smart-contract-full-stack-whizz-bang-dApp-buidling with the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth) framework**.
+> A project for learning smart-contract-full-stack-whizz-bang-dApp-buidling using the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth)**.
 
 ### 💡 The idea: "Strong 💎✊ hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
 
@@ -27,12 +27,14 @@
     - scope: fixed commitment params & bonus depends on ratio of current pool, only eth
     - deliver ✔️ repo ✔️, tests + CI ✔️, basic UI ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xaD00093d69829C61c952eF9A354B14D41F38BEA3#code) ✔️ and [frontend (eth) ✔️](https://hodl-pool-dapp-v0-kovan.surge.sh/)
     - stretch ✔️: erc20 support ✔️ (supporting a single token)
-1. v1 (alpha):
-    - goal: 🧠 any ERC20 token, better incentives mechanism & slightly more complex calc and interaction 
-    - scope: fixed commitment params, bonus depends on time held, single contract for all tokens ⌛
-    - deliver: clear UI, FAQ, initial feedback, more testing on testnet
-    - stretch: handle ETH as WETH 
-1. v2 (beta): 🍕+🍔 flexible commitment params UI + calc, bonus depends on time held and commitment time
+1. v1 ⌛ (alpha):
+    - goal: handle all tokens & ETH in one contract
+    - scope: any ERC20 token ✔️, handle ETH as WETH ✔️, single contract for all tokens ✔️ 
+    - deliver: UI ✔️, explanations ✔️, kovan deployment ⌛, some feedback, mainnet (?)    
+1. v2 (beta):  UI + calc, bonus depends on time held
+    - goal: bonus depends on time held, 🍕+🍔 flexible commitment params
+    - scope: fixed commitment params, bonus depends on time held, 
+    - deliver: UI, mainnet
 
 ---
 

@@ -151,7 +151,7 @@ function App(props) {
       {networkDisplay}
       <BrowserRouter>
 
-        <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
+        {/* <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
           <Menu.Item key="/">
             <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
           </Menu.Item>
@@ -161,7 +161,7 @@ function App(props) {
           <Menu.Item key="/token">
             <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
           </Menu.Item>
-        </Menu>
+        </Menu> */}
 
         <Switch>
           <Route exact path="/">
@@ -176,14 +176,14 @@ function App(props) {
             />
           </Route>
 
-          <Route exact path="/contract">            
+          {/* <Route exact path="/contract">            
             <Contract
               name={contractName}
               signer={userProvider.getSigner()}
               provider={localProvider}
               address={address}
               blockExplorer={blockExplorer}
-            />
+            /> */}
             { /* Uncomment to display and interact with an external contract (DAI on mainnet):
             <Contract
               name="DAI"
@@ -194,7 +194,7 @@ function App(props) {
               blockExplorer={blockExplorer}
             />
             */ }
-          </Route>
+          {/* </Route>
 
           <Route exact path="/token">            
             <Contract
@@ -204,7 +204,7 @@ function App(props) {
               address={address}
               blockExplorer={blockExplorer}
             />
-          </Route>
+          </Route> */}
 
         </Switch>
 

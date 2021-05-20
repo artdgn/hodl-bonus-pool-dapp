@@ -153,7 +153,10 @@ export function HodlPoolV1UI(
         style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
         title={
           <div>
-            <h2>{contractName}</h2>
+            <Space size="large" direction="vertical">
+              <h2>{contractName}</h2>
+              <Space size="large"> <MotivationButton/> <RulesButton/> </Space>
+            </Space>
           </div>
         }
         size="large"
@@ -625,7 +628,8 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
         type="primary"
         size="large"
         disabled={!(contractState.withdrawWithBonus > 0)}
-      > Withdraw{contractState.bonus ? " with bonus 🤑" : ""}
+      > Withdraw
+        {contractState.bonus && contractState.bonus.gt(0) ? " with bonus 🤑" : ""}
       </Button>
 
       <Modal
@@ -724,4 +728,83 @@ function EventsList({ contract, address }) {
         }}
       />
     </Card>);
+}
+
+function RulesButton() {
+  const markdown = `
+## Pool Rules
+### TL;DR: 1. Deposit and don't withdraw early 💎✊. 2. Get bonus if other people withdraw early 🤑.
+- Each token has one independent pool. i.e. all accounting is separate for each token.
+- Depositor commits for a "commitment period", after which the deposit 
+can be withdrawn with any bonus share.
+- The bonus pool share is equal to the share of the deposit from all deposits
+at the time of withdrawal. E.g. if when you withdraw, the bonus pool is 2 Token, 
+total deposits are 10 Token, and your deposit is 1 Token - you get 
+0.2 Token ( = 2 * (1 / 10)) as bonus.
+- Bonus pool is collected from penalties paid by early withdrawals 
+(withdrawals before the commitment period).
+- Withdrawal before commitment period does not get any bonus. 
+Instead, it is "slashed" with a penalty (that is added to the bonus pool).  
+- The penalty percent is decreasing linearly with time from 
+"initialPenaltyPercent" to 0 (for the duration of the commitPeriod). 
+E.g. if initialPenaltyPercent was 10%, and you withdraw after half the 
+commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
+- Any additional deposits are added to current deposit, and "reset" the
+  commitment period required to wait.`
+
+  return <MarkdownDrawerButton
+    markdown={markdown}
+    title={<div><InfoCircleTwoTone /> Show rules</div>}
+  />
+}
+
+function MotivationButton() {
+  const markdown = `
+### 💡 The idea: "Strong 💎 hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
+
+### ❔ Why this may be a good idea:
+1. **Price effects** - like "staking", but without the inflation:
+    - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
+    - Raises the price by reducing amount in circulation 📥.
+    - Builds trust in the asset by proving an amount commited to be held 💍.
+1. **Social / network effects** - like "time lock", but with an incentive to participate:
+    - Makes HODLing provable and shareable 🐦 .
+    - Increases trust in the community's / project team's long term commitment, provides a social incentive to demonstrate "skin in the game" 🙋‍♀️ .
+1. **Yield generating** - like AMMs LP or lending, but without AMM's impermanent loss and doesn't depend on borrowing demand:
+    - Vs. liquidity providing in AMMs: no dependence on trading volume, no exposure to additional assets, no bleeding value to arbitrageurs (~~not-so~~""impermanent"" loss) 🩸.
+    - Vs. lending: earns yield on tokens that don't have a borrowing market with high interest rates 🔄 (or any borrowing market).
+1. **Volatility bonus** - market volatility causes higher bonuses:
+    - Asset price "moons" 🥳 - more "weak hands" will withdraw early to take profits, increasing the bonus 💸.
+    - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.`
+
+  return <MarkdownDrawerButton
+    markdown={markdown}
+    title={<div><QuestionCircleTwoTone /> Show motivation </div>}
+  />
+}
+
+function MarkdownDrawerButton({ title, markdown }) {
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  return (
+    <div>
+      <Button
+        onClick={() => setDrawerVisible(true)}
+        size="large"
+        style={{ fontSize: 16 }}
+      >{title}</Button>
+
+      <Modal
+        onOk={() => setDrawerVisible(false)}
+        onCancel={() => setDrawerVisible(false)}
+        centered
+        cancelText="Yep"
+        okText="OK"
+        visible={drawerVisible}>
+        <Typography style={{ textAlign: "left" }}>
+          <ReactMarkdown children={markdown} />
+        </Typography>
+      </Modal>
+    </div>
+  );
 }
