@@ -11,7 +11,7 @@ function publishContract(contractName) {
     chalk.cyan(contractName),
     "to",
     chalk.gray(publishDir)
-  );
+  );  
   try {
     let contract = fs
       .readFileSync(`${bre.config.paths.artifacts}/contracts/${contractName}.sol/${contractName}.json`)
@@ -93,6 +93,16 @@ async function main() {
     `${publishDir}/contracts.js`,
     `module.exports = ${JSON.stringify(finalContractList)};`
   );
+
+  // publish the local tokens list
+  const tokenListPath = './extra/tokenlist.json';
+  if (fs.existsSync(tokenListPath)) {
+    const localTokens = fs.readFileSync(tokenListPath).toString();
+    fs.writeFileSync(
+      `${publishDir}/localTokens.js`,
+      `module.exports = ${localTokens};`
+    );
+  }
 }
 main()
   .then(() => process.exit(0))

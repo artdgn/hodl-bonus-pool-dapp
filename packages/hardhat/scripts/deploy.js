@@ -12,13 +12,37 @@ const main = async () => {
 
   const args = config.deployArgs[config.defaultNetwork]
 
-  const address = "0x555cFBB56A31325de28054AC506898a5539C835f";
+  let WETHAddress;
+
+  if (config.defaultNetwork == "localhost") {
+    // local tester receiver address
+    const address = "0x555cFBB56A31325de28054AC506898a5539C835f";
+
+    const token1 = await deploy(config.tokenContractName, 
+      ["TokenA", "AAA", address, parseUnits("1", 18)]);
+    const token2 = await deploy(config.tokenContractName, 
+      ["TokenB", "BBB", address, parseUnits("2", 18)]);   
+    const token3 = await deploy(config.tokenContractName, 
+      ["TokenC", "LongSymbol", address, parseUnits("3", 18)]);   
+    const wethContract = await deploy(config.wethContractName) 
+
+    // save the local tokens list
+    await saveTokenList(
+      token1, 
+      // token2,
+      token3, 
+      wethContract
+    );
+
+    // use this WETH
+    WETHAddress = wethContract.address;
+  } else {
+    // use the weth from config
+    WETHAddress = config.networks[config.defaultNetwork].WETHAddress;
+  }
   
-  const token1 = await deploy(config.tokenContractName, ["Token1", "TK1", address, parseUnits("1", 18)]);
-  const token2 = await deploy(config.tokenContractName, ["Token2", "TK2", address, parseUnits("2", 18)]);  
-  const wethContract = await deploy(config.wethContractName) 
   
-  const yourContract = await deploy(config.contractName, [...args, wethContract.address])
+  const yourContract = await deploy(config.contractName, [...args, WETHAddress]);
 
   // const yourContract = await ethers.getContractAt(config.contractName, "0xAd0019EACBbB1BC9dE70f25420c3aB96E4f09aec") //<-- if you want to instantiate a version of a contract at a specific address!
 
@@ -183,6 +207,31 @@ const tenderlyVerify = async ({contractName, contractAddress}) => {
   } else {
       console.log(chalk.grey(` 🧐 Contract verification not supported on ${targetNetwork}`))
   }
+}
+
+async function saveTokenList(...tokensContracts) {
+  const tokenListString = JSON.stringify({
+    tokens: await Promise.all(tokensContracts.map(
+      async (contract) => {
+        return {
+          "chainId": 31337,
+          "address": contract.address,
+          "name": await contract.name(),
+          "symbol": await contract.symbol(),
+          "decimals": await contract.decimals(),
+        };
+    }))
+  }, null, 2);    
+
+  // try to mkdir in case it doesn't exist
+  try {fs.mkdirSync('./extra/')} catch {};
+  fs.writeFileSync('./extra/tokenlist.json', tokenListString);
+  
+  console.log(
+    " 💾  Saved local token list to: ",
+    chalk.blue("packages/hardhat/extra/"),
+    "\n\n", 
+    tokenListString);
 }
 
 main()

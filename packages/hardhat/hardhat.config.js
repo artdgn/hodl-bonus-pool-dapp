@@ -62,12 +62,14 @@ module.exports = {
       accounts: {
         mnemonic: mnemonic(),
       },
+      WETHAddress: "0xd0a1e359811322d97991e03f863a0c30c2cf029c"
     },
     mainnet: {
       url: "https://mainnet.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
+      WETHAddress: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
     },
     ropsten: {
       url: "https://ropsten.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
