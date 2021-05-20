@@ -5,12 +5,9 @@ import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer
 import { Address, Balance } from "../components";
 import { parseEther, formatEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { useContractExistsAtAddress, useContractReader, useEventListener, useExternalContractLoader, useOnBlock, usePoller } from "../hooks";
+import { useContractExistsAtAddress, useContractReader, useEventListener, useExternalContractLoader, useOnBlock, usePoller, useTokenList } from "../hooks";
 import ReactMarkdown from "react-markdown";
-import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, SettingOutlined, RetweetOutlined, LoadingOutlined } from "@ant-design/icons";
-
-// swap imports
-import { ChainId, Token, WETH, Fetcher, Trade, TokenAmount, Percent } from '@uniswap/sdk'
+import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlined, QuestionOutlined } from "@ant-design/icons";
 
 class HodlPoolV1StateHooks {
 
@@ -55,7 +52,7 @@ const erc20Abi = [
 function useTokenState(contract, userAddress, spenderAddress) {
   const emptyState = {
     tokenContract: contract,
-    address: contract.address,
+    address: undefined,
     decimals: undefined,
     name: undefined,
     symbol: undefined,
@@ -80,22 +77,23 @@ function useTokenState(contract, userAddress, spenderAddress) {
           notification.open({
             message: 'Switched token contract',
             description:
-            `From ${tokenState.address} to ${contract.address}`,
-          });  
+              `From ${tokenState.address} to ${contract.address}`,
+          });
         }
       } catch (e) {
         console.log(e);
         notification.open({
           message: 'Failed to read ERC20 contract',
           description:
-          `${contract.address} is not a valid ERC20 contract address`,
+            `${contract.address} is not a valid ERC20 contract address`,
         });
+        setTokenState(emptyState);
       }
     }
   }
 
-  useEffect(() => { if (contract) updateValues() }, [contract]); 
-  
+  useEffect(() => { if (contract) updateValues() }, [contract]);
+
   useOnBlock(contract && contract.provider, () => updateValues());
 
   return tokenState;
@@ -108,6 +106,8 @@ function useContractAtAddress(address, abi, provider) {
     if (address && provider) {
       const contract = new ethers.Contract(address, abi, provider, provider.getSigner());
       setContract(contract);
+    } else {
+      setContract({ address: address });
     }
   }
   useEffect(() => {
@@ -124,32 +124,28 @@ export function HodlPoolV1UI(
   const contract = readContracts && readContracts[contractName];
   const contractAddress = contract ? contract.address : "";
   const contractIsDeployed = useContractExistsAtAddress(provider, contractAddress);
-    
-  // token contract state hooks
-  const [tokenChoice, setTokenChoice] = useState("");
-  const [ethMode, ethModeSet] = useState(true);
-  const [tokenAddress, setTokenAddress] = useState();
-  
-  // contract state hooks
-  const contractState = new HodlPoolV1StateHooks(contract, address, tokenAddress);
 
-  const tokenContract = useContractAtAddress(tokenAddress, erc20Abi, provider);  
+  // token choice state
+  const [tokenChoice, setTokenChoice] = useState("");
+  const [ethMode, ethModeSet] = useState(false);
+  const [tokenAddress, setTokenAddress] = useState();
+
+  // contract state hooks
+  const tokenContract = useContractAtAddress(tokenAddress, erc20Abi, provider);
+  const contractState = new HodlPoolV1StateHooks(contract, address, tokenAddress);
   const tokenState = useTokenState(tokenContract, address, contractAddress);
 
+  // switch token address and eth-mode depending on token choice
   useEffect(() => {
-    const normChoice = (tokenChoice || "").toLowerCase();
-    setTokenAddress(
-      ["weth", "eth", ""].includes(normChoice) ? contractState.WETHAddress : tokenChoice);
-    ethModeSet(["eth", ""].includes(normChoice));
+    setTokenAddress(tokenChoice == "ETH" ? contractState.WETHAddress : tokenChoice);
+    ethModeSet(tokenChoice == "ETH");
   }, [tokenChoice, contractState.WETHAddress])
 
   // transaction wrappers
-  const contractTx = (method, ...args) => 
+  const contractTx = (method, ...args) =>
     tx(writeContracts[contractName][method](...args));
-  const tokenTx = (method, ...args) => 
+  const tokenTx = (method, ...args) =>
     tx(tokenContract.connect(provider.getSigner())[method](...args));
-
-  const symbol = ethMode ? "ETH" : tokenState.symbol;
 
   return (
     <div>
@@ -165,97 +161,56 @@ export function HodlPoolV1UI(
       >
         <Divider dashed>Token Choice</Divider>
 
-        <TokenControl 
-          tokenState={tokenState} 
-          addessUpdateFn={setTokenChoice} 
-          blockExplorer={blockExplorer}
-          ethMode={ethMode}
-          address={address} 
-          provider={provider}
-        />
+        <Space direction="vertical">
+          <TokenSelection provider={provider} addessUpdateFn={setTokenChoice} />
 
-        <Divider dashed>Deposit</Divider>
-        
-        {ethMode ? 
-          <DepositElementETH 
-            contractState={contractState} 
-            contractTx={contractTx} 
-          />
-        :
-          <DepositElementToken 
-            contractState={contractState} 
-            contractTx={contractTx} 
-            tokenTx={tokenTx} 
-            tokenState={tokenState} 
+          <TokenBalance
+            tokenState={tokenState}
+            blockExplorer={blockExplorer}
             ethMode={ethMode}
+            address={address}
+            provider={provider}
           />
-        }
-        
+        </Space>
 
-        <Divider dashed>Withdraw</Divider>
-
-        <h2>Current deposit:
-            <Balance balance={contractState.balance} symbol={symbol} size="20" />
-        </h2>
-
-        {(contractState.balance && contractState.balance.gt(0)) ? (
+        {!tokenState.address ? "" :
           <div>
-            <h2>Time left to hold: {contractState.timeLeftString}</h2>
+            <Divider dashed>Deposit</Divider>
 
-            <h2>Current penalty:
-                <Balance balance={contractState.penalty} symbol={symbol} size="20" />
-            </h2>
-
-            <h2>Current bonus:
-                <Balance balance={contractState.bonus} symbol={symbol} size="20" />
-            </h2>
-
-            <h2>Available to withdraw:
-                <Balance
-                  balance={"" + (contractState.withdrawWithBonus || contractState.withdrawWithPenalty)}
-                  symbol={symbol}
-                  size="20" />
-            </h2>
-
-            {contractState.withdrawWithBonus > 0 ?
-              <WithdrawWithBonusButton
+            {ethMode ?
+              <DepositElementETH
                 contractState={contractState}
-                txFn={contractTx}
-                tokenState={tokenState} 
+                contractTx={contractTx}
+              />
+              :
+              <DepositElementToken
+                contractState={contractState}
+                contractTx={contractTx}
+                tokenTx={tokenTx}
+                tokenState={tokenState}
                 ethMode={ethMode}
               />
-              : ""}
+            }
 
-            {contractState.withdrawWithPenalty > 0 ?
-              <WithdrawWithPenaltyButton
-                contractState={contractState}
-                txFn={contractTx}
-                tokenState={tokenState} 
-                ethMode={ethMode}
-              />
-              : ""}
+            <Divider dashed>Withdraw</Divider>
 
+            <WithdrawElement
+              contractState={contractState}
+              contractTx={contractTx}
+              tokenState={tokenState}
+              ethMode={ethMode}
+            />
+
+            <Divider dashed>Pool info</Divider>
+
+            <PoolInfo
+              contractState={contractState}
+              blockExplorer={blockExplorer}
+              contractAddress={contractAddress}
+              symbol={ethMode ? "ETH" : tokenState.symbol}
+            />
           </div>
-        ) : ""}
-
-        <Divider dashed>Pool info</Divider>
-
-        <h2>Contract address: 
-            <Address address={contractAddress} blockExplorer={blockExplorer} fontSize="20" />
-        </h2>
-
-        <h2>Total deposits in pool:
-            <Balance balance={contractState.depositsSum} symbol={symbol} size="20" />
-        </h2>
-
-        <h2>Total bonus in pool:
-            <Balance balance={contractState.bonusesPool} symbol={symbol} size="20" />
-        </h2>
-
-        <h2>Commitment period: {contractState.commitString}</h2>
-
-        <h2>Initial penalty percent: 
-            {(contractState.initialPenaltyPercent || "").toString()}%</h2>
+        }
 
       </Card>
 
@@ -265,49 +220,117 @@ export function HodlPoolV1UI(
   );
 }
 
-function TokenControl({tokenState, addessUpdateFn, blockExplorer, ethMode, address, provider}) {
-  
-  const ethBalance = (
-    <h3>Wallet balance: <Balance address={address} provider={provider} size="20"/></h3>
-  );
+function TokenBalance({ tokenState, blockExplorer, ethMode, address, provider }) {
+  if (ethMode) {
+    return (
+      <h3>Wallet balance: <Balance address={address} provider={provider} size="20" /></h3>
+    );
+  } else {
+    if (!tokenState.address) return "";
+    return (
+      <Space size="large" align="start">
+        <Space align="center" direction="vertical">
+          <h3>Wallet balance</h3>
+          <Balance
+            balance={tokenState.balance}
+            symbol={tokenState.symbol}
+            size="20" />
+        </Space>
 
-  const tokenBalance = (
-  <Space size="large" align="start">
-    <Space align="center" direction="vertical">
-      <h3>Wallet balance</h3>
-      <Balance
-        balance={tokenState.balance}
-        symbol={tokenState.symbol}
-        size="20" />
-    </Space>
+        <Space align="center" direction="vertical">
+          <h3>Allowance</h3>
+          <Balance
+            balance={tokenState.allowance}
+            symbol={tokenState.symbol}
+            size="20" />
+        </Space>
 
-    <Space align="center" direction="vertical">
-      <h3>Allowance</h3>
-      <Balance
-        balance={tokenState.allowance}
-        symbol={tokenState.symbol}
-        size="20" />
-    </Space>
+        <Space align="center" direction="vertical">
+          <h3>Token address</h3>
+          <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
+        </Space>
+      </Space>
+    );
+  } 
+}
 
-    <Space align="center" direction="vertical">
-      <h3>Token address</h3>
-      <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
-    </Space>
-  </Space>);
+function TokenSelection({ provider, addessUpdateFn }) {
+
+  // external token list
+  const activeChainId = provider && provider.network.chainId;
+  const tokenListURI = activeChainId == 31337 ?
+    "local" : "https://gateway.ipfs.io/ipns/tokens.uniswap.org";
+  const externalTokensList = useTokenList(tokenListURI, activeChainId);
+
+  // track the input state
+  const [rawInput, rawInputSet] = useState("");
+  const [selectedValue, selectedValueSet] = useState("");
+
+  // any additional tokens
+  const [extraTokens, extraTokensSet] = useState([{
+    "chainId": activeChainId,
+    "address": "ETH",
+    "symbol": "ETH",
+  }])
+
+  function tokenLogo(token) {
+    let logoURI;
+    if (token.logoURI) {
+      logoURI = token.logoURI;
+    } else if (token.symbol == "ETH" || token.symbol == "WETH") {
+      logoURI = (
+        "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains" +
+        "/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png");
+    } else {
+      return <QuestionOutlined style={{ width: '30px' }} />
+    }
+    return <img src={logoURI} width='30px' />
+  }
+
+  const shortenString = val => (val.length > 8 ? val.slice(0, 8) + '..' : val);
+
+  const importTokenButton = (
+    <Button
+      onClick={() => {
+        addessUpdateFn(rawInput);
+        extraTokensSet(arr =>
+          [...arr, {
+            "chainId": activeChainId,
+            "address": rawInput,
+            "symbol": rawInput,
+          }]);
+        selectedValueSet(rawInput);
+      }}
+      type="primary"
+      size="large"
+      style={{ width: "100%", textAlign: "center" }}
+    >
+      Import token {shortenString(rawInput)} ?
+    </Button>
+  )
 
   return (
-    <Space direction="vertical">
-
-      { ethMode ? ethBalance : tokenBalance }
-
-      <Input
-        defaultValue={tokenState.address}
-        prefix="Switch token: "
-        onPressEnter={e => addessUpdateFn(e.target.value)}>
-      </Input>
-
-    </Space>
-  )
+    <Select
+      showSearch
+      value={selectedValue}
+      placeholder="Pick token or paste address"
+      onChange={(val) => {
+        addessUpdateFn(val);
+        selectedValueSet(val);
+      }}
+      optionFilterProp="children"
+      size="large"
+      dropdownMatchSelectWidth={false}
+      style={{ minWidth: "10rem", textAlign: "center" }}
+      onSearch={rawInputSet}
+      notFoundContent={importTokenButton}
+    >
+      {[{}, ...extraTokens, ...externalTokensList].map((token, i) =>
+        <Select.Option key={i} value={token.address}>
+          {token.symbol && tokenLogo(token)} {token.symbol}
+        </Select.Option>
+      )}
+    </Select>);
 }
 
 function DepositElementToken({ contractState, contractTx, tokenState, tokenTx }) {
@@ -333,9 +356,9 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
           <Steps current={
             (depositting || depositButtonEnabled) ? 2 : ((approving || approveButtonEnabled) ? 1 : 0)
           } size="small">
-            <Steps.Step title="Set amount"/>
-            <Steps.Step title="Approve" icon={approving ? <LoadingOutlined /> : null}/>
-            <Steps.Step title="Deposit" icon={depositting ? <LoadingOutlined /> : null}/>
+            <Steps.Step title="Set amount" />
+            <Steps.Step title="Approve" icon={approving ? <LoadingOutlined /> : null} />
+            <Steps.Step title="Deposit" icon={depositting ? <LoadingOutlined /> : null} />
           </Steps>
         </Col>
       </Row>
@@ -358,11 +381,11 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
               approvingSet(true);
               if (amountToSend && amountToSend > 0 && tokenState.decimals) {
                 tokenTx(
-                  "approve", 
-                  contractState.address, 
+                  "approve",
+                  contractState.address,
                   parseUnits(amountToSend, tokenState.decimals));
               }
-              setTimeout(()=>approvingSet(false), 1000);
+              setTimeout(() => approvingSet(false), 1000);
             }}
             type="primary"
             size="large"
@@ -385,7 +408,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
               "Add to deposit" : "Make a deposit"}
           </Button>
         </Col>
-        
+
         <Modal
           title={`Confirm deposit of ${amountToSend} ${tokenState.symbol}`}
           okText="Confirm and commit"
@@ -395,11 +418,11 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
             deposittingSet(true);
             if (amountToSend && amountToSend > 0 && tokenState.decimals) {
               contractTx(
-                "deposit", 
-                tokenState.address, 
+                "deposit",
+                tokenState.address,
                 parseUnits(amountToSend, tokenState.decimals));
             }
-            setTimeout(()=>deposittingSet(false), 1000);
+            setTimeout(() => deposittingSet(false), 1000);
           }}
           onCancel={() => setDepositModalVisible(false)}>
           <h2>Commitment period: {contractState.commitString}</h2>
@@ -428,9 +451,9 @@ function DepositElementETH({ contractState, contractTx }) {
     <div style={{ margin: 8 }}>
       <Row justify="center" style={{ margin: 12 }}>
         <Col span={12}>
-          <Steps current={ (depositting || depositButtonEnabled) ? 1 : 0 } size="small">
-            <Steps.Step title="Set amount"/>
-            <Steps.Step title="Deposit" icon={depositting ? <LoadingOutlined /> : null}/>
+          <Steps current={(depositting || depositButtonEnabled) ? 1 : 0} size="small">
+            <Steps.Step title="Set amount" />
+            <Steps.Step title="Deposit" icon={depositting ? <LoadingOutlined /> : null} />
           </Steps>
         </Col>
       </Row>
@@ -459,7 +482,7 @@ function DepositElementETH({ contractState, contractTx }) {
               "Add to deposit" : "Make a deposit"}
           </Button>
         </Col>
-        
+
         <Modal
           title={`Confirm deposit of ${amountToSend} ETH`}
           okText="Confirm and commit"
@@ -468,9 +491,9 @@ function DepositElementETH({ contractState, contractTx }) {
             setDepositModalVisible(false);
             deposittingSet(true);
             if (amountToSend && amountToSend > 0) {
-              contractTx("depositETH", {value: parseEther(amountToSend)});
+              contractTx("depositETH", { value: parseEther(amountToSend) });
             }
-            setTimeout(()=>deposittingSet(false), 1000);
+            setTimeout(() => deposittingSet(false), 1000);
           }}
           onCancel={() => setDepositModalVisible(false)}>
           <h2>Commitment period: {contractState.commitString}</h2>
@@ -482,6 +505,62 @@ function DepositElementETH({ contractState, contractTx }) {
 
       </Row>
     </div>)
+}
+
+function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
+  const symbol = ethMode ? "ETH" : tokenState.symbol;
+
+  let depositInfo = "";
+  if (contractState.balance && contractState.balance.gt(0)) {
+    depositInfo = (
+      <div>
+        <h2>Time left to hold: {contractState.timeLeftString}</h2>
+
+        <h2>Current penalty:
+            <Balance balance={contractState.penalty} symbol={symbol} size="20" />
+        </h2>
+
+        <h2>Current bonus:
+            <Balance balance={contractState.bonus} symbol={symbol} size="20" />
+        </h2>
+
+        <h2>Available to withdraw:
+            <Balance
+            balance={"" + (contractState.withdrawWithBonus || contractState.withdrawWithPenalty)}
+            symbol={symbol}
+            size="20" />
+        </h2>
+
+        {contractState.withdrawWithBonus > 0 ?
+          <WithdrawWithBonusButton
+            contractState={contractState}
+            txFn={contractTx}
+            tokenState={tokenState}
+            ethMode={ethMode}
+          />
+          : ""}
+
+        {contractState.withdrawWithPenalty > 0 ?
+          <WithdrawWithPenaltyButton
+            contractState={contractState}
+            txFn={contractTx}
+            tokenState={tokenState}
+            ethMode={ethMode}
+          />
+          : ""}
+
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2>Current deposit:
+        <Balance balance={contractState.balance} symbol={symbol} size="20" />
+      </h2>
+      { depositInfo }
+    </div>
+  );
 }
 
 function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode }) {
@@ -501,8 +580,8 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode })
 
       <Modal
         title={`Confirm withdrawal of 
-                ${tokenState.decimals && 
-                  formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)} 
+                ${tokenState.decimals &&
+          formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)} 
                 ${symbol} with penalty`}
         okText="Withdraw with penalty"
         visible={penaltyModalVisible}
@@ -510,7 +589,7 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode })
         onOk={() => {
           setPenaltyModalVisible(false);
           if (ethMode) {
-            txFn("withdrawWithPenaltyETH");  
+            txFn("withdrawWithPenaltyETH");
           } else {
             txFn("withdrawWithPenalty", tokenState.address);
           }
@@ -558,7 +637,7 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
         onOk={() => {
           setBonusModalVisible(false);
           if (ethMode) {
-            txFn("withdrawWithBonusETH");  
+            txFn("withdrawWithBonusETH");
           } else {
             txFn("withdrawWithBonus", tokenState.address);
           }
@@ -576,6 +655,30 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
         <h2>⚠️ Waiting for longer may increase available bonus.</h2>
       </Modal>
 
+    </div>
+  );
+}
+
+function PoolInfo({ contractState, blockExplorer, contractAddress, symbol }) {
+  return (
+    <div>
+      <h2>Total deposits in {symbol} pool:
+          <Balance balance={contractState.depositsSum} symbol={symbol} size="20" />
+      </h2>
+
+      <h2>Total bonus in {symbol} pool:
+          <Balance balance={contractState.bonusesPool} symbol={symbol} size="20" />
+      </h2>
+
+      <h2>Commitment period: {contractState.commitString}</h2>
+
+      <h2>Initial penalty percent:&nbsp;
+          {(contractState.initialPenaltyPercent || "").toString()}%
+      </h2>
+
+      <h2>Contract address:&nbsp;
+          <Address address={contractAddress} blockExplorer={blockExplorer} fontSize="20" />
+      </h2>
     </div>
   );
 }
@@ -600,7 +703,7 @@ function EventsList({ contract, address }) {
           let eventText = "";
           if (item.eventName == "Deposited") {
             eventText = (
-              `deposited ${item.amount.toString()} ` + 
+              `deposited ${item.amount.toString()} ` +
               `at ${item.time.toString()}`);
           } else if (item.eventName == "Withdrawed") {
             eventText = (
@@ -615,242 +718,10 @@ function EventsList({ contract, address }) {
             <List.Item key={item.blockNumber + item.eventName + item.sender}>
               block {item.blockNumber}:
               user <Address address={item.sender} fontSize={16} />&nbsp;
-              {eventText} of token <Address address={item.token} fontSize={16}/>.
+              {eventText} of token <Address address={item.token} fontSize={16} />.
             </List.Item>
           )
         }}
       />
     </Card>);
-}
-
-
-const makeCall = async (callName, contract, args, metadata = {}) => {
-  if (contract[callName]) {
-    let result
-    if (args) {
-      result = await contract[callName](...args, metadata)
-    } else {
-      result = await contract[callName]()
-    }
-    return result
-  } else {
-    console.log('no call of that name!')
-  }
-}
-
-
-
-const tokenListToObject = (array) =>
-  array.reduce((obj, item) => {
-    obj[item.symbol] = new Token(item.chainId, item.address, item.decimals, item.symbol, item.name)
-    return obj
-  }, {})
-
-function Swap({ address, selectedProvider, contract, tokenState }) {
-
-  const [tokenIn, setTokenIn] = useState()
-  const [amountIn, setAmountIn] = useState()
-  const [routerAllowance, setRouterAllowance] = useState()
-  const [balanceIn, setBalanceIn] = useState()
-
-  const [tokenList, setTokenList] = useState([])
-  const [tokens, setTokens] = useState()
-
-  let signer = selectedProvider.getSigner()
-  let routerContract = contract.connect(signer);
-
-  let _tokenListUri = 'https://gateway.ipfs.io/ipns/tokens.uniswap.org'
-
-  const activeChainId = (process.env.REACT_APP_NETWORK === 'kovan' ? ChainId.KOVAN : ChainId.MAINNET)
-
-  useEffect(() => {
-    const getTokenList = async () => {
-      console.log(_tokenListUri)
-      try {
-        let tokenList = await fetch(_tokenListUri)
-        let tokenListJson = await tokenList.json()
-        let filteredTokens = tokenListJson.tokens.filter(function (t) {
-          return t.chainId === activeChainId
-        })
-
-        let someToken = {
-          name: tokenState.name,
-          symbol: tokenState.symbol,
-          address: tokenState.address,
-          chainId: activeChainId,
-          decimals: tokenState.decimals,
-        }
-
-        let ethToken = WETH[activeChainId]
-        ethToken.name = 'Ethereum'
-        ethToken.symbol = 'ETH'
-        let _tokenList = [someToken, ethToken, ...filteredTokens]
-        setTokenList(_tokenList)
-        let _tokens = tokenListToObject(_tokenList)
-        setTokens(_tokens)
-      } catch (e) {
-        console.log(e)
-      }
-    }
-    getTokenList()
-  }, [tokenState.address, tokenState.name, tokenState.symbol, tokenState.decimals])
-
-  const getBalance = async (_token, _account, _contract) => {
-
-    let newBalance
-    if (_token === 'ETH') {
-      newBalance = await selectedProvider.getBalance(_account)
-    } else {
-      newBalance = await makeCall('balanceOf', _contract, [_account])
-    }
-    return newBalance
-  }
-
-  const getAccountInfo = async () => {
-
-    if (tokens) {
-
-      if (tokenIn) {
-        let tempContractIn = new ethers.Contract(tokens[tokenIn].address, erc20Abi, selectedProvider);
-        let newBalanceIn = await getBalance(tokenIn, address, tempContractIn)
-        setBalanceIn(newBalanceIn)
-
-        let allowance
-
-        if (tokenIn === 'ETH') {
-          setRouterAllowance()
-        } else {
-          allowance = await makeCall('allowance', tempContractIn, [address, contract.address])
-          setRouterAllowance(allowance)
-        }
-      }
-    }
-  }
-
-  usePoller(getAccountInfo, 2000)
-
-  const updateRouterAllowance = async (newAllowance) => {
-    try {
-      let tempContract = new ethers.Contract(tokens[tokenIn].address, erc20Abi, signer);
-      console.log(signer)
-      let result = await makeCall('approve', tempContract, [contract.address, newAllowance])
-      console.log(result)
-      return true
-    } catch (e) {
-      notification.open({
-        message: 'Approval unsuccessful',
-        description:
-          `Error: ${e.message}`,
-      });
-    }
-  }
-
-  const approveRouter = async () => {
-    let approvalAmount = ethers.utils.hexlify(parseUnits(amountIn.toString(), tokens[tokenIn].decimals));
-    console.log(approvalAmount)
-    let approval = updateRouterAllowance(approvalAmount)
-    if (approval) {
-      notification.open({
-        message: 'Token transfer approved',
-        description:
-          `You can now swap up to ${amountIn} ${tokenIn}`,
-      });
-    }
-  }
-
-  const executeSwap = async () => {
-    let args
-    let metadata = {}
-    let call
-
-    let _amountIn = ethers.utils.hexlify(parseUnits(amountIn.toString(), tokens[tokenIn].decimals))
-    if (tokenIn === 'ETH') {
-      call = 'depositETH';
-      args = []
-      metadata['value'] = _amountIn
-    } else {
-      call = 'deposit';
-      args = [_amountIn]
-    }
-    console.log(call, args, metadata)
-    let result = await makeCall(call, routerContract, args, metadata)
-  }
-
-  let insufficientBalance = balanceIn ? parseFloat(formatUnits(balanceIn, tokens[tokenIn].decimals)) < amountIn : null
-  let inputIsToken = tokenIn !== 'ETH'
-  let insufficientAllowance = !inputIsToken ? false : routerAllowance ?
-    parseFloat(formatUnits(routerAllowance, tokens[tokenIn].decimals)) < amountIn : null
-  let formattedBalanceIn = balanceIn ? parseFloat(formatUnits(balanceIn, tokens[tokenIn].decimals)).toPrecision(6) : null
-
-  let metaIn = tokens && tokenList && tokenIn ? tokenList.filter(function (t) {
-    return t.address === tokens[tokenIn].address
-  })[0] : null
-
-  const cleanIpfsURI = (uri) => {
-    try {
-      return uri ? (uri).replace('ipfs://', 'https://ipfs.io/ipfs/') : uri
-    } catch (e) {
-      console.log(e, uri)
-      return uri
-    }
-  }
-
-  let logoIn = metaIn ? cleanIpfsURI(metaIn.logoURI) : null
-
-  return (
-    <div>
-      <Space direction="vertical">
-        <Row justify="center" align="middle">
-          <Card
-            size="small" type="inner"
-            title={`Deposit ${tokenState.symbol} token`}
-            extra={
-              <><img src={logoIn} alt={tokenIn} width='30' />
-                <Button type="link" onClick={() => {
-                  setAmountIn(formatUnits(balanceIn, tokens[tokenIn].decimals))
-                }}>{formattedBalanceIn}
-                </Button></>}
-            style={{ width: 400, textAlign: 'left' }}>
-            <InputNumber style={{ width: '160px' }} min={0} size={'large'} value={amountIn} onChange={(e) => {
-              setAmountIn(e)
-            }} />
-            <Select
-              showSearch value={tokenIn} style={{ width: '120px' }} size={'large'}
-              bordered={true}
-              value={tokenState.symbol}
-              onChange={(value) => {
-                console.log(value)
-                setTokenIn(value)
-                setAmountIn()
-                setBalanceIn()
-              }}
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-              optionFilterProp="children">
-              {tokenList.map(token => (
-                <Select.Option key={token.symbol} value={token.symbol}>{token.symbol}</Select.Option>
-              ))}
-            </Select>
-          </Card>
-        </Row>
-
-        <Row justify="center" align="middle">
-          <Space>
-            {inputIsToken ?
-              <Button size="large" disabled={!insufficientAllowance}
-                onClick={approveRouter}>
-                {(!insufficientAllowance && amountIn) ? 'Approved' : 'Approve'}
-              </Button>
-              : null}
-            <Button size="large" disabled={insufficientAllowance || insufficientBalance || !amountIn}
-              onClick={executeSwap}>
-              {insufficientBalance ? 'Insufficient balance' : 'Swap!'}
-            </Button>
-          </Space>
-        </Row>
-      </Space>
-    </div>
-  )
-
 }
