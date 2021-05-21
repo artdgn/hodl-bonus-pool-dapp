@@ -24,7 +24,6 @@ const targetNetwork = NETWORKS[defaultNetwork];
 const DEBUG = true
 
 // 🛰 providers
-if(DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
 // const mainnetProvider = getDefaultProvider("mainnet", { infura: INFURA_ID, etherscan: ETHERSCAN_KEY, quorum: 1 });
 // const mainnetProvider = new InfuraProvider("mainnet",INFURA_ID);
 //
@@ -221,21 +220,6 @@ function App(props) {
 
       </BrowserRouter>
 
-      {/* <Header />
-      {networkDisplay}
-      { wrongNetwork ? "" :
-        <HoldPoolEthV0UI
-          address={address}
-          price={price}
-          tx={tx}
-          writeContracts={writeContracts}
-          readContracts={readContracts}
-          contractName={contractName}
-          provider={localProvider}
-          blockExplorer={blockExplorer}
-        />
-      } */}
-
       <ThemeSwitch />
 
       {/* 👨‍💼 Your account is in the top right with a wallet at connect options */}
@@ -276,7 +260,6 @@ function App(props) {
     </div>
   );
 }
-
 
 /*
   Web3 modal helps us "connect" external wallets:

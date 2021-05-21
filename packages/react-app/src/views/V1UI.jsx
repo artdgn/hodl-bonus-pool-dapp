@@ -40,15 +40,6 @@ class HodlPoolV1StateHooks {
   }
 }
 
-const erc20Abi = [
-  "function balanceOf(address owner) view returns (uint256)",
-  "function symbol() view returns (string)",
-  "function name() view returns (string)",
-  "function decimals() view returns (uint8)",
-  "function approve(address _spender, uint256 _value) public returns (bool success)",
-  "function allowance(address _owner, address _spender) public view returns (uint256 remaining)"
-];
-
 function useTokenState(contract, userAddress, spenderAddress) {
   const emptyState = {
     tokenContract: contract,
@@ -100,13 +91,22 @@ function useTokenState(contract, userAddress, spenderAddress) {
   return tokenState;
 }
 
-function useContractAtAddress(address, abi, provider) {
+function useERC20ContractAtAddress(address, provider) {
   const [contract, setContract] = useState({ address: address });
+
+  const erc20Abi = [
+    "function balanceOf(address owner) view returns (uint256)",
+    "function symbol() view returns (string)",
+    "function name() view returns (string)",
+    "function decimals() view returns (uint8)",
+    "function approve(address _spender, uint256 _value) public returns (bool success)",
+    "function allowance(address _owner, address _spender) public view returns (uint256 remaining)"
+  ];
   
   useEffect(() => {
     const readContract = async () => {
       if (address && provider) {
-        const contract = new ethers.Contract(address, abi, provider, provider.getSigner());
+        const contract = new ethers.Contract(address, erc20Abi, provider, provider.getSigner());
         setContract(contract);
       } else {
         setContract({ address: address });
@@ -114,7 +114,7 @@ function useContractAtAddress(address, abi, provider) {
     }
 
     readContract();
-  }, [address, abi, provider]);
+  }, [address, provider]);
 
   return contract;
 }
@@ -122,7 +122,7 @@ function useContractAtAddress(address, abi, provider) {
 export function HodlPoolV1UI(
   { address, provider, blockExplorer, tx, readContracts, writeContracts, contractName }) {
 
-  // contract is there
+  // main contract
   const contract = readContracts && readContracts[contractName];
   const contractAddress = contract ? contract.address : "";
   const contractIsDeployed = useContractExistsAtAddress(provider, contractAddress);
@@ -133,7 +133,7 @@ export function HodlPoolV1UI(
   const [tokenAddress, setTokenAddress] = useState();
 
   // contract state hooks
-  const tokenContract = useContractAtAddress(tokenAddress, erc20Abi, provider);
+  const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
   const contractState = new HodlPoolV1StateHooks(contract, address, tokenAddress);
   const tokenState = useTokenState(tokenContract, address, contractAddress);
 
@@ -154,12 +154,10 @@ export function HodlPoolV1UI(
       <Card
         style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
         title={
-          <div>
-            <Space size="large" direction="vertical">
-              <h2>{contractName}</h2>
-              <Space size="large"> <MotivationButton/> <RulesButton/> </Space>
-            </Space>
-          </div>
+          <Space size="large" direction="vertical">
+            <h2>{contractName}</h2>
+            <Space size="large"> <MotivationButton/> <RulesButton/> </Space>
+          </Space>
         }
         size="large"
         loading={!contractIsDeployed}
@@ -754,7 +752,7 @@ commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
 - Any additional deposits are added to current deposit, and "reset" the
   commitment period required to wait.`
 
-  return <MarkdownDrawerButton
+  return <MarkdownModalButton
     markdown={markdown}
     title={<div><InfoCircleTwoTone /> Show rules</div>}
   />
@@ -779,13 +777,13 @@ function MotivationButton() {
     - Asset price "moons" 🥳 - more "weak hands" will withdraw early to take profits, increasing the bonus 💸.
     - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.`
 
-  return <MarkdownDrawerButton
+  return <MarkdownModalButton
     markdown={markdown}
     title={<div><QuestionCircleTwoTone /> Show motivation </div>}
   />
 }
 
-function MarkdownDrawerButton({ title, markdown }) {
+function MarkdownModalButton({ title, markdown }) {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   return (
