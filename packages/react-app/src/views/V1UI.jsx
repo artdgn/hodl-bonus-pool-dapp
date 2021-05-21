@@ -50,52 +50,47 @@ class TokenStateHooks {
 
     const onFail = () => {
       setFailed(this.address);
+      setLoading(true);
     }
     const onChange = () => {
       setFailed(false);
       setLoading(false);
     }
 
-    this.decimals = useContractReader(
-      contract, "decimals", [], 86400 * 1000, onChange, onFail);
-    this.name = useContractReader(
-      contract, "name", [], 86400 * 1000, onChange, onFail);
     this.symbol = useContractReader(
       contract, "symbol", [], 86400 * 1000, onChange, onFail);
+    this.decimals = useContractReader(
+      contract, "decimals", [], 86400 * 1000, null, onFail);
+    this.name = useContractReader(
+      contract, "name", [], 86400 * 1000, null, onFail);    
     this.balance = useContractReader(
-      contract, "balanceOf", [userAddress], 0, onChange, onFail);
+      contract, "balanceOf", [userAddress], 0, null, onFail);
     this.allowance = useContractReader(
-      contract, "allowance", [userAddress, spenderAddress], 0, onChange, onFail);
+      contract, "allowance", [userAddress, spenderAddress], 0, null, onFail);
 
-    // if address changed show loading
+    // notify of failure
     useEffect(() => {
-      if (this.address) {
-        setLoading(true);
-      }
-    }, [this.address])
-
-    // notify of address change or failure
-    useEffect(() => {
-      if (this.address) {
-        if (failed) {
-          notification.error({
-            message: 'Failed to read ERC20 contract',
-            description: `${failed} is not a valid ERC20 contract address`,
-            duration: 10
-          });
-          setError(`${failed} is not a valid ERC20 contract address, select another token.`)
-        } else {
-          if (prevAddress && prevAddress !== this.address) {
-            notification.success({
-              message: 'Switched token contract',
-              description: `From ${prevAddress} to ${this.address}`,
-            });                        
-          }
-          setError("");
-        }        
+      if (this.address && failed) {
+        notification.error({
+          message: 'Failed to read ERC20 contract',
+          description: `${failed} is not a valid ERC20 contract address`,
+        });
+        setError(`${failed} is not a valid ERC20 contract address, select another token.`);
       }
       setPrevAddress(this.address);
-    }, [failed, this.address, prevAddress])
+    }, [failed, this.address])
+
+    // notify of address change
+    useEffect(() => {
+      if (this.address && prevAddress && prevAddress !== this.address) {
+        setLoading(true);
+        setError("");
+        notification.success({
+          message: 'Switched token contract',
+          description: `From ${prevAddress} to ${this.address}`,
+        });          
+      }
+    }, [this.address, prevAddress])
   }
 }
 
@@ -178,7 +173,7 @@ export function HodlPoolV1UI(
         <Space direction="vertical" size="large">
           <TokenSelection provider={provider} addessUpdateFn={setTokenChoice} />
 
-          { error ?  <Result status="warning" title={error} /> : "" }
+          { error ?  <Result status="warning" subTitle={error} /> : "" }
 
           { loading ?
             <LoadingOutlined style={{ fontSize: 24 }} spin size="large" /> : 
