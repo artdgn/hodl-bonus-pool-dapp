@@ -116,7 +116,7 @@ contract HodlPoolV1 {
   constructor (uint _initialPenaltyPercent, uint _commitPeriod, address _WETH) {
     require(_initialPenaltyPercent > 0, "no penalty"); 
     require(_initialPenaltyPercent <= 100, "initial penalty > 100%"); 
-    require(_commitPeriod >= 60 seconds, "commitment period too short");
+    require(_commitPeriod >= 10 seconds, "commitment period too short");
     require(_commitPeriod <= 365 days, "commitment period too long");
     require(_WETH != address(0), "WETH address can't be 0x0");
     initialPenaltyPercent = _initialPenaltyPercent;
