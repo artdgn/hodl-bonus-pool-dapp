@@ -70,10 +70,10 @@ function App(props) {
   const faucetTx = Transactor(localProvider, gasPrice)
 
   // Load in your local 📝 contract and read a value from it:
-  const readContracts = useContractLoader(localProvider)
+  const readContracts = useContractLoader(localProvider, targetNetwork.contractAddresses);
 
   // If you want to make 🔐 write transactions to your contracts, use the userProvider:
-  const writeContracts = useContractLoader(userProvider)
+  const writeContracts = useContractLoader(userProvider, targetNetwork.contractAddresses);
 
   // // EXTERNAL CONTRACT EXAMPLE:
   // //
@@ -120,7 +120,7 @@ function App(props) {
   }, [setRoute]);
 
   let faucetHint = "";
-  const faucetAvailable = localProvider && localProvider.connection && targetNetwork.name === "localhost";
+  const localEnv = localProvider && localProvider.connection && targetNetwork.name === "localhost";
 
   if (
     localProvider &&
@@ -230,7 +230,7 @@ function App(props) {
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
       
       <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
-        {faucetAvailable ? (
+        {localEnv ? (
           <Space direction="vertical" size="small">
             {faucetHint}
             <Faucet localProvider={localProvider} />

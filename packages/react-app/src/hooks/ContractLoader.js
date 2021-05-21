@@ -25,12 +25,12 @@ import { useEffect, useState } from "react";
     tx( writeContracts.YourContract.setPurpose(newPurpose) )
 */
 
-const loadContract = (contractName, signer) => {
-  const newContract = new Contract(
-    require(`../contracts/${contractName}.address.js`),
-    require(`../contracts/${contractName}.abi.js`),
-    signer,
-  );
+const loadContract = (contractName, signer, addressOverrides) => {
+  const address = (addressOverrides && addressOverrides[contractName]) ?
+    addressOverrides[contractName] : 
+    require(`../contracts/${contractName}.address.js`);
+  const abi = require(`../contracts/${contractName}.abi.js`);
+  const newContract = new Contract(address, abi, signer);
   try {
     newContract.bytecode = require(`../contracts/${contractName}.bytecode.js`);
   } catch (e) {
@@ -39,7 +39,7 @@ const loadContract = (contractName, signer) => {
   return newContract;
 };
 
-export default function useContractLoader(providerOrSigner) {
+export default function useContractLoader(providerOrSigner, addressOverrides) {
   const [contracts, setContracts] = useState();
   useEffect(() => {
     async function loadContracts() {
@@ -61,7 +61,7 @@ export default function useContractLoader(providerOrSigner) {
           const contractList = require("../contracts/contracts.js");
 
           const newContracts = contractList.reduce((accumulator, contractName) => {
-            accumulator[contractName] = loadContract(contractName, signer);
+            accumulator[contractName] = loadContract(contractName, signer, addressOverrides);
             return accumulator;
           }, {});
           setContracts(newContracts);

@@ -34,7 +34,7 @@ export const NETWORKS = {
     color: "#666666",
     chainId: 31337,
     blockExplorer: "",
-    rpcUrl: "http://localhost:8545",
+    rpcUrl: "http://localhost:8545"
   },
   mainnet: {
     name: "mainnet",
@@ -42,6 +42,7 @@ export const NETWORKS = {
     chainId: 1,
     rpcUrl: `https://mainnet.infura.io/v3/${INFURA_ID}`,
     blockExplorer: "https://etherscan.io/",
+    contractAddresses: {},
   },
   kovan: {
     name: "kovan",
@@ -50,6 +51,9 @@ export const NETWORKS = {
     rpcUrl: `https://kovan.infura.io/v3/${INFURA_ID}`,
     blockExplorer: "https://kovan.etherscan.io/",
     faucet: "https://gitter.im/kovan-testnet/faucet", // https://faucet.kovan.network/
+    contractAddresses: {
+      "HodlPoolV1": "0x5CA46EEafb405A30A95A3AB2c022523cCd8831B6"
+    },
   },
   rinkeby: {
     name: "rinkeby",
