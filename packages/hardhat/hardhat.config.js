@@ -21,8 +21,8 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = "localhost";
-// const defaultNetwork = "kovan";
+// const defaultNetwork = "localhost";
+const defaultNetwork = "kovan";
 
 module.exports = {
 
@@ -53,33 +53,33 @@ module.exports = {
       */
     },
     rinkeby: {
-      url: "https://rinkeby.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
+      url: "https://rinkeby.infura.io/v3/c71ef0dddc9e48c38f6ed7d41e5ef0c8",
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     kovan: {
-      url: "https://kovan.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
+      url: "https://kovan.infura.io/v3/c71ef0dddc9e48c38f6ed7d41e5ef0c8",
       accounts: {
         mnemonic: mnemonic(),
       },
       WETHAddress: "0xd0a1e359811322d97991e03f863a0c30c2cf029c"
     },
     mainnet: {
-      url: "https://mainnet.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
+      url: "https://mainnet.infura.io/v3/c71ef0dddc9e48c38f6ed7d41e5ef0c8",
       accounts: {
         mnemonic: mnemonic(),
       },
       WETHAddress: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
     },
     ropsten: {
-      url: "https://ropsten.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
+      url: "https://ropsten.infura.io/v3/c71ef0dddc9e48c38f6ed7d41e5ef0c8",
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     goerli: {
-      url: "https://goerli.infura.io/v3/460f40a260564ac4a4f4b3fffb032dad", //<---- YOUR INFURA ID! (or it won't work)
+      url: "https://goerli.infura.io/v3/c71ef0dddc9e48c38f6ed7d41e5ef0c8",
       accounts: {
         mnemonic: mnemonic(),
       },

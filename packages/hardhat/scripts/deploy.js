@@ -10,11 +10,9 @@ const main = async () => {
 
   console.log("\n\n 📡 Deploying...\n");
 
-  const args = config.deployArgs[config.defaultNetwork]
-
   let WETHAddress;
 
-  if (config.defaultNetwork == "localhost") {
+  if (config.defaultNetwork === "localhost") {
     // local tester receiver address
     const address = "0x555cFBB56A31325de28054AC506898a5539C835f";
 
@@ -34,17 +32,18 @@ const main = async () => {
       wethContract
     );
 
-    // use this WETH
+    // use the newly deployed WETH
     WETHAddress = wethContract.address;
   } else {
     // use the weth from config
     WETHAddress = config.networks[config.defaultNetwork].WETHAddress;
   }
 
+  const args = [...config.deployArgs[config.defaultNetwork], WETHAddress];
+  const yourContract = await deploy(config.contractName, args);
 
-  const yourContract = await deploy(config.contractName, [...args, WETHAddress]);
-
-  // const yourContract = await ethers.getContractAt(config.contractName, "0xAd0019EACBbB1BC9dE70f25420c3aB96E4f09aec") //<-- if you want to instantiate a version of a contract at a specific address!
+  // specific (already deployed address)
+  // const yourContract = await ethers.getContractAt(config.contractName, "0x65e5cDf94279C1DfceBfcDfDc899560D9DE31B41");
 
   //const secondContract = await deploy("SecondContract")
 
@@ -88,8 +87,8 @@ const main = async () => {
   */
 
   // If you want to verify your contract on etherscan
-  if (config.defaultNetwork != "localhost") {
-    await sleep(10000);  // to let etherscan catch up
+  if (config.defaultNetwork !== "localhost") {
+    await sleep(60000);  // to let etherscan catch up
     console.log(chalk.blue('verifying on etherscan'))
     await run("verify:verify", {
       address: yourContract.address,

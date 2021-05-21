@@ -1,1 +1,1 @@
-module.exports = ["HodlPoolV1","SomeToken","WETH"];
+module.exports = ["HodlPoolV1"];

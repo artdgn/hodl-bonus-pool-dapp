@@ -30,7 +30,7 @@
 1. v1 ⌛ (alpha):
     - goal: handle all tokens & ETH in one contract
     - scope: any ERC20 token ✔️, handle ETH as WETH ✔️, single contract for all tokens ✔️ 
-    - deliver: UI ✔️, explanations ✔️, kovan deployment ⌛, some feedback, mainnet (?)    
+    - deliver: UI ✔️, explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x5ca46eeafb405a30a95a3ab2c022523ccd8831b6#code) ✔️ , some feedback, mainnet (?)    
 1. v2 (beta):  UI + calc, bonus depends on time held
     - goal: bonus depends on time held, 🍕+🍔 flexible commitment params
     - scope: fixed commitment params, bonus depends on time held, 

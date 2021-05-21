@@ -1,19 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// import "hardhat/console.sol";
-
-// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-/// @dev interface for interacting with WETH (wrapped ether) for handling ETH
-///   https://github.com/Uniswap/uniswap-v2-periphery/blob/master/contracts/interfaces/IWETH.sol
-interface IWETH {
-  function deposit() external payable;
-  function transfer(address to, uint value) external returns (bool);
-  function withdraw(uint) external;
-}
 
 /*
  * @title Token pools that allows different ERC20 tokens and ETH deposits and withdrawals
@@ -317,4 +306,12 @@ contract HodlPoolV1 {
     }
   }
 
+}
+
+/// @dev interface for interacting with WETH (wrapped ether) for handling ETH
+/// https://github.com/Uniswap/uniswap-v2-periphery/blob/master/contracts/interfaces/IWETH.sol
+interface IWETH {
+  function deposit() external payable;
+  function transfer(address to, uint value) external returns (bool);
+  function withdraw(uint) external;
 }
