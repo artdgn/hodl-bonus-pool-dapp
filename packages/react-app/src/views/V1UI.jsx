@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect, useRef } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Spin } from "antd";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Spin, message, Result } from "antd";
 import { Address, Balance } from "../components";
 import { parseEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
@@ -12,17 +12,17 @@ import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlin
 class HodlPoolV1StateHooks {
 
   constructor(contract, address, tokenAddress) {
-    this.address = contract && tokenAddress && contract.address;
+    this.address = contract && contract.address;
     this.tokenAddress = tokenAddress;
-    this.balance = useContractReader(contract, "balanceOf", [tokenAddress, address]);
-    this.bonus = useContractReader(contract, "bonusOf", [tokenAddress, address]);
-    this.penalty = useContractReader(contract, "penaltyOf", [tokenAddress, address]);
-    this.timeLeft = useContractReader(contract, "timeLeftToHoldOf", [tokenAddress, address]);
-    this.bonusesPool = useContractReader(contract, "bonusesPool", [tokenAddress]);
-    this.depositsSum = useContractReader(contract, "depositsSum", [tokenAddress]);
-    this.commitPeriod = useContractReader(contract, "commitPeriod", null, 86400 * 1000);
-    this.initialPenaltyPercent = useContractReader(contract, "initialPenaltyPercent", null, 86400 * 1000);
-    this.WETHAddress = useContractReader(contract, "WETH", null, 86400 * 1000);
+    this.balance = useContractReader(tokenAddress && contract, "balanceOf", [tokenAddress, address]);
+    this.bonus = useContractReader(tokenAddress && contract, "bonusOf", [tokenAddress, address]);
+    this.penalty = useContractReader(tokenAddress && contract, "penaltyOf", [tokenAddress, address]);
+    this.timeLeft = useContractReader(tokenAddress && contract, "timeLeftToHoldOf", [tokenAddress, address]);
+    this.bonusesPool = useContractReader(tokenAddress && contract, "bonusesPool", [tokenAddress]);
+    this.depositsSum = useContractReader(tokenAddress && contract, "depositsSum", [tokenAddress]);
+    this.commitPeriod = useContractReader(contract, "commitPeriod", [], 86400 * 1000);
+    this.initialPenaltyPercent = useContractReader(contract, "initialPenaltyPercent", [], 86400 * 1000);
+    this.WETHAddress = useContractReader(contract, "WETH", [], 86400 * 1000);
 
     // time convenience variables
     this.commitDays = parseFloat((this.commitPeriod || "0").toString()) / 86400;
@@ -39,76 +39,85 @@ class HodlPoolV1StateHooks {
   }
 }
 
-function useTokenState(contract, userAddress, spenderAddress) {
-  const emptyState = {
-    tokenContract: contract,
-    address: undefined,
-    decimals: undefined,
-    name: undefined,
-    symbol: undefined,
-    balance: undefined,
-    allowance: undefined,
-  }
-  const [tokenState, setTokenState] = useState(emptyState);
+class TokenStateHooks {
 
-  const updateValues = async () => {
-    if (contract.address && contract) {
-      try {
-        setTokenState({
-          tokenContract: contract,
-          address: contract.address,
-          decimals: await contract.decimals(),
-          name: await contract.name(),
-          symbol: await contract.symbol(),
-          balance: await contract.balanceOf(userAddress),
-          allowance: await contract.allowance(userAddress, spenderAddress),
-        });
-        if (tokenState.address && tokenState.address !== contract.address) {
-          notification.open({
-            message: 'Switched token contract',
-            description:
-              `From ${tokenState.address} to ${contract.address}`,
-          });
-        }
-      } catch (e) {
-        console.log(e);
-        notification.open({
-          message: 'Failed to read ERC20 contract',
-          description:
-            `${contract.address} is not a valid ERC20 contract address`,
-        });
-        setTokenState(emptyState);
-      }
+  constructor(contract, userAddress, spenderAddress, setLoading, setError) {
+    const [prevAddress, setPrevAddress] = useState()
+    const [failed, setFailed] = useState(false);
+    
+    this.tokenContract = contract;
+    this.address = contract && contract.address;
+
+    const onFail = () => {
+      setFailed(this.address);
     }
+    const onChange = () => {
+      setFailed(false);
+      setLoading(false);
+    }
+
+    this.decimals = useContractReader(
+      contract, "decimals", [], 86400 * 1000, onChange, onFail);
+    this.name = useContractReader(
+      contract, "name", [], 86400 * 1000, onChange, onFail);
+    this.symbol = useContractReader(
+      contract, "symbol", [], 86400 * 1000, onChange, onFail);
+    this.balance = useContractReader(
+      contract, "balanceOf", [userAddress], 0, onChange, onFail);
+    this.allowance = useContractReader(
+      contract, "allowance", [userAddress, spenderAddress], 0, onChange, onFail);
+
+    // if address changed show loading
+    useEffect(() => {
+      if (this.address) {
+        setLoading(true);
+      }
+    }, [this.address])
+
+    // notify of address change or failure
+    useEffect(() => {
+      if (this.address) {
+        if (failed) {
+          notification.error({
+            message: 'Failed to read ERC20 contract',
+            description: `${failed} is not a valid ERC20 contract address`,
+            duration: 10
+          });
+          setError(`${failed} is not a valid ERC20 contract address, select another token.`)
+        } else {
+          if (prevAddress && prevAddress !== this.address) {
+            notification.success({
+              message: 'Switched token contract',
+              description: `From ${prevAddress} to ${this.address}`,
+            });                        
+          }
+          setError("");
+        }        
+      }
+      setPrevAddress(this.address);
+    }, [failed, this.address, prevAddress])
   }
-
-  // eslint-disable-next-line
-  useEffect(() => { if (contract) updateValues() }, [contract.address]);
-
-  useOnBlock(contract && contract.provider, () => updateValues());
-
-  return tokenState;
 }
 
 function useERC20ContractAtAddress(address, provider) {
-  const [contract, setContract] = useState({ address: address });
+  const [contract, setContract] = useState();
 
-  const erc20Abi = [
-    "function balanceOf(address owner) view returns (uint256)",
-    "function symbol() view returns (string)",
-    "function name() view returns (string)",
-    "function decimals() view returns (uint8)",
-    "function approve(address _spender, uint256 _value) public returns (bool success)",
-    "function allowance(address _owner, address _spender) public view returns (uint256 remaining)"
-  ];
-  
   useEffect(() => {
+    const erc20Abi = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function symbol() view returns (string)",
+      "function name() view returns (string)",
+      "function decimals() view returns (uint8)",
+      "function approve(address _spender, uint256 _value) public returns (bool success)",
+      "function allowance(address _owner, address _spender) public view returns (uint256 remaining)"
+    ];
+
     const readContract = async () => {
       if (address && provider) {
         const contract = new ethers.Contract(address, erc20Abi, provider, provider.getSigner());
         setContract(contract);
       } else {
-        setContract({ address: address });
+        setContract(null);
       }
     }
 
@@ -130,12 +139,14 @@ export function HodlPoolV1UI(
   const [tokenChoice, setTokenChoice] = useState("");
   const [ethMode, ethModeSet] = useState(false);
   const [tokenAddress, setTokenAddress] = useState();
-  const [loading, loadingSet] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // contract state hooks
   const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
+  const tokenState = new TokenStateHooks(
+    tokenContract, address, contractAddress, setLoading, setError);
   const contractState = new HodlPoolV1StateHooks(contract, address, tokenAddress);
-  const tokenState = useTokenState(tokenContract, address, contractAddress);
 
   // switch token address and eth-mode depending on token choice
   useEffect(() => {
@@ -167,8 +178,10 @@ export function HodlPoolV1UI(
         <Space direction="vertical" size="large">
           <TokenSelection provider={provider} addessUpdateFn={setTokenChoice} />
 
-          { loading ? 
-            <Spin size="large" /> : 
+          { error ?  <Result status="warning" title={error} /> : "" }
+
+          { loading ?
+            <LoadingOutlined style={{ fontSize: 24 }} spin size="large" /> : 
           <TokenBalance
             tokenState={tokenState}
             blockExplorer={blockExplorer}

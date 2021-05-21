@@ -22,7 +22,7 @@ import usePoller from "./Poller";
 
 const DEBUG = true;
 
-export default function useContractReader(contract, functionName, args, pollTime, formatter, onChange) {
+export default function useContractReader(contract, functionName, args, pollTime, onChange, onError) {
   let adjustPollTime = 0;
   if (pollTime) {
     adjustPollTime = pollTime;
@@ -31,11 +31,6 @@ export default function useContractReader(contract, functionName, args, pollTime
   args = args || [];
 
   const [value, setValue] = useState();
-  useEffect(() => {
-    if (typeof onChange === "function") {
-      setTimeout(onChange.bind(this, value), 1);
-    }
-  }, [value, onChange]);
 
   const updateValue = async () => {
     try {
@@ -48,15 +43,14 @@ export default function useContractReader(contract, functionName, args, pollTime
       } else {
         newValue = await contract[functionName]();
       }
-      if (formatter && typeof formatter === "function") {
-        newValue = formatter(newValue);
-      }
       // console.log("GOT VALUE",newValue)
       if (newValue !== value) {
         setValue(newValue);
+        if (typeof onChange === "function") onChange();
       }
     } catch (e) {
       console.log(e);
+      if (typeof onError === "function") onError()
     }
   };
 
