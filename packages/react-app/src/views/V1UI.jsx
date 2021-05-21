@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
-import React, { useState, useEffect } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Spin } from "antd";
 import { Address, Balance } from "../components";
 import { parseEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
@@ -12,18 +12,17 @@ import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlin
 class HodlPoolV1StateHooks {
 
   constructor(contract, address, tokenAddress) {
-    tokenAddress = tokenAddress || ethers.constants.AddressZero;
-    this.address = contract && contract.address;
+    this.address = contract && tokenAddress && contract.address;
     this.tokenAddress = tokenAddress;
-    this.WETHAddress = useContractReader(contract, "WETH");
     this.balance = useContractReader(contract, "balanceOf", [tokenAddress, address]);
     this.bonus = useContractReader(contract, "bonusOf", [tokenAddress, address]);
     this.penalty = useContractReader(contract, "penaltyOf", [tokenAddress, address]);
     this.timeLeft = useContractReader(contract, "timeLeftToHoldOf", [tokenAddress, address]);
     this.bonusesPool = useContractReader(contract, "bonusesPool", [tokenAddress]);
     this.depositsSum = useContractReader(contract, "depositsSum", [tokenAddress]);
-    this.commitPeriod = useContractReader(contract, "commitPeriod");
-    this.initialPenaltyPercent = useContractReader(contract, "initialPenaltyPercent");
+    this.commitPeriod = useContractReader(contract, "commitPeriod", null, 86400 * 1000);
+    this.initialPenaltyPercent = useContractReader(contract, "initialPenaltyPercent", null, 86400 * 1000);
+    this.WETHAddress = useContractReader(contract, "WETH", null, 86400 * 1000);
 
     // time convenience variables
     this.commitDays = parseFloat((this.commitPeriod || "0").toString()) / 86400;
@@ -84,7 +83,7 @@ function useTokenState(contract, userAddress, spenderAddress) {
   }
 
   // eslint-disable-next-line
-  useEffect(() => { if (contract) updateValues() }, [contract]);
+  useEffect(() => { if (contract) updateValues() }, [contract.address]);
 
   useOnBlock(contract && contract.provider, () => updateValues());
 
@@ -131,6 +130,7 @@ export function HodlPoolV1UI(
   const [tokenChoice, setTokenChoice] = useState("");
   const [ethMode, ethModeSet] = useState(false);
   const [tokenAddress, setTokenAddress] = useState();
+  const [loading, loadingSet] = useState(false);
 
   // contract state hooks
   const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
@@ -164,9 +164,11 @@ export function HodlPoolV1UI(
       >
         <Divider dashed>Token Choice</Divider>
 
-        <Space direction="vertical">
+        <Space direction="vertical" size="large">
           <TokenSelection provider={provider} addessUpdateFn={setTokenChoice} />
 
+          { loading ? 
+            <Spin size="large" /> : 
           <TokenBalance
             tokenState={tokenState}
             blockExplorer={blockExplorer}
@@ -174,9 +176,10 @@ export function HodlPoolV1UI(
             address={address}
             provider={provider}
           />
+          }
         </Space>
 
-        {!tokenState.address ? "" :
+        { loading || !tokenState.address ? "" :
           <div>
             <Divider dashed>Deposit</Divider>
 
@@ -260,7 +263,7 @@ function TokenBalance({ tokenState, blockExplorer, ethMode, address, provider })
 function TokenSelection({ provider, addessUpdateFn }) {
 
   // external token list
-  const activeChainId = provider && provider.network.chainId;
+  const activeChainId = provider && provider.network && provider.network.chainId;
   const tokenListURI = activeChainId === 31337 ?
     "local" : "https://gateway.ipfs.io/ipns/tokens.uniswap.org";
   const externalTokensList = useTokenList(tokenListURI, activeChainId);
@@ -279,7 +282,7 @@ function TokenSelection({ provider, addessUpdateFn }) {
   function tokenLogo(token) {
     let logoURI;
     if (token.logoURI) {
-      logoURI = token.logoURI;
+      logoURI = token.logoURI.replace("ipfs://", "https://ipfs.io/ipfs/");
     } else if (token.symbol === "ETH" || token.symbol === "WETH") {
       logoURI = (
         "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains" +
@@ -328,7 +331,7 @@ function TokenSelection({ provider, addessUpdateFn }) {
       onSearch={rawInputSet}
       notFoundContent={importTokenButton}
     >
-      {[{}, ...extraTokens, ...externalTokensList].map((token, i) =>
+      {[{address: ""}, ...extraTokens, ...externalTokensList].map((token, i) =>
         <Select.Option key={i} value={token.address}>
           {token.symbol && tokenLogo(token)} {token.symbol}
         </Select.Option>

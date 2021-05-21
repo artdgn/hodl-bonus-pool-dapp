@@ -38,7 +38,7 @@ export default function useBalance(provider, address, pollTime = 0) {
 
   // do once always on mount
   useEffect(() => {
-    if (provider && address) {
+    if (provider && address && pollTime === 0) {
       pollBalance(provider, address);
     }
   // eslint-disable-next-line

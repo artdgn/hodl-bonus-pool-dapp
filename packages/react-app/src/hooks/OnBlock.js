@@ -10,6 +10,8 @@ export default function useOnBlock(provider, fn, args) {
     savedCallback.current = fn;
   }, [fn]);
 
+  args = args || [];
+
   // Turn on the listener if we have a function & a provider
   useEffect(() => {
     if (fn && provider) {
@@ -29,5 +31,5 @@ export default function useOnBlock(provider, fn, args) {
         provider.off("block", listener);
       };
     }
-  }, [provider, fn, args]);
+  }, [provider, fn, ...args]);
 }

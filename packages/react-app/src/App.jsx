@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import "antd/dist/antd.css";
 import {  StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, Menu, Alert } from "antd";
+import { Row, Col, Button, Menu, Alert, Space } from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
@@ -50,8 +50,6 @@ function App(props) {
   const mainnetProvider = (scaffoldEthProvider && scaffoldEthProvider._network) ? scaffoldEthProvider : mainnetInfura
 
   const [injectedProvider, setInjectedProvider] = useState();
-  /* 💵 This hook will get the price of ETH from 🦄 Uniswap: */
-  const price = useExchangePrice(targetNetwork,mainnetProvider);
 
   /* 🔥 This hook will get the price of Gas from ⛽️ EtherGasStation */
   const gasPrice = useGasPrice(targetNetwork,"fast");
@@ -70,9 +68,6 @@ function App(props) {
 
   // Faucet Tx can be used to send funds from the faucet
   const faucetTx = Transactor(localProvider, gasPrice)
-
-  // 🏗 scaffold-eth is full of handy hooks like this one to get your balance:
-  const yourLocalBalance = useBalance(localProvider, address);
 
   // Load in your local 📝 contract and read a value from it:
   const readContracts = useContractLoader(localProvider)
@@ -127,14 +122,10 @@ function App(props) {
   let faucetHint = "";
   const faucetAvailable = localProvider && localProvider.connection && targetNetwork.name === "localhost";
 
-  const [faucetClicked, setFaucetClicked] = useState(false);
   if (
-    !faucetClicked &&
     localProvider &&
     localProvider._network &&
-    localProvider._network.chainId === 31337 &&
-    yourLocalBalance &&
-    formatEther(yourLocalBalance) <= 0
+    localProvider._network.chainId === 31337
   ) {
     faucetHint = (
       <div style={{ padding: 16 }}>
@@ -145,7 +136,6 @@ function App(props) {
               to: address,
               value: parseEther("0.1"),
             });
-            setFaucetClicked(true);
           }}
         >
           Grab funds from the faucet!
@@ -230,32 +220,24 @@ function App(props) {
            userProvider={userProvider}
            minimized={injectedProvider}
            mainnetProvider={mainnetProvider}
-           price={price}
            web3Modal={web3Modal}
            loadWeb3Modal={loadWeb3Modal}
            logoutOfWeb3Modal={logoutOfWeb3Modal}
            blockExplorer={blockExplorer}
          />
-         {faucetHint}
       </div>
 
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
-       <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
-
-         <Row align="middle" gutter={[4, 4]}>
-           <Col span={24}>
-             {
-
-               /*  if the local provider has a signer, let's show the faucet:  */
-               faucetAvailable ? (
-                 <Faucet localProvider={localProvider} price={price}/>
-               ) : (
-                 ""
-               )
-             }
-           </Col>
-         </Row>
-       </div>
+      
+      <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
+        {faucetAvailable ? (
+          <Space direction="vertical" size="small">
+            {faucetHint}
+            <Faucet localProvider={localProvider} />
+          </Space>
+        ) : ""
+        }
+      </div>
 
     </div>
   );
