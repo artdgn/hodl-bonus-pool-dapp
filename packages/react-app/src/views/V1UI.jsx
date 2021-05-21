@@ -1,11 +1,11 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
-import React, { useState, useEffect, useRef } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Spin, message, Result } from "antd";
+import React, { useState, useEffect } from "react";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Result, Tooltip } from "antd";
 import { Address, Balance } from "../components";
 import { parseEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { useContractExistsAtAddress, useContractReader, useEventListener, useOnBlock, useTokenList } from "../hooks";
+import { useContractExistsAtAddress, useContractReader, useEventListener, useTokenList } from "../hooks";
 import ReactMarkdown from "react-markdown";
 import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlined, QuestionOutlined } from "@ant-design/icons";
 
@@ -161,14 +161,16 @@ export function HodlPoolV1UI(
         style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
         title={
           <Space size="large" direction="vertical">
-            <h2>{contractName}</h2>
-            <Space size="large"> <MotivationButton/> <RulesButton/> </Space>
+            <h1>{contractName}</h1>
+            <Row span={24} gutter={300}>
+              <Col span={12}><MotivationButton/></Col> <Col span={12}><RulesButton/></Col>
+            </Row>
           </Space>
         }
         size="large"
         loading={!contractIsDeployed}
       >
-        <Divider dashed>Token Choice</Divider>
+        <Divider dashed> <h3>Pick or import token 👇</h3></Divider>
 
         <Space direction="vertical" size="large">
           <TokenSelection provider={provider} addessUpdateFn={setTokenChoice} />
@@ -324,27 +326,29 @@ function TokenSelection({ provider, addessUpdateFn }) {
   )
 
   return (
-    <Select
-      showSearch
-      value={selectedValue}
-      placeholder="Pick token or paste address"
-      onChange={(val) => {
-        addessUpdateFn(val);
-        selectedValueSet(val);
-      }}
-      optionFilterProp="children"
-      size="large"
-      dropdownMatchSelectWidth={false}
-      style={{ minWidth: "10rem", textAlign: "center" }}
-      onSearch={rawInputSet}
-      notFoundContent={importTokenButton}
-    >
-      {[{address: ""}, ...extraTokens, ...externalTokensList].map((token, i) =>
-        <Select.Option key={i} value={token.address}>
-          {token.symbol && tokenLogo(token)} {token.symbol}
-        </Select.Option>
-      )}
-    </Select>);
+    <Tooltip title="Paste address to add a token to the list" placement="left" color="gray">
+      <Select
+        showSearch
+        value={selectedValue}
+        onChange={(val) => {
+          addessUpdateFn(val);
+          selectedValueSet(val);
+        }}
+        optionFilterProp="children"
+        size="large"
+        dropdownMatchSelectWidth={false}
+        style={{ minWidth: "14rem", textAlign: "center" }}
+        onSearch={rawInputSet}
+        notFoundContent={importTokenButton}
+      >
+        {[{ address: "" }, ...extraTokens, ...externalTokensList].map((token, i) =>
+          <Select.Option key={i} value={token.address}>
+            {token.symbol && tokenLogo(token)} {token.symbol}
+          </Select.Option>
+        )}
+      </Select>
+    </Tooltip>
+  );
 }
 
 function DepositElementToken({ contractState, contractTx, tokenState, tokenTx }) {
@@ -746,6 +750,7 @@ function RulesButton() {
 ## Pool Rules
 ### TL;DR: 1. Deposit and don't withdraw early 💎✊. 2. Get bonus if other people withdraw early 🤑.
 - Each token has one independent pool. i.e. all accounting is separate for each token.
+- There is no pool creation process - one contract holds all pools.
 - Depositor commits for a "commitment period", after which the deposit 
 can be withdrawn with any bonus share.
 - The bonus pool share is equal to the share of the deposit from all deposits
@@ -765,7 +770,7 @@ commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
 
   return <MarkdownModalButton
     markdown={markdown}
-    title={<div><InfoCircleTwoTone /> Show rules</div>}
+    title={<div><InfoCircleTwoTone /> Rules</div>}
   />
 }
 
@@ -790,7 +795,7 @@ function MotivationButton() {
 
   return <MarkdownModalButton
     markdown={markdown}
-    title={<div><QuestionCircleTwoTone /> Show motivation </div>}
+    title={<div><QuestionCircleTwoTone /> Motivation </div>}
   />
 }
 

@@ -71,6 +71,6 @@ export default function useContractLoader(providerOrSigner, addressOverrides) {
       }
     }
     loadContracts();
-  }, [providerOrSigner]);
+  }, [providerOrSigner, addressOverrides]);
   return contracts;
 }

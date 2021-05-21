@@ -2,15 +2,15 @@ import React, { useCallback, useEffect, useState } from "react";
 import "antd/dist/antd.css";
 import {  StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, Menu, Alert, Space } from "antd";
+import { Button, Menu, Alert, Space } from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
-import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useBalance } from "./hooks";
+import { useGasPrice, useUserProvider, useContractLoader } from "./hooks";
 // eslint-disable-next-line
 import { Header, Account, Faucet, Contract, ThemeSwitch } from "./components";
 import { Transactor } from "./helpers";
-import { formatEther, parseEther } from "@ethersproject/units";
+import { parseEther } from "@ethersproject/units";
 import { HodlPoolV1UI } from "./views"
 // import {  Subgraph } from "./views"
 import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork } from "./constants";

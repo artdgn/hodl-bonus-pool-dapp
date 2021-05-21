@@ -1,5 +1,5 @@
 ![CI](https://github.com/artdgn/hodl-bonus-pool-dapp/workflows/CI/badge.svg) 
-<a href=https://hodl-pool-dapp-v0-kovan.surge.sh/><img src=https://img.shields.io/badge/Kovan--V0-Surge-blueviolet></img></a>
+<a href=https://hodl-pool-dapp-v1-kovan.surge.sh/><img src=https://img.shields.io/badge/Kovan--V1-Surge-blueviolet></img></a>
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A project for learning smart-contract-full-stack-whizz-bang-dApp-buidling using the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth)**.
@@ -22,15 +22,18 @@
     - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.
 
 ### 🧭 Vague versions plan (roadmap?)
-1. v0 ✔️ (PoC)
+1. <details><summary>v0 ✔️ (PoC)</summary>
+
     - goal: 🚀 end-to-end bare skeleton first version deployed (to testnet). 
     - scope: fixed commitment params & bonus depends on ratio of current pool, only eth
     - deliver ✔️ repo ✔️, tests + CI ✔️, basic UI ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xaD00093d69829C61c952eF9A354B14D41F38BEA3#code) ✔️ and [frontend (eth) ✔️](https://hodl-pool-dapp-v0-kovan.surge.sh/)
     - stretch ✔️: erc20 support ✔️ (supporting a single token)
-1. v1 ⌛ (alpha):
+    </details>
+
+1. v1 ✔️ (alpha):
     - goal: handle all tokens & ETH in one contract
     - scope: any ERC20 token ✔️, handle ETH as WETH ✔️, single contract for all tokens ✔️ 
-    - deliver: UI ✔️, explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x5ca46eeafb405a30a95a3ab2c022523ccd8831b6#code) ✔️ , some feedback, mainnet (?)    
+    - deliver: UI ✔️ [frontend (ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v1-kovan.surge.sh/), explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x5ca46eeafb405a30a95a3ab2c022523ccd8831b6#code) ✔️, some feedback ⌛, mainnet (?)    
 1. v2 (beta):  UI + calc, bonus depends on time held
     - goal: bonus depends on time held, 🍕+🍔 flexible commitment params
     - scope: fixed commitment params, bonus depends on time held, 
