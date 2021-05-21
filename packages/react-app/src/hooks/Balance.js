@@ -32,7 +32,8 @@ export default function useBalance(provider, address, pollTime = 0) {
         }
       }
     },
-    [provider, address],
+    // eslint-disable-next-line
+    [provider, address, balance],
   );
 
   // do once always on mount
@@ -40,6 +41,7 @@ export default function useBalance(provider, address, pollTime = 0) {
     if (provider && address) {
       pollBalance(provider, address);
     }
+  // eslint-disable-next-line
   }, [provider, address]);
 
   // Only pass a provider to watch on a block if there is no pollTime

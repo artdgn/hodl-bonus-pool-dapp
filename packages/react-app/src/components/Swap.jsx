@@ -121,68 +121,69 @@ function Swap({ selectedProvider, tokenListURI }) {
       }
     };
     getTokenList();
-  }, [tokenListURI]);
-
-  const getTrades = async () => {
-    if (tokenIn && tokenOut && (amountIn || amountOut)) {
-      const pairs = arr => arr.map((v, i) => arr.slice(i + 1).map(w => [v, w])).flat();
-
-      const baseTokens = tokenList
-        .filter(function (t) {
-          return ["DAI", "USDC", "USDT", "COMP", "ETH", "MKR", "LINK", tokenIn, tokenOut].includes(t.symbol);
-        })
-        .map(el => {
-          return new Token(el.chainId, el.address, el.decimals, el.symbol, el.name);
-        });
-
-      const listOfPairwiseTokens = pairs(baseTokens);
-
-      const getPairs = async list => {
-        const listOfPromises = list.map(item => Fetcher.fetchPairData(item[0], item[1], selectedProvider));
-        return Promise.all(listOfPromises.map(p => p.catch(() => undefined)));
-      };
-
-      const listOfPairs = await getPairs(listOfPairwiseTokens);
-
-      let bestTrade;
-
-      if (exact === "in") {
-        setAmountInMax();
-        bestTrade = Trade.bestTradeExactIn(
-          listOfPairs.filter(item => item),
-          new TokenAmount(tokens[tokenIn], parseUnits(amountIn.toString(), tokens[tokenIn].decimals)),
-          tokens[tokenOut],
-          { maxNumResults: 3, maxHops: 1 },
-        );
-        if (bestTrade[0]) {
-          setAmountOut(bestTrade[0].outputAmount.toSignificant(6));
-        } else {
-          setAmountOut();
-        }
-      } else if (exact === "out") {
-        setAmountOutMin();
-        bestTrade = Trade.bestTradeExactOut(
-          listOfPairs.filter(item => item),
-          tokens[tokenIn],
-          new TokenAmount(tokens[tokenOut], parseUnits(amountOut.toString(), tokens[tokenOut].decimals)),
-          { maxNumResults: 3, maxHops: 1 },
-        );
-        if (bestTrade[0]) {
-          setAmountIn(bestTrade[0].inputAmount.toSignificant(6));
-        } else {
-          setAmountIn();
-        }
-      }
-
-      setTrades(bestTrade);
-
-      console.log(bestTrade);
-    }
-  };
+  }, [tokenListURI, _tokenListUri, activeChainId]);
 
   useEffect(() => {
+    const getTrades = async () => {
+      if (tokenIn && tokenOut && (amountIn || amountOut)) {
+        const pairs = arr => arr.map((v, i) => arr.slice(i + 1).map(w => [v, w])).flat();
+  
+        const baseTokens = tokenList
+          .filter(function (t) {
+            return ["DAI", "USDC", "USDT", "COMP", "ETH", "MKR", "LINK", tokenIn, tokenOut].includes(t.symbol);
+          })
+          .map(el => {
+            return new Token(el.chainId, el.address, el.decimals, el.symbol, el.name);
+          });
+  
+        const listOfPairwiseTokens = pairs(baseTokens);
+  
+        const getPairs = async list => {
+          const listOfPromises = list.map(item => Fetcher.fetchPairData(item[0], item[1], selectedProvider));
+          return Promise.all(listOfPromises.map(p => p.catch(() => undefined)));
+        };
+  
+        const listOfPairs = await getPairs(listOfPairwiseTokens);
+  
+        let bestTrade;
+  
+        if (exact === "in") {
+          setAmountInMax();
+          bestTrade = Trade.bestTradeExactIn(
+            listOfPairs.filter(item => item),
+            new TokenAmount(tokens[tokenIn], parseUnits(amountIn.toString(), tokens[tokenIn].decimals)),
+            tokens[tokenOut],
+            { maxNumResults: 3, maxHops: 1 },
+          );
+          if (bestTrade[0]) {
+            setAmountOut(bestTrade[0].outputAmount.toSignificant(6));
+          } else {
+            setAmountOut();
+          }
+        } else if (exact === "out") {
+          setAmountOutMin();
+          bestTrade = Trade.bestTradeExactOut(
+            listOfPairs.filter(item => item),
+            tokens[tokenIn],
+            new TokenAmount(tokens[tokenOut], parseUnits(amountOut.toString(), tokens[tokenOut].decimals)),
+            { maxNumResults: 3, maxHops: 1 },
+          );
+          if (bestTrade[0]) {
+            setAmountIn(bestTrade[0].inputAmount.toSignificant(6));
+          } else {
+            setAmountIn();
+          }
+        }
+  
+        setTrades(bestTrade);
+  
+        console.log(bestTrade);
+      }
+    };
+
     getTrades();
-  }, [tokenIn, tokenOut, debouncedAmountIn, debouncedAmountOut, slippageTolerance, selectedProvider]);
+  }, [tokenIn, tokenOut, debouncedAmountIn, debouncedAmountOut, slippageTolerance, 
+      selectedProvider, amountIn, amountOut, exact, tokenList, tokens]);
 
   useEffect(() => {
     if (trades && trades[0]) {
@@ -192,7 +193,7 @@ function Swap({ selectedProvider, tokenListURI }) {
         setAmountInMax(trades[0].maximumAmountIn(slippageTolerance));
       }
     }
-  }, [slippageTolerance, amountIn, amountOut, trades]);
+  }, [slippageTolerance, amountIn, amountOut, trades, exact]);
 
   const getBalance = async (_token, _account, _contract) => {
     let newBalance;

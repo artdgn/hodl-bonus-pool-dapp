@@ -1,11 +1,11 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer, Space, InputNumber, notification, Select, Descriptions, Tooltip, Steps } from "antd";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps } from "antd";
 import { Address, Balance } from "../components";
-import { parseEther, formatEther, parseUnits, formatUnits } from "@ethersproject/units";
+import { parseEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { useContractExistsAtAddress, useContractReader, useEventListener, useExternalContractLoader, useOnBlock, usePoller, useTokenList } from "../hooks";
+import { useContractExistsAtAddress, useContractReader, useEventListener, useOnBlock, useTokenList } from "../hooks";
 import ReactMarkdown from "react-markdown";
 import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlined, QuestionOutlined } from "@ant-design/icons";
 
@@ -73,7 +73,7 @@ function useTokenState(contract, userAddress, spenderAddress) {
           balance: await contract.balanceOf(userAddress),
           allowance: await contract.allowance(userAddress, spenderAddress),
         });
-        if (tokenState.address && tokenState.address != contract.address) {
+        if (tokenState.address && tokenState.address !== contract.address) {
           notification.open({
             message: 'Switched token contract',
             description:
@@ -92,6 +92,7 @@ function useTokenState(contract, userAddress, spenderAddress) {
     }
   }
 
+  // eslint-disable-next-line
   useEffect(() => { if (contract) updateValues() }, [contract]);
 
   useOnBlock(contract && contract.provider, () => updateValues());
@@ -101,16 +102,17 @@ function useTokenState(contract, userAddress, spenderAddress) {
 
 function useContractAtAddress(address, abi, provider) {
   const [contract, setContract] = useState({ address: address });
-
-  const readContract = async () => {
-    if (address && provider) {
-      const contract = new ethers.Contract(address, abi, provider, provider.getSigner());
-      setContract(contract);
-    } else {
-      setContract({ address: address });
-    }
-  }
+  
   useEffect(() => {
+    const readContract = async () => {
+      if (address && provider) {
+        const contract = new ethers.Contract(address, abi, provider, provider.getSigner());
+        setContract(contract);
+      } else {
+        setContract({ address: address });
+      }
+    }
+
     readContract();
   }, [address, abi, provider]);
 
@@ -137,8 +139,8 @@ export function HodlPoolV1UI(
 
   // switch token address and eth-mode depending on token choice
   useEffect(() => {
-    setTokenAddress(tokenChoice == "ETH" ? contractState.WETHAddress : tokenChoice);
-    ethModeSet(tokenChoice == "ETH");
+    setTokenAddress(tokenChoice === "ETH" ? contractState.WETHAddress : tokenChoice);
+    ethModeSet(tokenChoice === "ETH");
   }, [tokenChoice, contractState.WETHAddress])
 
   // transaction wrappers
@@ -261,7 +263,7 @@ function TokenSelection({ provider, addessUpdateFn }) {
 
   // external token list
   const activeChainId = provider && provider.network.chainId;
-  const tokenListURI = activeChainId == 31337 ?
+  const tokenListURI = activeChainId === 31337 ?
     "local" : "https://gateway.ipfs.io/ipns/tokens.uniswap.org";
   const externalTokensList = useTokenList(tokenListURI, activeChainId);
 
@@ -280,14 +282,14 @@ function TokenSelection({ provider, addessUpdateFn }) {
     let logoURI;
     if (token.logoURI) {
       logoURI = token.logoURI;
-    } else if (token.symbol == "ETH" || token.symbol == "WETH") {
+    } else if (token.symbol === "ETH" || token.symbol === "WETH") {
       logoURI = (
         "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains" +
         "/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png");
     } else {
       return <QuestionOutlined style={{ width: '30px' }} />
     }
-    return <img src={logoURI} width='30px' />
+    return <img src={logoURI} width='30px' alt=""/>
   }
 
   const shortenString = val => (val.length > 8 ? val.slice(0, 8) + '..' : val);
@@ -705,11 +707,11 @@ function EventsList({ contract, address }) {
         dataSource={allEvents}
         renderItem={(item) => {
           let eventText = "";
-          if (item.eventName == "Deposited") {
+          if (item.eventName === "Deposited") {
             eventText = (
               `deposited ${item.amount.toString()} ` +
               `at ${item.time.toString()}`);
-          } else if (item.eventName == "Withdrawed") {
+          } else if (item.eventName === "Withdrawed") {
             eventText = (
               `withdrew ${item.amount.toString()} ` +
               `out of ${item.depositAmount.toString()} ` +

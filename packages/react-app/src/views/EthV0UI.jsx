@@ -285,9 +285,9 @@ function EventsList({eventsArray}) {
         dataSource={eventsArray}
         renderItem={(item) => {
           let eventText = "";
-          if (item.eventName == "Deposited") {
+          if (item.eventName === "Deposited") {
             eventText = `deposited ${item.amount.toString()} wei at ${item.time.toString()}`;
-          } else if (item.eventName == "Withdrawed") {
+          } else if (item.eventName === "Withdrawed") {
             eventText = (`withdrew ${item.amount.toString()} wei ` +
               `out of ${item.depositAmount.toString()} ` +
               `(held for ${item.timeHeld.toString()}s)`

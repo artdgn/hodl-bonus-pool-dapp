@@ -28,7 +28,7 @@ const useTokenList = (tokenListUri, chainId) => {
       try {
         let _tokenList;
 
-        if (tokenListUri.startsWith("local")) {
+        if (_tokenListUri.startsWith("local")) {
           _tokenList = require('../contracts/localTokens.js');
         } else {
           const tokenList = await fetch(_tokenListUri);
@@ -49,7 +49,7 @@ const useTokenList = (tokenListUri, chainId) => {
       }
     }
     getTokenList();
-  }, [tokenListUri, chainId]);
+  }, [_tokenListUri, chainId]);
 
   return tokenList;
 };

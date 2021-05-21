@@ -1,6 +1,5 @@
 import { formatEther } from "@ethersproject/units";
 import React, { useState } from "react";
-import { usePoller } from "eth-hooks";
 import { useBalance } from "../hooks";
 
 /*
@@ -60,7 +59,7 @@ export default function Balance({
   let displayBalance;
   if (floatBalance > 1) {
     displayBalance = floatBalance.toFixed(precision);
-  } else if (floatBalance == 0) {
+  } else if (floatBalance === 0) {
     displayBalance = 0;
   } else {
     // minimal precision that avoids scientific notation

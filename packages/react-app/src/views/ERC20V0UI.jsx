@@ -1,13 +1,13 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer, Space, InputNumber, notification, Select, Descriptions, Tooltip, Steps } from "antd";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer, Space, notification, Steps } from "antd";
 import { Address, Balance } from "../components";
-import { parseEther, formatEther, parseUnits, formatUnits } from "@ethersproject/units";
+import { parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { useContractExistsAtAddress, useContractReader, useEventListener, useExternalContractLoader, useOnBlock, usePoller } from "../hooks";
+import { useContractExistsAtAddress, useContractReader, useEventListener, useOnBlock } from "../hooks";
 import ReactMarkdown from "react-markdown";
-import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, SettingOutlined, RetweetOutlined, LoadingOutlined } from "@ant-design/icons";
+import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlined } from "@ant-design/icons";
 
 class HodlPoolERC20V0StateHooks {
 
@@ -71,7 +71,7 @@ function useTokenState(contract, userAddress, spenderAddress) {
           balance: await contract.balanceOf(userAddress),
           allowance: await contract.allowance(userAddress, spenderAddress),
         });
-        if (tokenState.address && tokenState.address != contract.address) {
+        if (tokenState.address && tokenState.address !== contract.address) {
           notification.open({
             message: 'Switched token contract',
             description:
@@ -473,9 +473,9 @@ function EventsList({ contract, address }) {
         dataSource={allEvents}
         renderItem={(item) => {
           let eventText = "";
-          if (item.eventName == "Deposited") {
+          if (item.eventName === "Deposited") {
             eventText = `deposited ${item.amount.toString()} at ${item.time.toString()}`;
-          } else if (item.eventName == "Withdrawed") {
+          } else if (item.eventName === "Withdrawed") {
             eventText = (`withdrew ${item.amount.toString()} ` +
               `out of ${item.depositAmount.toString()} ` +
               `(held for ${item.timeHeld.toString()}s)`

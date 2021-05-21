@@ -42,6 +42,7 @@ export default function useEventListener(contract, eventName, provider, startBlo
         console.log(e);
       }
     }
+  // eslint-disable-next-line
   }, [provider, startBlock, contract, eventName, ...filterArgs]);
 
   return updates;

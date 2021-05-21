@@ -1,19 +1,20 @@
 import React, { useCallback, useEffect, useState } from "react";
-// import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 import "antd/dist/antd.css";
-import {  StaticJsonRpcProvider, JsonRpcProvider, Web3Provider } from "@ethersproject/providers";
+import {  StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Row, Col, Button, Menu, Alert, Switch as SwitchD, List, Divider} from "antd";
+import { Row, Col, Button, Menu, Alert } from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
-import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useContractReader, useBalance, useExternalContractLoader, useOnBlock } from "./hooks";
-import { Header, Account, Faucet, Ramp, Contract, GasGauge, ThemeSwitch, Address, Balance} from "./components";
+import { useExchangePrice, useGasPrice, useUserProvider, useContractLoader, useBalance } from "./hooks";
+// eslint-disable-next-line
+import { Header, Account, Faucet, Contract, ThemeSwitch } from "./components";
 import { Transactor } from "./helpers";
 import { formatEther, parseEther } from "@ethersproject/units";
 import { HodlPoolV1UI } from "./views"
-// import { Hints, ExampleUI, Subgraph } from "./views"
-import { INFURA_ID, DAI_ADDRESS, DAI_ABI, NETWORK, NETWORKS, contractName, defaultNetwork, tokenContractName} from "./constants";
+// import {  Subgraph } from "./views"
+import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork } from "./constants";
+// eslint-disable-next-line
 import { BrowserRouter, Link,  Route, Switch } from "react-router-dom";
 
 
@@ -88,7 +89,7 @@ function App(props) {
   // // Then read your DAI balance like:
   // const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
 
-  const wrongNetwork = localChainId && selectedChainId && localChainId != selectedChainId;
+  const wrongNetwork = localChainId && selectedChainId && localChainId !== selectedChainId;
   const networkDisplay = ( wrongNetwork ?
     <div style={{zIndex:2, position:'absolute', right:0,top:60,padding:16}}>
         <Alert
@@ -143,12 +144,12 @@ function App(props) {
           onClick={() => {
             faucetTx({
               to: address,
-              value: parseEther("0.01"),
+              value: parseEther("0.1"),
             });
             setFaucetClicked(true);
           }}
         >
-          💰 Grab funds from the faucet ⛽️
+          Grab funds from the faucet!
         </Button>
       </div>
     );
@@ -161,8 +162,8 @@ function App(props) {
       {networkDisplay}
       <BrowserRouter>
 
-        {/* <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
-          <Menu.Item key="/">
+        <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
+          {/* <Menu.Item key="/">
             <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
           </Menu.Item>
           <Menu.Item key="/contract">
@@ -170,8 +171,8 @@ function App(props) {
           </Menu.Item>
           <Menu.Item key="/token">
             <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
-          </Menu.Item>
-        </Menu> */}
+          </Menu.Item> */}
+        </Menu>
 
         <Switch>
           <Route exact path="/">
