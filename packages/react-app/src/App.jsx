@@ -18,7 +18,7 @@ import { BrowserRouter, Link,  Route, Switch } from "react-router-dom";
 
 
 /// 📡 What chain are your contracts deployed to?
-const targetNetwork = NETWORKS[defaultNetwork]; 
+const targetNetwork = NETWORKS[defaultNetwork];
 
 const DEBUG = true
 
@@ -124,24 +124,34 @@ function App(props) {
     setRoute(window.location.pathname)
   }, [setRoute]);
 
-  let faucetHint = ""
-  const faucetAvailable = localProvider && localProvider.connection && targetNetwork.name == "localhost"
+  let faucetHint = "";
+  const faucetAvailable = localProvider && localProvider.connection && targetNetwork.name === "localhost";
 
-  const [ faucetClicked, setFaucetClicked ] = useState( false );
-  if(!faucetClicked&&localProvider&&localProvider._network&&localProvider._network.chainId==31337&&yourLocalBalance&&formatEther(yourLocalBalance)<=0){
+  const [faucetClicked, setFaucetClicked] = useState(false);
+  if (
+    !faucetClicked &&
+    localProvider &&
+    localProvider._network &&
+    localProvider._network.chainId === 31337 &&
+    yourLocalBalance &&
+    formatEther(yourLocalBalance) <= 0
+  ) {
     faucetHint = (
-      <div style={{padding:16}}>
-        <Button type={"primary"} onClick={()=>{
-          faucetTx({
-            to: address,
-            value: parseEther("0.01"),
-          });
-          setFaucetClicked(true)
-        }}>
+      <div style={{ padding: 16 }}>
+        <Button
+          type="primary"
+          onClick={() => {
+            faucetTx({
+              to: address,
+              value: parseEther("0.01"),
+            });
+            setFaucetClicked(true);
+          }}
+        >
           💰 Grab funds from the faucet ⛽️
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -176,7 +186,7 @@ function App(props) {
             />
           </Route>
 
-          {/* <Route exact path="/contract">            
+          {/* <Route exact path="/contract">
             <Contract
               name={contractName}
               signer={userProvider.getSigner()}
@@ -196,7 +206,7 @@ function App(props) {
             */ }
           {/* </Route>
 
-          <Route exact path="/token">            
+          <Route exact path="/token">
             <Contract
               name={tokenContractName}
               signer={userProvider.getSigner()}
@@ -212,7 +222,7 @@ function App(props) {
 
       {/* <Header />
       {networkDisplay}
-      { wrongNetwork ? "" : 
+      { wrongNetwork ? "" :
         <HoldPoolEthV0UI
           address={address}
           price={price}
@@ -290,18 +300,22 @@ const logoutOfWeb3Modal = async () => {
   }, 1);
 };
 
- window.ethereum && window.ethereum.on('chainChanged', chainId => {
-  web3Modal.cachedProvider &&
-  setTimeout(() => {
-    window.location.reload();
-  }, 1);
-})
+/* eslint-disable */
+window.ethereum &&
+  window.ethereum.on("chainChanged", chainId => {
+    web3Modal.cachedProvider &&
+      setTimeout(() => {
+        window.location.reload();
+      }, 1);
+  });
 
- window.ethereum && window.ethereum.on('accountsChanged', accounts => {
-  web3Modal.cachedProvider &&
-  setTimeout(() => {
-    window.location.reload();
-  }, 1);
-})
+window.ethereum &&
+  window.ethereum.on("accountsChanged", accounts => {
+    web3Modal.cachedProvider &&
+      setTimeout(() => {
+        window.location.reload();
+      }, 1);
+  });
+/* eslint-enable */
 
 export default App;

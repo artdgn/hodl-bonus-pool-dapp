@@ -18,19 +18,19 @@ const main = async () => {
     // local tester receiver address
     const address = "0x555cFBB56A31325de28054AC506898a5539C835f";
 
-    const token1 = await deploy(config.tokenContractName, 
+    const token1 = await deploy(config.tokenContractName,
       ["TokenA", "AAA", address, parseUnits("1", 18)]);
-    const token2 = await deploy(config.tokenContractName, 
-      ["TokenB", "BBB", address, parseUnits("2", 18)]);   
-    const token3 = await deploy(config.tokenContractName, 
-      ["TokenC", "LongSymbol", address, parseUnits("3", 18)]);   
-    const wethContract = await deploy(config.wethContractName) 
+    const token2 = await deploy(config.tokenContractName,
+      ["TokenB", "BBB", address, parseUnits("2", 18)]);
+    const token3 = await deploy(config.tokenContractName,
+      ["TokenC", "LongSymbol", address, parseUnits("3", 18)]);
+    const wethContract = await deploy(config.wethContractName)
 
     // save the local tokens list
     await saveTokenList(
-      token1, 
+      token1,
       // token2,
-      token3, 
+      token3,
       wethContract
     );
 
@@ -40,8 +40,8 @@ const main = async () => {
     // use the weth from config
     WETHAddress = config.networks[config.defaultNetwork].WETHAddress;
   }
-  
-  
+
+
   const yourContract = await deploy(config.contractName, [...args, WETHAddress]);
 
   // const yourContract = await ethers.getContractAt(config.contractName, "0xAd0019EACBbB1BC9dE70f25420c3aB96E4f09aec") //<-- if you want to instantiate a version of a contract at a specific address!
@@ -96,7 +96,7 @@ const main = async () => {
       constructorArguments: args // If your contract has constructor arguments, you can pass them as an array
     })
   }
-  
+
   console.log(
     " 💾  Artifacts (address, abi, and args) saved to: ",
     chalk.blue("packages/hardhat/artifacts/"),
@@ -221,16 +221,16 @@ async function saveTokenList(...tokensContracts) {
           "decimals": await contract.decimals(),
         };
     }))
-  }, null, 2);    
+  }, null, 2);
 
   // try to mkdir in case it doesn't exist
   try {fs.mkdirSync('./extra/')} catch {};
   fs.writeFileSync('./extra/tokenlist.json', tokenListString);
-  
+
   console.log(
     " 💾  Saved local token list to: ",
     chalk.blue("packages/hardhat/extra/"),
-    "\n\n", 
+    "\n\n",
     tokenListString);
 }
 

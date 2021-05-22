@@ -3,7 +3,7 @@ const fs = require("fs");
 const chalk = require("chalk");
 
 require("@nomiclabs/hardhat-waffle");
-require("@tenderly/hardhat-tenderly");
+require("@tenderly/hardhat-tenderly")
 
 require("@nomiclabs/hardhat-etherscan");
 
@@ -17,6 +17,7 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
       out of the box it will auto deploy anything in the `contracts` folder and named *.sol
       plus it will use *.args for constructor args
 */
+
 //
 // Select the network you want to deploy to here:
 //
@@ -27,11 +28,11 @@ module.exports = {
 
   defaultNetwork,
 
-  // contractName: "HodlPoolEthV0",  
-  // contractName: "HodlPoolERC20V0",  
-  contractName: "HodlPoolV1",  
-  tokenContractName: "SomeToken",  
-  wethContractName: "WETH",  
+  // contractName: "HodlPoolEthV0",
+  // contractName: "HodlPoolERC20V0",
+  contractName: "HodlPoolV1",
+  tokenContractName: "SomeToken",
+  wethContractName: "WETH",
 
   deployArgs: {
     localhost: [100, 60], // for quick testing

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
 import { formatEther } from "@ethersproject/units";
+import React, { useState } from "react";
 import { usePoller } from "eth-hooks";
-import { useBalance } from "../hooks"
+import { useBalance } from "../hooks";
 
 /*
   ~ What it does? ~
@@ -28,7 +28,6 @@ import { useBalance } from "../hooks"
   - Provide provider={mainnetProvider} to access balance on mainnet or any other network (ex. localProvider)
   - Provide price={price} of ether and get your balance converted to dollars
 */
-
 
 export default function Balance({
     address, balance, provider, price, size, symbol

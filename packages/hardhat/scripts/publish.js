@@ -11,7 +11,7 @@ function publishContract(contractName) {
     chalk.cyan(contractName),
     "to",
     chalk.gray(publishDir)
-  );  
+  );
   try {
     let contract = fs
       .readFileSync(`${bre.config.paths.artifacts}/contracts/${contractName}.sol/${contractName}.json`)

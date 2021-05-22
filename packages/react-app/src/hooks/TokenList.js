@@ -1,6 +1,6 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /*
   ~ What it does? ~
@@ -32,7 +32,7 @@ const useTokenList = (tokenListUri, chainId) => {
           _tokenList = require('../contracts/localTokens.js');
         } else {
           const tokenList = await fetch(_tokenListUri);
-          _tokenList = await tokenList.json();  
+          _tokenList = await tokenList.json();
         }
 
         if (chainId) {

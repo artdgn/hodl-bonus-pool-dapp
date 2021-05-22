@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import usePoller from "./Poller";
+import { useEffect, useState } from "react";
 import useOnBlock from "./OnBlock";
-import { Provider } from "@ethersproject/providers";
+import usePoller from "./Poller";
+
+const DEBUG = false;
 
 /*
   ~ What it does? ~
@@ -59,7 +60,7 @@ export default function useContractReader(contract, functionName, args, pollTime
 
   // do once always on mount
   useEffect(() => {
-    if (contract) updateValue()  
+    if (contract) updateValue()
   }, [contract, ...(args || [])]);
 
   // Only pass a provider to watch on a block if we have a contract and no PollTime
