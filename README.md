@@ -4,7 +4,7 @@
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A project for learning smart-contract-full-stack-whizz-bang-dApp-buidling using the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth)**.
 
-### 💡 The idea: "Strong 💎✊ hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
+### 💡 The idea: "Strong 💎✊ hands" get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
 
 ### ❔ Why this may be a good idea:
 1. **Price effects** - like "staking", but without the inflation:
@@ -34,10 +34,10 @@
     - goal: handle all tokens & ETH in one contract
     - scope: any ERC20 token ✔️, handle ETH as WETH ✔️, single contract for all tokens ✔️ 
     - deliver: UI ✔️ [frontend (ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v1-kovan.surge.sh/), explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x5ca46eeafb405a30a95a3ab2c022523ccd8831b6#code) ✔️, some feedback ⌛, mainnet (?)    
-1. v2 (beta):  UI + calc, bonus depends on time held
-    - goal: bonus depends on time held, 🍕+🍔 flexible commitment params
-    - scope: fixed commitment params, bonus depends on time held, 
-    - deliver: UI, mainnet
+1. v2 (beta):
+    - goal + scope: bonus depends on time held, 🍕+🍔 flexible commitment params
+    - deliver: UI, testnet, mainnet
+    - stretch: handle complex tokens (fee on transfer / supply adjustments)
 
 ---
 

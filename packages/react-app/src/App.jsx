@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import "antd/dist/antd.css";
-import {  StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
+import { StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
 import { Button, Menu, Alert, Space } from "antd";
 import Web3Modal from "web3modal";
@@ -15,7 +15,7 @@ import { HodlPoolV1UI } from "./views"
 // import {  Subgraph } from "./views"
 import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork } from "./constants";
 // eslint-disable-next-line
-import { BrowserRouter, Link,  Route, Switch } from "react-router-dom";
+import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
 
 
 /// 📡 What chain are your contracts deployed to?
@@ -37,7 +37,7 @@ const mainnetInfura = new StaticJsonRpcProvider("https://mainnet.infura.io/v3/" 
 const localProviderUrl = targetNetwork.rpcUrl;
 // as you deploy to other networks you can set REACT_APP_PROVIDER=https://dai.poa.network in packages/react-app/.env
 const localProviderUrlFromEnv = process.env.REACT_APP_PROVIDER ? process.env.REACT_APP_PROVIDER : localProviderUrl;
-if(DEBUG) console.log("🏠 Connecting to provider:", localProviderUrlFromEnv);
+if (DEBUG) console.log("🏠 Connecting to provider:", localProviderUrlFromEnv);
 const localProvider = new StaticJsonRpcProvider(localProviderUrlFromEnv);
 
 
@@ -52,7 +52,7 @@ function App(props) {
   const [injectedProvider, setInjectedProvider] = useState();
 
   /* 🔥 This hook will get the price of Gas from ⛽️ EtherGasStation */
-  const gasPrice = useGasPrice(targetNetwork,"fast");
+  const gasPrice = useGasPrice(targetNetwork, "fast");
   // Use your injected provider from 🦊 Metamask or if you don't have it then instantly generate a 🔥 burner wallet.
   const userProvider = useUserProvider(injectedProvider, localProvider);
   const address = useUserAddress(userProvider);
@@ -84,23 +84,23 @@ function App(props) {
   // const myMainnetDAIBalance = useContractReader({DAI: mainnetDAIContract},"DAI", "balanceOf",["0x34aA3F359A9D614239015126635CE7732c18fDF3"])
 
   const wrongNetwork = localChainId && selectedChainId && localChainId !== selectedChainId;
-  const networkDisplay = ( wrongNetwork ?
-    <div style={{zIndex:2, position:'absolute', right:0,top:60,padding:16}}>
-        <Alert
-          message={"⚠️ Wrong Network"}
-          description={(
-            <div>
-              You have <b>{NETWORK(selectedChainId).name}</b> selected and you need to be on <b>{NETWORK(localChainId).name}</b>.
-            </div>
-          )}
-          type="error"
-          closable={false}
-        />
-      </div>
-      :
-      <h4 style={{zIndex:-1, position:'absolute', right:12,top:40,padding:16,color:targetNetwork.color}}>
-        {targetNetwork.name}
-      </h4>
+  const networkDisplay = (wrongNetwork ?
+    <div style={{ zIndex: 2, position: 'absolute', right: 0, top: 60, padding: 16 }}>
+      <Alert
+        message={"⚠️ Wrong Network"}
+        description={(
+          <div>
+            You have <b>{NETWORK(selectedChainId).name}</b> selected and you need to be on <b>{NETWORK(localChainId).name}</b>.
+          </div>
+        )}
+        type="error"
+        closable={false}
+      />
+    </div>
+    :
+    <h4 style={{ zIndex: -1, position: 'absolute', right: 12, top: 40, padding: 16, color: targetNetwork.color }}>
+      {targetNetwork.name}
+    </h4>
   )
 
   const loadWeb3Modal = useCallback(async () => {
@@ -148,87 +148,91 @@ function App(props) {
     <div className="App">
 
       <Header />
+
       {networkDisplay}
-      <BrowserRouter>
 
-        <Menu style={{ textAlign:"center" }} selectedKeys={[route]} mode="horizontal">
-          {/* <Menu.Item key="/">
-            <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
-          </Menu.Item>
-          <Menu.Item key="/contract">
-            <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
-          </Menu.Item>
-          <Menu.Item key="/token">
-            <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
-          </Menu.Item> */}
-        </Menu>
+      {wrongNetwork ? "" :
+        <BrowserRouter>
 
-        <Switch>
-          <Route exact path="/">
-            <HodlPoolV1UI
-              address={address}
-              tx={tx}
-              writeContracts={writeContracts}
-              readContracts={readContracts}
-              contractName={contractName}
-              provider={userProvider}
-              blockExplorer={blockExplorer}
-            />
-          </Route>
+          <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
+            {/* <Menu.Item key="/">
+              <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
+            </Menu.Item>
+            <Menu.Item key="/contract">
+              <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
+            </Menu.Item>
+            <Menu.Item key="/token">
+              <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
+            </Menu.Item> */}
+          </Menu>
 
-          {/* <Route exact path="/contract">
-            <Contract
-              name={contractName}
-              signer={userProvider.getSigner()}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-            /> */}
+          <Switch>
+            <Route exact path="/">
+              <HodlPoolV1UI
+                address={address}
+                tx={tx}
+                writeContracts={writeContracts}
+                readContracts={readContracts}
+                contractName={contractName}
+                provider={userProvider}
+                blockExplorer={blockExplorer}
+              />
+            </Route>
+
+            {/* <Route exact path="/contract">
+              <Contract
+                name={contractName}
+                signer={userProvider.getSigner()}
+                provider={localProvider}
+                address={address}
+                blockExplorer={blockExplorer}
+              /> */}
             { /* Uncomment to display and interact with an external contract (DAI on mainnet):
-            <Contract
-              name="DAI"
-              customContract={mainnetDAIContract}
-              signer={userProvider.getSigner()}
-              provider={mainnetProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-            />
-            */ }
-          {/* </Route>
+              <Contract
+                name="DAI"
+                customContract={mainnetDAIContract}
+                signer={userProvider.getSigner()}
+                provider={mainnetProvider}
+                address={address}
+                blockExplorer={blockExplorer}
+              />
+              */ }
+            {/* </Route>
 
-          <Route exact path="/token">
-            <Contract
-              name={tokenContractName}
-              signer={userProvider.getSigner()}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-            />
-          </Route> */}
+            <Route exact path="/token">
+              <Contract
+                name={tokenContractName}
+                signer={userProvider.getSigner()}
+                provider={localProvider}
+                address={address}
+                blockExplorer={blockExplorer}
+              />
+            </Route> */}
 
-        </Switch>
+          </Switch>
 
-      </BrowserRouter>
+        </BrowserRouter>
+      }
 
       <ThemeSwitch />
 
       {/* 👨‍💼 Your account is in the top right with a wallet at connect options */}
       <div style={{ position: "fixed", textAlign: "right", right: 0, top: 0, padding: 10 }}>
-         <Account
-           address={address}
-           localProvider={localProvider}
-           userProvider={userProvider}
-           minimized={injectedProvider}
-           mainnetProvider={mainnetProvider}
-           web3Modal={web3Modal}
-           loadWeb3Modal={loadWeb3Modal}
-           logoutOfWeb3Modal={logoutOfWeb3Modal}
-           blockExplorer={blockExplorer}
-         />
+        <Account
+          address={address}
+          localProvider={localProvider}
+          userProvider={userProvider}
+          minimized={injectedProvider}
+          mainnetProvider={mainnetProvider}
+          web3Modal={web3Modal}
+          loadWeb3Modal={loadWeb3Modal}
+          logoutOfWeb3Modal={logoutOfWeb3Modal}
+          blockExplorer={blockExplorer}
+        />
       </div>
 
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
-      
+
       <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
         {localEnv ? (
           <Space direction="vertical" size="small">

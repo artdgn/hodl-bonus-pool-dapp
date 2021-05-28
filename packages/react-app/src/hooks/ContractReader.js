@@ -20,7 +20,7 @@ import usePoller from "./Poller";
   - Pass pollTime - if no pollTime is specified, the function will update on every new block
 */
 
-const DEBUG = true;
+const DEBUG = false;
 
 export default function useContractReader(contract, functionName, args, pollTime, onChange, onError) {
   let adjustPollTime = 0;
