@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Result, Tooltip } from "antd";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Result, Tooltip, Skeleton, Empty } from "antd";
 import { Address, Balance } from "../components";
 import { parseEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
@@ -44,7 +44,7 @@ class TokenStateHooks {
   constructor(contract, userAddress, spenderAddress, setLoading, setError) {
     const [prevAddress, setPrevAddress] = useState()
     const [failed, setFailed] = useState(false);
-    
+
     this.tokenContract = contract;
     this.address = contract && contract.address;
 
@@ -62,7 +62,7 @@ class TokenStateHooks {
     this.decimals = useContractReader(
       contract, "decimals", [], 86400 * 1000, null, onFail);
     this.name = useContractReader(
-      contract, "name", [], 86400 * 1000, null, onFail);    
+      contract, "name", [], 86400 * 1000, null, onFail);
     this.balance = useContractReader(
       contract, "balanceOf", [userAddress], 0, null, onFail);
     this.allowance = useContractReader(
@@ -88,7 +88,7 @@ class TokenStateHooks {
         notification.success({
           message: 'Switched token contract',
           description: `From ${prevAddress} to ${this.address}`,
-        });          
+        });
       }
     }, [this.address, prevAddress])
   }
@@ -150,48 +150,49 @@ export function HodlPoolV1UI(
   }, [tokenChoice, contractState.WETHAddress])
 
   // transaction wrappers
-  const contractTx = (method, ...args) =>
-    tx(writeContracts[contractName][method](...args));
-  const tokenTx = (method, ...args) =>
-    tx(tokenContract.connect(provider.getSigner())[method](...args));
+  const contractTx = (method, args, callback) =>
+    tx(writeContracts[contractName][method](...(args ?? [])).finally(callback));
+  const tokenTx = (method, args, callback) =>
+    tx(tokenContract.connect(provider.getSigner())[method](...(args ?? [])).finally(callback));
+
+  const symbol = ethMode ? "ETH" : tokenState.symbol;
 
   return (
     <div>
       <Card
         style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
         title={
-          <Space size="large" direction="vertical">
-            <h1>{contractName}</h1>
-            <Row span={24} gutter={300}>
-              <Col span={12}><MotivationButton/></Col> <Col span={12}><RulesButton/></Col>
-            </Row>
-          </Space>
+          <div>
+            <h1>HODL pool V1</h1>
+            <h4>Deposit ERC20 tokens or ETH and don't withdraw early 💎✊</h4>
+            <h4>Get bonus if other people withdraw early 🤑</h4>
+          </div>
         }
         size="large"
         loading={!contractIsDeployed}
       >
-        <Divider dashed> <h3>Pick or import token 👇</h3></Divider>
+        <Divider dashed> <h3>👇 Pick or import token 👇</h3></Divider>
 
         <Space direction="vertical" size="large">
           <TokenSelection provider={provider} addessUpdateFn={setTokenChoice} />
 
-          { error ?  <Result status="warning" subTitle={error} /> : "" }
+          {error ? <Result status="warning" subTitle={error} /> : ""}
 
-          { loading ?
-            <LoadingOutlined style={{ fontSize: 24 }} spin size="large" /> : 
-          <TokenBalance
-            tokenState={tokenState}
-            blockExplorer={blockExplorer}
-            ethMode={ethMode}
-            address={address}
-            provider={provider}
-          />
+          {loading ?
+            <LoadingOutlined style={{ fontSize: 24 }} spin size="large" /> :
+            <TokenBalance
+              tokenState={tokenState}
+              blockExplorer={blockExplorer}
+              ethMode={ethMode}
+              address={address}
+              provider={provider}
+            />
           }
         </Space>
 
-        { loading || !tokenState.address ? "" :
+        {loading || !tokenState.address ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} /> :
           <div>
-            <Divider dashed>Deposit</Divider>
+            <Divider dashed>Deposit to {symbol} pool</Divider>
 
             {ethMode ?
               <DepositElementETH
@@ -208,7 +209,7 @@ export function HodlPoolV1UI(
               />
             }
 
-            <Divider dashed>Withdraw</Divider>
+            <Divider dashed>Withdraw from {symbol} pool</Divider>
 
             <WithdrawElement
               contractState={contractState}
@@ -217,16 +218,22 @@ export function HodlPoolV1UI(
               ethMode={ethMode}
             />
 
-            <Divider dashed>Pool info</Divider>
+            <Divider dashed>{symbol} Pool info</Divider>
 
             <PoolInfo
               contractState={contractState}
               blockExplorer={blockExplorer}
               contractAddress={contractAddress}
-              symbol={ethMode ? "ETH" : tokenState.symbol}
+              symbol={symbol}
             />
           </div>
         }
+
+        <Space size="large" direction="vertical">
+          <Row span={24} gutter={300}>
+            <Col span={12}><MotivationButton /></Col> <Col span={12}><RulesButton /></Col>
+          </Row>
+        </Space>
 
       </Card>
 
@@ -267,7 +274,7 @@ function TokenBalance({ tokenState, blockExplorer, ethMode, address, provider })
         </Space>
       </Space>
     );
-  } 
+  }
 }
 
 function TokenSelection({ provider, addessUpdateFn }) {
@@ -300,7 +307,7 @@ function TokenSelection({ provider, addessUpdateFn }) {
     } else {
       return <QuestionOutlined style={{ width: '30px' }} />
     }
-    return <img src={logoURI} width='30px' alt=""/>
+    return <img src={logoURI} width='30px' alt="" />
   }
 
   const shortenString = val => (val.length > 8 ? val.slice(0, 8) + '..' : val);
@@ -326,7 +333,10 @@ function TokenSelection({ provider, addessUpdateFn }) {
   )
 
   return (
-    <Tooltip title="Paste address to add a token to the list" placement="left" color="gray">
+    <Tooltip title="Paste address to add a token to the list" 
+      placement="left" 
+      autoAdjustOverflow="false"
+      color="gray">
       <Select
         showSearch
         value={selectedValue}
@@ -338,6 +348,7 @@ function TokenSelection({ provider, addessUpdateFn }) {
         size="large"
         dropdownMatchSelectWidth={false}
         style={{ minWidth: "14rem", textAlign: "center" }}
+        autoFocus={true}
         onSearch={rawInputSet}
         notFoundContent={importTokenButton}
       >
@@ -394,24 +405,29 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
         </Col>
 
         <Col span={8}>
-          <Button
-            onClick={() => {
-              approvingSet(true);
-              if (amountToSend && amountToSend > 0 && tokenState.decimals) {
-                tokenTx(
-                  "approve",
-                  contractState.address,
-                  parseUnits(amountToSend, tokenState.decimals));
-              }
-              setTimeout(() => approvingSet(false), 1000);
-            }}
-            type="primary"
-            size="large"
-            disabled={!approveButtonEnabled}
-            style={{ width: "100%", textAlign: "center" }}
-          >
-            {approveButtonEnabled ? `Approve ${amountToSend} ${tokenState.symbol}` : "Approved"}
-          </Button>
+          <Tooltip
+            title={approveButtonEnabled ? `Approve ${amountToSend} ${tokenState.symbol}` : ""}
+            placement="top"
+            color="blue">
+            <Button
+              onClick={() => {
+                approvingSet(true);
+                if (amountToSend && amountToSend > 0 && tokenState.decimals) {
+                  tokenTx(
+                    "approve",
+                    [contractState.address, parseUnits(amountToSend, tokenState.decimals)],
+                    () => approvingSet(false)
+                  );
+                }
+              }}
+              type="primary"
+              size="large"
+              disabled={!approveButtonEnabled || approving}
+              style={{ width: "100%", textAlign: "center" }}
+            >
+              {approveButtonEnabled ? `Approve` : "Approved"}
+            </Button>
+          </Tooltip>
         </Col>
 
         <Col span={8}>
@@ -419,7 +435,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
             onClick={() => setDepositModalVisible(true)}
             type="primary"
             size="large"
-            disabled={!depositButtonEnabled}
+            disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
             {contractState.balance && contractState.balance.gt(0) ?
@@ -437,10 +453,10 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
             if (amountToSend && amountToSend > 0 && tokenState.decimals) {
               contractTx(
                 "deposit",
-                tokenState.address,
-                parseUnits(amountToSend, tokenState.decimals));
+                [tokenState.address, parseUnits(amountToSend, tokenState.decimals)],
+                () => deposittingSet(false)
+              );
             }
-            setTimeout(() => deposittingSet(false), 1000);
           }}
           onCancel={() => setDepositModalVisible(false)}>
           <h2>Commitment period: {contractState.commitString}</h2>
@@ -493,7 +509,7 @@ function DepositElementETH({ contractState, contractTx }) {
             onClick={() => setDepositModalVisible(true)}
             type="primary"
             size="large"
-            disabled={!depositButtonEnabled}
+            disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
             {contractState.balance && contractState.balance.gt(0) ?
@@ -509,9 +525,11 @@ function DepositElementETH({ contractState, contractTx }) {
             setDepositModalVisible(false);
             deposittingSet(true);
             if (amountToSend && amountToSend > 0) {
-              contractTx("depositETH", { value: parseEther(amountToSend) });
+              contractTx(
+                "depositETH",
+                [{ value: parseEther(amountToSend) }],
+                () => deposittingSet(false));
             }
-            setTimeout(() => deposittingSet(false), 1000);
           }}
           onCancel={() => setDepositModalVisible(false)}>
           <h2>Commitment period: {contractState.commitString}</h2>
@@ -532,15 +550,6 @@ function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
   if (contractState.balance && contractState.balance.gt(0)) {
     depositInfo = (
       <div>
-        <h2>Time left to hold: {contractState.timeLeftString}</h2>
-
-        <h2>Current penalty:
-            <Balance balance={contractState.penalty} symbol={symbol} size="20" />
-        </h2>
-
-        <h2>Current bonus:
-            <Balance balance={contractState.bonus} symbol={symbol} size="20" />
-        </h2>
 
         <h2>Available to withdraw:
             <Balance
@@ -548,6 +557,13 @@ function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
             symbol={symbol}
             size="20" />
         </h2>
+
+        {contractState.bonus?.gt(0) ?
+          <h2>Current bonus:
+            <Balance balance={contractState.bonus} symbol={symbol} size="20" />
+          </h2>
+          : ""}
+
 
         {contractState.withdrawWithBonus > 0 ?
           <WithdrawWithBonusButton
@@ -559,12 +575,18 @@ function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
           : ""}
 
         {contractState.withdrawWithPenalty > 0 ?
-          <WithdrawWithPenaltyButton
-            contractState={contractState}
-            txFn={contractTx}
-            tokenState={tokenState}
-            ethMode={ethMode}
-          />
+          <div>
+            <h2>Current penalty:
+              <Balance balance={contractState.penalty} symbol={symbol} size="20" />
+            </h2>
+            <h2>Time left to hold: {contractState.timeLeftString}</h2>
+            <WithdrawWithPenaltyButton
+              contractState={contractState}
+              txFn={contractTx}
+              tokenState={tokenState}
+              ethMode={ethMode}
+            />
+          </div>
           : ""}
 
       </div>
@@ -573,10 +595,10 @@ function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
 
   return (
     <div>
-      <h2>Current deposit:
+      <h2>Your deposit:
         <Balance balance={contractState.balance} symbol={symbol} size="20" />
       </h2>
-      { depositInfo }
+      { depositInfo}
     </div>
   );
 }
@@ -609,7 +631,7 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode })
           if (ethMode) {
             txFn("withdrawWithPenaltyETH");
           } else {
-            txFn("withdrawWithPenalty", tokenState.address);
+            txFn("withdrawWithPenalty", [tokenState.address]);
           }
         }}
         onCancel={() => setPenaltyModalVisible(false)}>
@@ -658,7 +680,7 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
           if (ethMode) {
             txFn("withdrawWithBonusETH");
           } else {
-            txFn("withdrawWithBonus", tokenState.address);
+            txFn("withdrawWithBonus", [tokenState.address]);
           }
         }}
         onCancel={() => setBonusModalVisible(false)}>
@@ -681,23 +703,23 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
 function PoolInfo({ contractState, blockExplorer, contractAddress, symbol }) {
   return (
     <div>
-      <h2>Total deposits in {symbol} pool:
+      <h3>Total deposits in {symbol} pool:
           <Balance balance={contractState.depositsSum} symbol={symbol} size="20" />
-      </h2>
+      </h3>
 
-      <h2>Total bonus in {symbol} pool:
+      <h3>Total bonus in {symbol} pool:
           <Balance balance={contractState.bonusesPool} symbol={symbol} size="20" />
-      </h2>
+      </h3>
 
-      <h2>Commitment period: {contractState.commitString}</h2>
+      <h3>Commitment period: {contractState.commitString}</h3>
 
-      <h2>Initial penalty percent:&nbsp;
+      <h3>Initial penalty percent:&nbsp;
           {(contractState.initialPenaltyPercent || "").toString()}%
-      </h2>
+      </h3>
 
-      <h2>Contract address:&nbsp;
+      <h3>Contract address:&nbsp;
           <Address address={contractAddress} blockExplorer={blockExplorer} fontSize="20" />
-      </h2>
+      </h3>
     </div>
   );
 }
@@ -748,7 +770,6 @@ function EventsList({ contract, address }) {
 function RulesButton() {
   const markdown = `
 ## Pool Rules
-### TL;DR: 1. Deposit and don't withdraw early 💎✊. 2. Get bonus if other people withdraw early 🤑.
 - Each token has one independent pool. i.e. all accounting is separate for each token.
 - There is no pool creation process - one contract holds all pools.
 - Depositor commits for a "commitment period", after which the deposit 
@@ -776,7 +797,7 @@ commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
 
 function MotivationButton() {
   const markdown = `
-### 💡 The idea: "Strong 💎 hands" (committed hodlers) get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
+### 💡 The idea: "Strong 💎 hands" get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
 
 ### ❔ Why this may be a good idea:
 1. **Price effects** - like "staking", but without the inflation:
