@@ -4,22 +4,45 @@
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A project for learning smart-contract-full-stack-whizz-bang-dApp-buidling using the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth)**.
 
-### 💡 The idea: "Strong 💎✊ hands" get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
+## 💡 The idea: "Strong 💎✊ hands" get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
 
-### ❔ Why this may be a good idea:
-1. **Price effects** - like "staking", but without the inflation:
-    - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
+### Why would anyone use it, why is it a good idea ❔
+
+1. <details><summary> Price effect: like "staking", but without the inflation </summary>
+
     - Raises the price by reducing amount in circulation 📥.
     - Builds trust in the asset by proving an amount commited to be held 💍.
-1. **Social / network effects** - like "time lock", but with an incentive to participate:
+    - Makes HODLing more attractive by providing a positive economic incentive 🤑. 
+
+    </details>
+
+1. <details><summary> Social proof / network effects: like "time lock", but with an incentive to participate </summary>
+
     - Makes HODLing provable and shareable 🐦 .
     - Increases trust in the community's / project team's long term commitment, provides a social incentive to demonstrate "skin in the game" 🙋‍♀️ .
-1. **Yield generating** - like AMMs LP or lending, but without AMM's impermanent loss and doesn't depend on borrowing demand:
+
+    </details>
+
+1. <details><summary> Yield generating: like AMMs LP or lending, but without AMM's impermanent loss and doesn't depend on borrowing demand </summary>
+
     - Vs. liquidity providing in AMMs: no dependence on trading volume, no exposure to additional assets, no bleeding value to arbitrageurs (~~not-so~~""impermanent"" loss) 🩸.
     - Vs. lending: earns yield on tokens that don't have a borrowing market with high interest rates 🔄 (or any borrowing market).
-1. **Volatility bonus** - market volatility causes higher bonuses:
+
+    </details>
+
+1. <details><summary> Volatility bonus: market volatility causes higher bonuses </summary>
+
     - Asset price "moons" 🥳 - more "weak hands" will withdraw early to take profits, increasing the bonus 💸.
     - Asset price "tanks" 😢 - more "weak hands" will withdraw early to panic-sell, increasing the bonus 💸.
+
+    </details>
+
+---
+
+# Basic V1 demo:
+![](https://artdgn.github.io/images/hodl-pool-v1.gif)
+
+---
 
 ### 🧭 Vague versions plan (roadmap?)
 1. <details><summary>v0 ✔️ (PoC)</summary>

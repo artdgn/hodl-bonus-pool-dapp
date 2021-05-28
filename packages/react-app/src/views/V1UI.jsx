@@ -12,7 +12,7 @@ import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlin
 class HodlPoolV1StateHooks {
 
   constructor(contract, address, tokenAddress) {
-    this.address = contract && contract.address;
+    this.address = contract?.address;
     this.tokenAddress = tokenAddress;
     this.balance = useContractReader(tokenAddress && contract, "balanceOf", [tokenAddress, address]);
     this.bonus = useContractReader(tokenAddress && contract, "bonusOf", [tokenAddress, address]);
@@ -32,9 +32,9 @@ class HodlPoolV1StateHooks {
     this.timeLeftString = `${(this.timeLeft || "").toString()}s
                            or ${(this.timeLeftDays.toPrecision(2)).toString()} days`;
     // withdrawal convenience variables
-    this.withdrawWithPenalty = this.balance && this.penalty && this.penalty.gt(0) ?
+    this.withdrawWithPenalty = this.balance && this.penalty?.gt(0) ?
       parseFloat(this.balance.sub(this.penalty).toString()) : 0;
-    this.withdrawWithBonus = this.penalty && this.bonus && this.balance && this.penalty.eq(0) ?
+    this.withdrawWithBonus = this.bonus && this.balance && this.penalty?.eq(0) ?
       parseFloat(this.balance.add(this.bonus).toString()) : 0;
   }
 }
@@ -46,7 +46,7 @@ class TokenStateHooks {
     const [failed, setFailed] = useState(false);
 
     this.tokenContract = contract;
-    this.address = contract && contract.address;
+    this.address = contract?.address;
 
     const onFail = () => {
       setFailed(this.address);
@@ -280,7 +280,7 @@ function TokenBalance({ tokenState, blockExplorer, ethMode, address, provider })
 function TokenSelection({ provider, addessUpdateFn }) {
 
   // external token list
-  const activeChainId = provider && provider.network && provider.network.chainId;
+  const activeChainId = provider?.network?.chainId;
   const tokenListURI = activeChainId === 31337 ?
     "local" : "https://gateway.ipfs.io/ipns/tokens.uniswap.org";
   const externalTokensList = useTokenList(tokenListURI, activeChainId);
@@ -372,10 +372,8 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
 
   useEffect(() => {
     const sendAmountBig = tokenState.decimals && parseUnits(amountToSend, tokenState.decimals);
-    setApproveButtonEnabled(tokenState.allowance && tokenState.allowance.lt(sendAmountBig));
-    setDepositButtonEnabled(
-      (sendAmountBig > 0) && (tokenState.allowance && tokenState.allowance.gte(sendAmountBig))
-    );
+    setApproveButtonEnabled(sendAmountBig && tokenState?.allowance?.lt(sendAmountBig));
+    setDepositButtonEnabled(sendAmountBig && tokenState?.allowance?.gte(sendAmountBig));
   }, [amountToSend, tokenState.address, tokenState.allowance, tokenState.decimals])
 
   return (
@@ -412,7 +410,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
             <Button
               onClick={() => {
                 approvingSet(true);
-                if (amountToSend && amountToSend > 0 && tokenState.decimals) {
+                if (amountToSend > 0 && tokenState.decimals) {
                   tokenTx(
                     "approve",
                     [contractState.address, parseUnits(amountToSend, tokenState.decimals)],
@@ -438,7 +436,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
             disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
-            {contractState.balance && contractState.balance.gt(0) ?
+            {contractState?.balance?.gt(0) ?
               "Add to deposit" : "Make a deposit"}
           </Button>
         </Col>
@@ -512,7 +510,7 @@ function DepositElementETH({ contractState, contractTx }) {
             disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
-            {contractState.balance && contractState.balance.gt(0) ?
+            {contractState?.balance?.gt(0) ?
               "Add to deposit" : "Make a deposit"}
           </Button>
         </Col>
@@ -547,7 +545,7 @@ function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
   const symbol = ethMode ? "ETH" : tokenState.symbol;
 
   let depositInfo = "";
-  if (contractState.balance && contractState.balance.gt(0)) {
+  if (contractState?.balance?.gt(0)) {
     depositInfo = (
       <div>
 
@@ -558,7 +556,7 @@ function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
             size="20" />
         </h2>
 
-        {contractState.bonus?.gt(0) ?
+        {contractState?.bonus?.gt(0) ?
           <h2>Current bonus:
             <Balance balance={contractState.bonus} symbol={symbol} size="20" />
           </h2>
@@ -644,7 +642,7 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode })
           <WarningTwoTone twoToneColor="red" /> Wait until end of commitment period
           ({contractState.timeLeftString})
           to withdraw full deposit + any bonus share!
-          {contractState.bonus && contractState.bonus.gt(0) ?
+          {contractState?.bonus?.gt(0) ?
             ` Current bonus share ${formatUnits(contractState.bonus, tokenState.decimals)} 
             ${symbol}.` : ""}
         </h2>
@@ -666,7 +664,7 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
         size="large"
         disabled={!(contractState.withdrawWithBonus > 0)}
       > Withdraw
-        {contractState.bonus && contractState.bonus.gt(0) ? " with bonus 🤑" : ""}
+        {contractState?.bonus?.gt(0) ? " with bonus 🤑" : ""}
       </Button>
 
       <Modal
@@ -689,7 +687,7 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
           {formatUnits("" + contractState.withdrawWithBonus, tokenState.decimals)}&nbsp;
           {symbol} out of deposited&nbsp;
           {formatUnits(contractState.balance, tokenState.decimals)} {symbol}
-          {contractState.bonus && contractState.bonus.gt(0) ?
+          {contractState?.bonus?.gt(0) ?
             ` with ${formatUnits(contractState.bonus, tokenState.decimals)} 
             ${symbol} bonus!` : "."}
         </h2>
@@ -726,9 +724,9 @@ function PoolInfo({ contractState, blockExplorer, contractAddress, symbol }) {
 
 function EventsList({ contract, address }) {
   const depositedEvents = useEventListener(
-    contract, "Deposited", contract && contract.provider, 0, [null, address]);
+    contract, "Deposited", contract?.provider, 0, [null, address]);
   const withdrawedEvents = useEventListener(
-    contract, "Withdrawed", contract && contract.provider, 0, [null, address]);
+    contract, "Withdrawed", contract?.provider, 0, [null, address]);
   const allEvents = depositedEvents.concat(withdrawedEvents)
     .sort((a, b) => b.blockNumber - a.blockNumber);
 
