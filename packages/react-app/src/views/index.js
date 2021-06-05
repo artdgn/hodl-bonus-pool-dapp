@@ -3,4 +3,5 @@
 export { default as Subgraph } from "./Subgraph";
 // export { HodlPoolEthV0UI } from "./EthV0UI";
 // export { HodlPoolERC20V0UI } from "./ERC20V0UI";
-export { HodlPoolV1UI } from "./V1UI";
+// export { HodlPoolV1UI } from "./V1UI";
+export { HodlPoolV2UI } from "./V2UI";

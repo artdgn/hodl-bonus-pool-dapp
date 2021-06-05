@@ -19,13 +19,15 @@ export const NETWORK = chainId => {
 };
 
 // default network to use
-// export const defaultNetwork = "localhost";
-export const defaultNetwork = "kovan";
+export const defaultNetwork = "localhost";
+// export const defaultNetwork = "kovan";
 
 // deployed contract
 // export const contractName = "HodlPoolEthV0";
 // export const contractName = "HodlPoolERC20V0";
-export const contractName = "HodlPoolV1";
+// export const contractName = "HodlPoolV1";
+export const contractName = "HodlPoolV2";
+export const tokenContractName = "SomeToken";
 export const feeTokenContractName = "FeeToken";
 
 export const NETWORKS = {

@@ -11,9 +11,9 @@ import { useGasPrice, useUserProvider, useContractLoader } from "./hooks";
 import { Header, Account, Faucet, Contract, ThemeSwitch } from "./components";
 import { Transactor } from "./helpers";
 import { parseEther } from "@ethersproject/units";
-import { HodlPoolV1UI } from "./views"
+import { HodlPoolV2UI } from "./views"
 // import {  Subgraph } from "./views"
-import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork, feeTokenContractName } from "./constants";
+import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork, feeTokenContractName, tokenContractName } from "./constants";
 // eslint-disable-next-line
 import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
 
@@ -155,7 +155,7 @@ function App(props) {
         <BrowserRouter>
 
           <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
-            {/* <Menu.Item key="/">
+            <Menu.Item key="/">
               <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
             </Menu.Item>
             <Menu.Item key="/contract">
@@ -163,12 +163,15 @@ function App(props) {
             </Menu.Item>
             <Menu.Item key="/token">
               <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
-            </Menu.Item> */}
+            </Menu.Item>
+            <Menu.Item key="/fee-token">
+              <Link onClick={()=>{setRoute("/fee-token")}} to="/fee-token">Fee-Token</Link>
+            </Menu.Item>
           </Menu>
 
           <Switch>
             <Route exact path="/">
-              <HodlPoolV1UI
+              <HodlPoolV2UI
                 address={address}
                 tx={tx}
                 writeContracts={writeContracts}
@@ -179,14 +182,14 @@ function App(props) {
               />
             </Route>
 
-            {/* <Route exact path="/contract">
+            <Route exact path="/contract">
               <Contract
                 name={contractName}
                 signer={userProvider.getSigner()}
                 provider={localProvider}
                 address={address}
                 blockExplorer={blockExplorer}
-              /> */}
+              />
             { /* Uncomment to display and interact with an external contract (DAI on mainnet):
               <Contract
                 name="DAI"
@@ -197,9 +200,19 @@ function App(props) {
                 blockExplorer={blockExplorer}
               />
               */ }
-            {/* </Route>
+            </Route>
 
             <Route exact path="/token">
+              <Contract
+                name={tokenContractName}
+                signer={userProvider.getSigner()}
+                provider={localProvider}
+                address={address}
+                blockExplorer={blockExplorer}
+              />
+            </Route>
+
+            <Route exact path="/fee-token">
               <Contract
                 name={feeTokenContractName}
                 signer={userProvider.getSigner()}
@@ -207,7 +220,7 @@ function App(props) {
                 address={address}
                 blockExplorer={blockExplorer}
               />
-            </Route> */}
+            </Route>
 
           </Switch>
 
