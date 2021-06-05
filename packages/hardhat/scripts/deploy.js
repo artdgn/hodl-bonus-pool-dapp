@@ -22,6 +22,8 @@ const main = async () => {
       ["TokenB", "BBB", address, parseUnits("2", 18)]);
     const token3 = await deploy(config.tokenContractName,
       ["TokenC", "LongSymbol", address, parseUnits("3", 18)]);
+    const token4 = await deploy(config.feeTokenContractName,
+      ["FeeToken", "FeeTKN", address, parseUnits("4", 18), 10]);
     const wethContract = await deploy(config.wethContractName)
 
     // save the local tokens list
@@ -29,6 +31,7 @@ const main = async () => {
       token1,
       // token2,
       token3,
+      token4,
       wethContract
     );
 

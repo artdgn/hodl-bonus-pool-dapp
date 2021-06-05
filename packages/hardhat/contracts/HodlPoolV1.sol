@@ -6,8 +6,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /*
  * @title Token pools that allows different ERC20 tokens and ETH deposits and withdrawals
- * with penalty and bonus mechanisms to encaurage long term holding. 
+ * with penalty and bonus mechanisms to encaurage long term holding.
  * Each token has one independent pool. i.e. all accounting is separate for each token.
+ * ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
+ * kinds of tokens this contract tracks everything as "shares of initial deposits".
  * @author artdgn (@github)
  * @notice The mechanism rules:
  * - A depositor is committing for the "commitment period", after which the
@@ -22,12 +24,18 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  *   initialPenaltyPercent to 0 with time (for the duration of the commitPeriod). 
  * - Any additional deposit is added to the current deposit and "resets" the
  *   commitment period required to wait.
- * @dev For safety and clarity, the withdrawal functionality is split into 
+ * @dev 
+ * 1. For safety and clarity, the withdrawal functionality is split into 
  * two methods, one for withdrawing with penalty, and the other one for withdrawing
  * with bonus.
- * Also, the ERC20 token and ETH functionality is split into separate methods.
- * The total deposits amount is tracked per token contract in 
+ * 2. The ERC20 token and ETH functionality is split into separate methods.
+ * The total deposits shares are tracked per token contract in 
  * depositSums, bonuses in bonusSums.
+ * 3. For tokens with dynamic supply mechanisms and fee on transfer all internal
+ * calculations are done using the "initial desposit amounts" as fair shares, and
+ * upon withdrawal are translated to actual amounts of the contract's token balance.
+ * This means that for these tokens the actual amounts received are depends on their
+ * mechanisms (because the amount is unknown before actual transfers).
  */
 contract HodlPoolV1 {
 
@@ -62,12 +70,15 @@ contract HodlPoolV1 {
    * @param token ERC20 token address for the deposited token
    * @param sender address that has made the deposit
    * @param amount size of new deposit, or deposit increase
+   * @param amountReceived received balance after transfer (actual deposit)
+   *  which may be different due to transfer-fees and other token shenanigans
    * @param time timestamp from which the commitment period will be counted
    */
   event Deposited(
     address indexed token, 
     address indexed sender, 
     uint amount, 
+    uint amountReceived, 
     uint time
   );
 
@@ -128,11 +139,21 @@ contract HodlPoolV1 {
    */
   function deposit(address token, uint amount) external {
     require(amount > 0, "deposit too small");
+    // state updates
     deposits[token][msg.sender].value += amount;
     deposits[token][msg.sender].time = block.timestamp;
     depositSums[token] += amount;
+
+    // this contract's balance before the transfer
+    uint beforeBalance = IERC20(token).balanceOf(address(this));
+
+    // transfer
     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    emit Deposited(token, msg.sender, amount, block.timestamp);
+
+    // what was actually received
+    uint amountReceived = IERC20(token).balanceOf(address(this)) - beforeBalance;
+
+    emit Deposited(token, msg.sender, amount, amountReceived, block.timestamp);
   }
 
   /// @notice payable method for depositing ETH with same logic as deposit()
@@ -141,8 +162,10 @@ contract HodlPoolV1 {
     deposits[WETH][msg.sender].value += msg.value;
     deposits[WETH][msg.sender].time = block.timestamp;
     depositSums[WETH] += msg.value;
+    // note: no share vs. balance accounting for WETH because it's assumed to
+    // exactly correspond to actual deposits and withdrawals
     IWETH(WETH).deposit{value: msg.value}();
-    emit Deposited(WETH, msg.sender, msg.value, block.timestamp);
+    emit Deposited(WETH, msg.sender, msg.value, msg.value, block.timestamp);
   }
 
   /*
@@ -183,18 +206,21 @@ contract HodlPoolV1 {
     _withdrawETH();
   }
 
-  /// @param token address of token contract
-  /// @param sender address of the depositor
-  /// @return total deposit of the sender
+  /*
+   * @param token address of token contract
+   * @param sender address of the depositor
+   * @return token amount that corresponds to the deposit share of the sender
+   */
   function balanceOf(address token, address sender) public view returns (uint) {
-    return deposits[token][sender].value;
+    return _shareToAmount(token, deposits[token][sender].value);
   }
 
   /// @param token address of token contract
   /// @param sender address of the depositor
   /// @return penalty for the sender's deposit if withdrawal would happen now
   function penaltyOf(address token, address sender) public view returns (uint) {
-    return _depositPenalty(deposits[token][sender]);
+    uint penaltyShare =_depositPenalty(deposits[token][sender]);
+    return _shareToAmount(token, penaltyShare);
   }
 
   /*
@@ -207,20 +233,21 @@ contract HodlPoolV1 {
    *   if the penalty is non-0
   */
   function bonusOf(address token, address sender) public view returns (uint) {
-    return _depositBonus(
+    uint bonusShare = _depositBonus(
       deposits[token][sender], depositSums[token], bonusSums[token]);
+    return _shareToAmount(token, bonusShare);
   }
 
   /// @param token address of token contract
   /// @return sum of all current deposits of the token
   function depositsSum(address token) public view returns (uint) {
-    return depositSums[token];
+    return _shareToAmount(token, depositSums[token]);
   }
 
   /// @param token address of token contract
   /// @return size the current bonus pool for the token
   function bonusesPool(address token) public view returns (uint) {
-    return bonusSums[token];
+    return _shareToAmount(token, bonusSums[token]);
   }
 
   /// @param token address of token contract
@@ -233,6 +260,21 @@ contract HodlPoolV1 {
     if (balanceOf(token, sender) == 0) return 0;
     uint timeHeld = _depositTimeHeld(deposits[token][sender]);
     return (timeHeld < commitPeriod) ? (commitPeriod - timeHeld) : 0;
+  }
+
+  /// @dev translates deposit shares to actual token amounts - which can be different 
+  /// from the initial deposit amount for tokens with funky fees and supply mechanisms.
+  function _shareToAmount(address token, uint share) internal view returns (uint) {
+    // all tokens that belong to this contract are either in deposits or in bonus pool
+    uint totalShares = depositSums[token] + bonusSums[token];
+    if (totalShares == 0) {  // don't divide by zero
+      return 0;  
+    } else {
+      // it's safe to call external balanceOf here because 
+      // it's a view (and this method is also view)
+      uint actualBalance = IERC20(token).balanceOf(address(this));      
+      return actualBalance * share / totalShares;
+    }
   }
 
   function _withdraw(address token) internal {
@@ -255,7 +297,22 @@ contract HodlPoolV1 {
     // only get bonus if no penalty
     uint bonus = (penalty == 0) ? 
       _depositBonus(dep, depositSums[token], bonusSums[token]) : 0;
-    uint withdrawAmount = dep.value - penalty + bonus;
+    uint withdrawShare = dep.value - penalty + bonus;
+
+    // translate to amounts here, before deposit is zeroed out
+    uint withdrawAmount = _shareToAmount(token, withdrawShare);
+    uint bonusAmount = _shareToAmount(token, bonus);
+    uint penaltyAmount = _shareToAmount(token, penalty);
+
+    // emit event here with all the data
+    emit Withdrawed(
+      token,
+      msg.sender,
+      withdrawAmount, 
+      dep.value, 
+      penaltyAmount, 
+      bonusAmount, 
+      _depositTimeHeld(dep));
 
     // update state
     // remove deposit
@@ -264,16 +321,6 @@ contract HodlPoolV1 {
     depositSums[token] -= dep.value;
     // update bonus
     bonusSums[token] = bonusSums[token] + penalty - bonus;
-    
-    // emit event here with all the data
-    emit Withdrawed(
-      token,
-      msg.sender,
-      withdrawAmount, 
-      dep.value, 
-      penalty, 
-      bonus, 
-      _depositTimeHeld(dep));
     
     return withdrawAmount;
   }

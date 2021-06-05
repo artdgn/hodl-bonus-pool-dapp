@@ -32,6 +32,7 @@ module.exports = {
   // contractName: "HodlPoolERC20V0",
   contractName: "HodlPoolV1",
   tokenContractName: "SomeToken",
+  feeTokenContractName: "FeeToken",
   wethContractName: "WETH",
 
   deployArgs: {

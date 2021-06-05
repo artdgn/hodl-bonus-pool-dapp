@@ -13,7 +13,7 @@ import { Transactor } from "./helpers";
 import { parseEther } from "@ethersproject/units";
 import { HodlPoolV1UI } from "./views"
 // import {  Subgraph } from "./views"
-import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork } from "./constants";
+import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork, feeTokenContractName } from "./constants";
 // eslint-disable-next-line
 import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
 
@@ -201,7 +201,7 @@ function App(props) {
 
             <Route exact path="/token">
               <Contract
-                name={tokenContractName}
+                name={feeTokenContractName}
                 signer={userProvider.getSigner()}
                 provider={localProvider}
                 address={address}

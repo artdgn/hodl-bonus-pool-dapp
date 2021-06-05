@@ -742,12 +742,13 @@ function EventsList({ contract, address }) {
           let eventText = "";
           if (item.eventName === "Deposited") {
             eventText = (
-              `deposited ${item.amount.toString()} ` +
+              `deposited ${item.amount.toString()} ` + 
+              `(received ${item.amountReceived.toString()}) ` +
               `at ${item.time.toString()}`);
           } else if (item.eventName === "Withdrawed") {
             eventText = (
               `withdrew ${item.amount.toString()} ` +
-              `out of ${item.depositAmount.toString()} ` +
+              `for initial deposit of ${item.depositAmount.toString()} ` +
               `(held for ${item.timeHeld.toString()}s)`
             );
             eventText += (item.penalty > 0) ? ` with ${item.penalty} penalty` : ''
@@ -785,7 +786,9 @@ Instead, it is "slashed" with a penalty (that is added to the bonus pool).
 E.g. if initialPenaltyPercent was 10%, and you withdraw after half the 
 commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
 - Any additional deposits are added to current deposit, and "reset" the
-  commitment period required to wait.`
+  commitment period required to wait.
+- ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
+kinds of tokens this pool tracks everything as "shares of initial deposits".`
 
   return <MarkdownModalButton
     markdown={markdown}

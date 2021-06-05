@@ -26,7 +26,7 @@ export const defaultNetwork = "kovan";
 // export const contractName = "HodlPoolEthV0";
 // export const contractName = "HodlPoolERC20V0";
 export const contractName = "HodlPoolV1";
-export const tokenContractName = "SomeToken";
+export const feeTokenContractName = "FeeToken";
 
 export const NETWORKS = {
   localhost: {
