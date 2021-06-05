@@ -15,16 +15,17 @@ contract HodlPoolV2 {
     uint time;
     uint initialPenaltyPercent;
     uint commitPeriod;
-    uint holdTimeCredits;
+    uint prevHoldTimeCredits;  // to carry over hold time credit from unfinished deposit
+    // uint commitTimeCredits; // to carry over commit time credit from unfinished deposit
   }
 
   struct Pool {
-    uint depositSums;
-    uint bonusSums;
+    uint depositSum;
+    uint bonusSum;
     uint totalHoldTimeCredits;
     uint updateTime;
-    //uint bonusSumsCommitment
-    //uint totalCommitTimeHeld
+    //uint bonusSumCommitment
+    //uint totalCommitTimeCredits;
   }
   
   // TODO: pass in deposit
@@ -85,7 +86,13 @@ contract HodlPoolV2 {
   function deposit(address token, uint amount) external {
     require(amount > 0, "deposit too small");
 
-    _depositUpdate(token, amount);
+    // interal accounting update
+    _depositUpdate(
+      token, 
+      amount,
+      defaultInitialPenaltyPercent, 
+      defaultCommitPeriod
+    );
 
     // this contract's balance before the transfer
     uint beforeBalance = IERC20(token).balanceOf(address(this));
@@ -110,10 +117,16 @@ contract HodlPoolV2 {
   function depositETH() external payable {
     require(msg.value > 0, "deposit too small");
 
-    _depositUpdate(WETH, msg.value);
+    // interal accounting update
+    _depositUpdate(
+      WETH, 
+      msg.value,
+      defaultInitialPenaltyPercent, 
+      defaultCommitPeriod
+    );
 
     // note: no share vs. balance accounting for WETH because it's assumed to
-    // exactly correspond to actual deposits and withdrawals
+    // exactly correspond to actual deposits and withdrawals (no fee-on-transfer etc)
     IWETH(WETH).deposit{value: msg.value}();
     emit Deposited(
       WETH, 
@@ -122,46 +135,10 @@ contract HodlPoolV2 {
       msg.value, 
       block.timestamp, 
       defaultInitialPenaltyPercent, 
-      defaultCommitPeriod);
+      defaultCommitPeriod
+    );
   }
-
-  function _depositUpdate(address token, uint amount) internal {    
-    Deposit storage dep = deposits[token][msg.sender];
-
-    //// update deposit    
-
-    // update hold time credits
-    _updateDepositHoldTimeCredits(dep);
-    // carry over previous deposit amount and credits
-    dep.value += amount;
-    dep.holdTimeCredits += 0;
-    // reset these values
-    dep.time = block.timestamp;
-    // TODO: these should come from call arguments
-    dep.initialPenaltyPercent = defaultInitialPenaltyPercent;
-    dep.commitPeriod = defaultCommitPeriod;
-
-    //// update pool
-    Pool storage pool = pools[token];
-    _updatePoolHoldTimeCredits(pool);
-    pool.depositSums += amount;    
-  }
-
-  // this happens on deposit and withdrawal only for the depositor only
-  function _updateDepositHoldTimeCredits(Deposit storage dep) internal {
-    // add credits proportional to value held since deposit start
-    // this assumes that this update happens only on deposit and withdrawals
-    // so isn't double crediting for same time
-    dep.holdTimeCredits += (dep.value * (block.timestamp - dep.time));
-  }
-
-  // this happens on every pool interaction (so every withdrawal and deposit to that pool)
-  function _updatePoolHoldTimeCredits(Pool storage pool) internal {
-    // add credits proportional to value held in pool since last update
-    pool.totalHoldTimeCredits += (pool.depositSums * (block.timestamp - pool.updateTime));
-    pool.updateTime = block.timestamp;
-  }
-
+  
   function withdrawWithBonus(address token) external onlyDepositors(token) {
     require(
       penaltyOf(token, msg.sender) == 0, 
@@ -197,20 +174,27 @@ contract HodlPoolV2 {
 
   function bonusOf(address token, address sender) public view returns (uint) {
     Pool storage pool = pools[token];
-    uint bonusShare = _depositBonus(
-      deposits[token][sender], pool.depositSums, pool.bonusSums);
+    uint bonusShare = _depositBonus(pool, deposits[token][sender]);
     return _shareToAmount(token, bonusShare);
   }
 
   function depositsSum(address token) public view returns (uint) {
-    return _shareToAmount(token, pools[token].depositSums);
+    return _shareToAmount(token, pools[token].depositSum);
   }
 
   function bonusesPool(address token) public view returns (uint) {
-    return _shareToAmount(token, pools[token].bonusSums);
+    return _shareToAmount(token, pools[token].bonusSum);
   }
 
-  function timeLeftToHoldOf(
+  function holdTimeCredits(address token, address sender) public view returns (uint) {
+    return _holdTimeCredits(deposits[token][sender]);
+  }
+
+  function totalHoldTimeCredits(address token) public view returns (uint) {
+    return _totalHoldTimeCredits(pools[token]);
+  }
+
+  function timeLeftToHold(
     address token, address sender
   ) public view returns (uint) {
     if (balanceOf(token, sender) == 0) {
@@ -225,7 +209,7 @@ contract HodlPoolV2 {
   function _shareToAmount(address token, uint share) internal view returns (uint) {
     // all tokens that belong to this contract are either in deposits or in bonus pool
     Pool storage pool = pools[token];
-    uint totalShares = pool.depositSums + pool.bonusSums;
+    uint totalShares = pool.depositSum + pool.bonusSum;
     if (totalShares == 0) {  // don't divide by zero
       return 0;  
     } else {
@@ -236,6 +220,49 @@ contract HodlPoolV2 {
     }
   }
 
+  function _depositUpdate(
+    address token, 
+    uint amount, 
+    uint initialPenaltyPercent, 
+    uint commitPeriod
+  ) internal {    
+    
+    //// update deposit    
+    Deposit storage dep = deposits[token][msg.sender];    
+    // carry over previous credits and add credits for the time 
+    // held since latest reset
+    // CAREFUL: this needs to happen before value is updated
+    dep.prevHoldTimeCredits = _holdTimeCredits(dep);
+    // add new deposit
+    dep.value += amount;
+    // reset these values
+    dep.time = block.timestamp;
+    dep.initialPenaltyPercent = initialPenaltyPercent;
+    dep.commitPeriod = commitPeriod;
+
+    //// update pool
+    Pool storage pool = pools[token];
+    _updatePoolHoldTimeCredits(pool);
+    pool.depositSum += amount;    
+  }
+
+  function _holdTimeCredits(Deposit storage dep) internal view returns (uint) {
+    // credits proportional to value held since deposit start
+    return dep.prevHoldTimeCredits + (dep.value * (block.timestamp - dep.time));
+  }
+
+  // this happens on every pool interaction (so every withdrawal and deposit to that pool)
+  function _updatePoolHoldTimeCredits(Pool storage pool) internal {
+    // add credits proportional to value held in pool since last update
+    pool.totalHoldTimeCredits = _totalHoldTimeCredits(pool);
+    pool.updateTime = block.timestamp;
+  }
+
+  function _totalHoldTimeCredits(Pool storage pool) internal view returns (uint) {
+    // add credits proportional to value held in pool since last update
+    return pool.totalHoldTimeCredits + (pool.depositSum * (block.timestamp - pool.updateTime));
+  }
+  
   function _withdraw(address token) internal {
     uint withdrawAmount = _withdrawAmountAndUpdate(token);
     IERC20(token).safeTransfer(msg.sender, withdrawAmount);
@@ -255,16 +282,14 @@ contract HodlPoolV2 {
 
     // update deposit due to passage of time
     Deposit storage dep = deposits[token][msg.sender];
-    _updateDepositHoldTimeCredits(dep);
-    
+
     // calculate penalty & bunus before making changes
     uint penalty = _depositPenalty(dep);
     // only get bonus if no penalty
-    uint bonus = (penalty == 0) ? 
-      _depositBonus(dep, pool.depositSums, pool.bonusSums) : 0;
+    uint bonus = (penalty == 0) ? _depositBonus(pool, dep) : 0;
     uint withdrawShare = dep.value - penalty + bonus;
 
-    // translate to amounts here, before deposit is zeroed out
+    // translate to amounts here, before state is updated is zeroed out
     uint withdrawAmount = _shareToAmount(token, withdrawShare);
     uint bonusAmount = _shareToAmount(token, bonus);
     uint penaltyAmount = _shareToAmount(token, penalty);
@@ -279,13 +304,17 @@ contract HodlPoolV2 {
       bonusAmount, 
       _depositTimeHeld(dep));
 
-    // update state        
+    // update pool state        
     // update total deposits
-    pool.depositSums -= dep.value;
+    pool.depositSum -= dep.value;
     // update bonus
-    pool.bonusSums = pool.bonusSums + penalty - bonus;
-    // remove deposit - note that removing the deposit before that will 
-    // change "dep" because it's used by reference
+    pool.bonusSum = pool.bonusSum + penalty - bonus;
+    // remove the acrued hold time credits for this deposit
+    pool.totalHoldTimeCredits -= _holdTimeCredits(dep);
+    // remove deposit
+    // CAREFUL: note that removing the deposit before this line will 
+    // change "dep" because it's used by reference and will ruin the other
+    // computations
     delete deposits[token][msg.sender];
 
     return withdrawAmount;
@@ -310,15 +339,18 @@ contract HodlPoolV2 {
   }
 
   function _depositBonus(
-    Deposit storage dep, 
-    uint depositsSum_,
-    uint bonusSum_
+    Pool storage pool, 
+    Deposit storage dep
   ) internal view returns (uint) {
-    if (dep.value == 0 || bonusSum_ == 0) {
+    if (dep.value == 0 || pool.bonusSum == 0) {
       return 0;  // no luck
     } else {
+      // V2 calculation: takes into account time held already, instead of
+      // snapshot of deposists
       // order important to prevent rounding to 0
-      return (bonusSum_ * dep.value) / depositsSum_;
+      return (pool.bonusSum * _holdTimeCredits(dep)) / _totalHoldTimeCredits(pool);
+      // V1 calculation: depends on current deposits only
+      // return (pool.bonusSum * dep.value) / pool.depositsSum;
     }
   }
 

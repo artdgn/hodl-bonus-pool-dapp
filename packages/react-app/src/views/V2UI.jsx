@@ -17,7 +17,7 @@ class HodlPoolV2StateHooks {
     this.balance = useContractReader(tokenAddress && contract, "balanceOf", [tokenAddress, address]);
     this.bonus = useContractReader(tokenAddress && contract, "bonusOf", [tokenAddress, address]);
     this.penalty = useContractReader(tokenAddress && contract, "penaltyOf", [tokenAddress, address]);
-    this.timeLeft = useContractReader(tokenAddress && contract, "timeLeftToHoldOf", [tokenAddress, address]);
+    this.timeLeft = useContractReader(tokenAddress && contract, "timeLeftToHold", [tokenAddress, address]);
     this.bonusesPool = useContractReader(tokenAddress && contract, "bonusesPool", [tokenAddress]);
     this.depositsSum = useContractReader(tokenAddress && contract, "depositsSum", [tokenAddress]);
     this.commitPeriod = useContractReader(contract, "defaultCommitPeriod", [], 86400 * 1000);
