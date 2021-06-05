@@ -37,10 +37,15 @@
 
     </details>
 
----
+1. <details><summary> So what tokens this should / shouldn't be used for? </summary>
 
-# Basic V1 demo:
-![](https://artdgn.github.io/images/hodl-pool-v1.gif)
+    - ✔️ Most tokens which don't have profitable AMM / staking / lending usage.
+    - ✔️✔️✔️ Especially smaller project tokens, or community driven tokens like meme-tokens.
+    - 👎 Stablecoins: they can be profitably and safely lended, or provided as liquidity in AMMs.
+    - 👎 Tokens which have very high trading volume but don't change in price much: they can be LPed in AMMs.
+    - 👎 Tokens which have profitable staking mechanisms: they can be staked for guaranteed yield.
+
+    </details>
 
 ---
 
@@ -55,12 +60,16 @@
 
 1. v1 ✔️ (alpha):
     - goal: handle all tokens & ETH in one contract
-    - scope: any ERC20 token ✔️, handle ETH as WETH ✔️, single contract for all tokens ✔️ 
-    - deliver: UI ✔️ [frontend (ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v1-kovan.surge.sh/), explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x5ca46eeafb405a30a95a3ab2c022523ccd8831b6#code) ✔️, some feedback ⌛, mainnet (?)    
-1. v2 (beta):
-    - goal + scope: bonus depends on time held, 🍕+🍔 flexible commitment params
-    - deliver: UI, testnet, mainnet
-    - stretch: handle complex tokens (fee on transfer / supply adjustments)
+    - scope: any ERC20 token ✔️ (even fee-on-transder tokens ✔️), handle ETH as WETH ✔️, single contract for all tokens ✔️ 
+    - deliver: UI ✔️ [frontend (ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v1-kovan.surge.sh/), explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xf15E3349B9CB5452638130cd958E3f1be2f934Eb#code) ✔️, some feedback ✔️   
+1. v2 ⌛ (beta):
+    - goal & scope: bonus depends on time held 🕥, flexible commitment params 🍕+🍔
+    - deliver: UI, testnet, 🚀 mainnet!
+
+---
+
+# Basic V1 demo:
+![](https://artdgn.github.io/images/hodl-pool-v1.gif)
 
 ---
 

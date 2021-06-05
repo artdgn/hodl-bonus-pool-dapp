@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /*
- * @title Token pools that allows different ERC20 tokens and ETH deposits and withdrawals
+ * @title Token pools that allow different ERC20 tokens and ETH deposits and withdrawals
  * with penalty and bonus mechanisms to encaurage long term holding.
  * Each token has one independent pool. i.e. all accounting is separate for each token.
  * ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these

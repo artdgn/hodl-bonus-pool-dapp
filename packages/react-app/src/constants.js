@@ -52,7 +52,7 @@ export const NETWORKS = {
     blockExplorer: "https://kovan.etherscan.io/",
     faucet: "https://gitter.im/kovan-testnet/faucet", // https://faucet.kovan.network/
     contractAddresses: {
-      "HodlPoolV1": "0x5CA46EEafb405A30A95A3AB2c022523cCd8831B6"
+      "HodlPoolV1": "0xf15E3349B9CB5452638130cd958E3f1be2f934Eb"
     },
   },
   rinkeby: {

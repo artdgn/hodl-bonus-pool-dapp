@@ -46,7 +46,7 @@ const main = async () => {
   const yourContract = await deploy(config.contractName, args);
 
   // specific (already deployed address)
-  // const yourContract = await ethers.getContractAt(config.contractName, "0x5CA46EEafb405A30A95A3AB2c022523cCd8831B6");
+  // const yourContract = await ethers.getContractAt(config.contractName, "0xf15E3349B9CB5452638130cd958E3f1be2f934Eb");
 
   //const secondContract = await deploy("SecondContract")
 
