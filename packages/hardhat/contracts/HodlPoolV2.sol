@@ -15,30 +15,28 @@ contract HodlPoolV2 {
     uint time;
     uint initialPenaltyPercent;
     uint commitPeriod;
-    uint prevHoldTimeCredits;  // to carry over hold time credit from unfinished deposit
-    // uint commitTimeCredits; // to carry over commit time credit from unfinished deposit
+    uint prevHoldPoints;  // to carry over hold time credit from unfinished deposit
+    uint commitPoints; // to store commit time credits
   }
 
   struct Pool {
-    uint depositSum;
-    uint bonusSum;
-    uint totalHoldTimeCredits;
-    uint updateTime;
-    //uint bonusSumCommitment
-    //uint totalCommitTimeCredits;
+    uint depositsSum;
+    uint holdBonusesSum;
+    uint commitBonusesSum;
+    uint totalHoldPoints;
+    uint totalHoldPointsUpdateTime;
+    uint totalCommitPoints;
   }
   
   // TODO: pass in deposit
-  uint public immutable defaultInitialPenaltyPercent;  
+  uint public immutable minInitialPenaltyPercent;  
 
-  uint public immutable defaultCommitPeriod;
+  uint public immutable minCommitPeriod;
 
   address public immutable WETH;
 
   mapping(address => Pool) internal pools;  
 
-  // this keeps the structs shallow and causes fewer troubles with 
-  // assignments as reference and data location
   mapping(address => mapping(address => Deposit)) internal deposits;  
 
   event Deposited(
@@ -57,7 +55,8 @@ contract HodlPoolV2 {
     uint amount, 
     uint depositAmount, 
     uint penalty, 
-    uint bonus,
+    uint holdBonus,
+    uint commitBonus,
     uint timeHeld
   );
 
@@ -66,14 +65,14 @@ contract HodlPoolV2 {
     _;
   }
 
-  constructor (uint _defaultInitialPenaltyPercent, uint _defaultCommitPeriod, address _WETH) {
-    require(_defaultInitialPenaltyPercent > 0, "no penalty"); 
-    require(_defaultInitialPenaltyPercent <= 100, "initial penalty > 100%"); 
-    require(_defaultCommitPeriod >= 10 seconds, "commitment period too short");
-    require(_defaultCommitPeriod <= 365 days, "commitment period too long");
+  constructor (uint _minInitialPenaltyPercent, uint _minCommitPeriod, address _WETH) {
+    require(_minInitialPenaltyPercent > 0, "no penalty"); 
+    require(_minInitialPenaltyPercent <= 100, "minimum initial penalty > 100%"); 
+    require(_minCommitPeriod >= 10 seconds, "minimum commitment period too short");
+    require(_minCommitPeriod <= 365 days, "minimum commitment period too long");
     require(_WETH != address(0), "WETH address can't be 0x0");
-    defaultInitialPenaltyPercent = _defaultInitialPenaltyPercent;
-    defaultCommitPeriod = _defaultCommitPeriod;
+    minInitialPenaltyPercent = _minInitialPenaltyPercent;
+    minCommitPeriod = _minCommitPeriod;
     WETH = _WETH;
   }
 
@@ -83,15 +82,17 @@ contract HodlPoolV2 {
       "no receive() except from WETH contract, use depositETH()");
   }
 
+  //////// PUBLIC TRANSACTIONS
+
   function deposit(address token, uint amount) external {
     require(amount > 0, "deposit too small");
 
     // interal accounting update
-    _depositUpdate(
+    _depositStateUpdate(
       token, 
       amount,
-      defaultInitialPenaltyPercent, 
-      defaultCommitPeriod
+      minInitialPenaltyPercent, 
+      minCommitPeriod
     );
 
     // this contract's balance before the transfer
@@ -109,8 +110,8 @@ contract HodlPoolV2 {
       amount, 
       amountReceived, 
       block.timestamp, 
-      defaultInitialPenaltyPercent, 
-      defaultCommitPeriod
+      minInitialPenaltyPercent, 
+      minCommitPeriod
     );
   }
 
@@ -118,11 +119,11 @@ contract HodlPoolV2 {
     require(msg.value > 0, "deposit too small");
 
     // interal accounting update
-    _depositUpdate(
+    _depositStateUpdate(
       WETH, 
       msg.value,
-      defaultInitialPenaltyPercent, 
-      defaultCommitPeriod
+      minInitialPenaltyPercent, 
+      minCommitPeriod
     );
 
     // note: no share vs. balance accounting for WETH because it's assumed to
@@ -134,8 +135,8 @@ contract HodlPoolV2 {
       msg.value, 
       msg.value, 
       block.timestamp, 
-      defaultInitialPenaltyPercent, 
-      defaultCommitPeriod
+      minInitialPenaltyPercent, 
+      minCommitPeriod
     );
   }
   
@@ -163,6 +164,8 @@ contract HodlPoolV2 {
     _withdrawETH();
   }
 
+  //////// PUBLIC VIEWs
+
   function balanceOf(address token, address sender) public view returns (uint) {
     return _shareToAmount(token, deposits[token][sender].value);
   }
@@ -172,96 +175,118 @@ contract HodlPoolV2 {
     return _shareToAmount(token, penaltyShare);
   }
 
-  function bonusOf(address token, address sender) public view returns (uint) {
-    Pool storage pool = pools[token];
-    uint bonusShare = _depositBonus(pool, deposits[token][sender]);
+  function holdBonusOf(address token, address sender) public view returns (uint) {
+    uint bonusShare = _holdBonus(pools[token], deposits[token][sender]);
+    return _shareToAmount(token, bonusShare);
+  }
+
+  function commitBonusOf(address token, address sender) public view returns (uint) {
+    uint bonusShare = _commitBonus(pools[token], deposits[token][sender]);
     return _shareToAmount(token, bonusShare);
   }
 
   function depositsSum(address token) public view returns (uint) {
-    return _shareToAmount(token, pools[token].depositSum);
+    return _shareToAmount(token, pools[token].depositsSum);
   }
 
-  function bonusesPool(address token) public view returns (uint) {
-    return _shareToAmount(token, pools[token].bonusSum);
+  function holdBonusesPool(address token) public view returns (uint) {
+    return _shareToAmount(token, pools[token].holdBonusesSum);
   }
 
-  function holdTimeCredits(address token, address sender) public view returns (uint) {
-    return _holdTimeCredits(deposits[token][sender]);
+  function commitBonusesPool(address token) public view returns (uint) {
+    return _shareToAmount(token, pools[token].commitBonusesSum);
   }
 
-  function totalHoldTimeCredits(address token) public view returns (uint) {
-    return _totalHoldTimeCredits(pools[token]);
+  function holdPoints(address token, address sender) public view returns (uint) {
+    return _holdPoints(deposits[token][sender]);
+  }
+
+  function totalHoldPoints(address token) public view returns (uint) {
+    return _totalHoldPoints(pools[token]);
+  }
+
+  function commitPoints(address token, address sender) public view returns (uint) {
+    return deposits[token][sender].commitPoints;
+  }
+
+  function totalCommitPoints(address token) public view returns (uint) {
+    return pools[token].totalCommitPoints;
   }
 
   function timeLeftToHold(
     address token, address sender
   ) public view returns (uint) {
-    if (balanceOf(token, sender) == 0) {
-      return 0;
-    } else {
-      Deposit storage dep = deposits[token][sender];
-      uint timeHeld = _depositTimeHeld(dep);
-      return (timeHeld < dep.commitPeriod) ? (dep.commitPeriod - timeHeld) : 0;
-    }
+    return _timeLeft(deposits[token][sender]);
   }
 
-  function _shareToAmount(address token, uint share) internal view returns (uint) {
-    // all tokens that belong to this contract are either in deposits or in bonus pool
-    Pool storage pool = pools[token];
-    uint totalShares = pool.depositSum + pool.bonusSum;
-    if (totalShares == 0) {  // don't divide by zero
-      return 0;  
-    } else {
-      // it's safe to call external balanceOf here because 
-      // it's a view (and this method is also view)
-      uint actualBalance = IERC20(token).balanceOf(address(this));      
-      return actualBalance * share / totalShares;
-    }
-  }
+  ////// INTERNAL TRANSACTIONS
 
-  function _depositUpdate(
+  function _depositStateUpdate(
     address token, 
     uint amount, 
     uint initialPenaltyPercent, 
     uint commitPeriod
-  ) internal {    
-    
-    //// update deposit    
-    Deposit storage dep = deposits[token][msg.sender];    
-    // carry over previous credits and add credits for the time 
-    // held since latest reset
-    // CAREFUL: this needs to happen before value is updated
-    dep.prevHoldTimeCredits = _holdTimeCredits(dep);
-    // add new deposit
-    dep.value += amount;
-    // reset these values
-    dep.time = block.timestamp;
+  ) internal {            
+    // testcases
+    require(initialPenaltyPercent > 0, "no penalty");  
+    require(initialPenaltyPercent <= 100, "initial penalty > 100%"); 
+    require(commitPeriod >= 10 seconds, "commitment period too short");
+    require(commitPeriod <= 365 days, "commitment period too long");    
+
+    // possible commit points that will need to be subtracted from deposit and pool
+    uint commitPointsToSubtract = 0; 
+
+    // deposit updates
+    Deposit storage dep = deposits[token][msg.sender];        
+    if (dep.value > 0) {  // adding to previous deposit      
+      require(
+        initialPenaltyPercent >= _currentPenaltyPercent(dep), 
+        "add deposit: penalty percent less than existing deposits's percent"
+      );  // testcase
+      require(
+        commitPeriod >= _timeLeft(dep),
+        "add deposit: commit period less than existing deposit's time left"
+      );  // testcase
+
+      // carry over previous points and add points for the time 
+      // held since latest deposit
+      // WARNING: this needs to happen before deposit value is updated
+      dep.prevHoldPoints = _holdPoints(dep);
+      
+      // this value will need to be sutracted from both deposit and pool's points
+      commitPointsToSubtract = _outstandingCommitPoints(dep);
+      // subtract un-held commitment from commit credits
+      dep.commitPoints -= commitPointsToSubtract;
+    }
+
+    // deposit update for both new & existing
+    dep.value += amount;  // add the amount
+    dep.time = block.timestamp;  // set the time
+    // set the commitment params
+    dep.commitPeriod = commitPeriod;  
     dep.initialPenaltyPercent = initialPenaltyPercent;
-    dep.commitPeriod = commitPeriod;
+    // add full commitment credits for commitment holdBonus calculations
+    dep.commitPoints += _fullCommitPoints(dep);  
 
-    //// update pool
+    // pool update
     Pool storage pool = pools[token];
-    _updatePoolHoldTimeCredits(pool);
-    pool.depositSum += amount;    
-  }
-
-  function _holdTimeCredits(Deposit storage dep) internal view returns (uint) {
-    // credits proportional to value held since deposit start
-    return dep.prevHoldTimeCredits + (dep.value * (block.timestamp - dep.time));
+    // update pool's total hold time due to passage of time
+    // because the deposits sum is going to change
+    _updatePoolHoldPoints(pool);
+    // WARNING: the deposits sum needs to be updated after the hold-time-credits
+    // for the passed time were updated
+    pool.depositsSum += amount;    
+    // the full new amount is committed minus any commit credits that need to be sutracted
+    pool.totalCommitPoints -= commitPointsToSubtract;
+    pool.totalCommitPoints += _fullCommitPoints(dep);
   }
 
   // this happens on every pool interaction (so every withdrawal and deposit to that pool)
-  function _updatePoolHoldTimeCredits(Pool storage pool) internal {
+  function _updatePoolHoldPoints(Pool storage pool) internal {
     // add credits proportional to value held in pool since last update
-    pool.totalHoldTimeCredits = _totalHoldTimeCredits(pool);
-    pool.updateTime = block.timestamp;
-  }
-
-  function _totalHoldTimeCredits(Pool storage pool) internal view returns (uint) {
-    // add credits proportional to value held in pool since last update
-    return pool.totalHoldTimeCredits + (pool.depositSum * (block.timestamp - pool.updateTime));
-  }
+    pool.totalHoldPoints = _totalHoldPoints(pool);    
+    pool.totalHoldPointsUpdateTime = block.timestamp;
+  }  
   
   function _withdraw(address token) internal {
     uint withdrawAmount = _withdrawAmountAndUpdate(token);
@@ -275,61 +300,158 @@ contract HodlPoolV2 {
   }
   
   function _withdrawAmountAndUpdate(address token) internal returns (uint) {
-
-    // update pool due to passage of time
     Pool storage pool = pools[token];
-    _updatePoolHoldTimeCredits(pool);
+    // update pool hold-time credits due to passage of time
+    // WARNING: failing to do so will break hold-time holdBonus calculation
+    _updatePoolHoldPoints(pool);
 
-    // update deposit due to passage of time
+    // WARNING: deposit is only read here and is not updated until it's removal
     Deposit storage dep = deposits[token][msg.sender];
 
     // calculate penalty & bunus before making changes
     uint penalty = _depositPenalty(dep);
-    // only get bonus if no penalty
-    uint bonus = (penalty == 0) ? _depositBonus(pool, dep) : 0;
-    uint withdrawShare = dep.value - penalty + bonus;
+    
+    // only get any bonuses if no penalty
+    uint holdBonus = (penalty == 0) ? _holdBonus(pool, dep) : 0;
+    uint commitBonus = (penalty == 0) ? _commitBonus(pool, dep) : 0;
+    uint withdrawShare = dep.value - penalty + holdBonus + commitBonus;    
 
-    // translate to amounts here, before state is updated is zeroed out
+    // WARNING: get amount here before state is updated
     uint withdrawAmount = _shareToAmount(token, withdrawShare);
-    uint bonusAmount = _shareToAmount(token, bonus);
-    uint penaltyAmount = _shareToAmount(token, penalty);
 
-    // emit event here with all the data
-    emit Withdrawed(
-      token,
-      msg.sender,
-      withdrawAmount, 
-      dep.value, 
-      penaltyAmount, 
-      bonusAmount, 
-      _depositTimeHeld(dep));
+    // WARNING: emit event here with all the needed data, before states updates
+    // affect shareToAmount calculations
+    // this refactor is needed for handling stack-too-deep error
+    _withdrawalEvent(token, dep, penalty, holdBonus, commitBonus, withdrawAmount);
 
+    // pool state update
+    // WARNING: should happen after calculating shares, because the depositSum changes
     // update pool state        
     // update total deposits
-    pool.depositSum -= dep.value;
-    // update bonus
-    pool.bonusSum = pool.bonusSum + penalty - bonus;
-    // remove the acrued hold time credits for this deposit
-    pool.totalHoldTimeCredits -= _holdTimeCredits(dep);
+    pool.depositsSum -= dep.value;        
+    // remove the acrued hold-time-credits for this deposit
+    pool.totalHoldPoints -= _holdPoints(dep);
+    // remove the commit-time credits
+    pool.totalCommitPoints -= dep.commitPoints;
+    // update hold-bonus pool
+    // split the penalty into two parts
+    // half for hold bonuses, half for commit bonuses
+    uint holdBonusPoolUpdate = penalty / 2;
+    uint commitBonusPoolUpdate = penalty - holdBonusPoolUpdate;
+    pool.holdBonusesSum = pool.holdBonusesSum + holdBonusPoolUpdate - holdBonus;
+    // update commitBonus pool
+    pool.commitBonusesSum = pool.holdBonusesSum + commitBonusPoolUpdate - commitBonus;  
+
     // remove deposit
-    // CAREFUL: note that removing the deposit before this line will 
-    // change "dep" because it's used by reference and will ruin the other
-    // computations
+    // WARNING: note that removing the deposit before this line will 
+    // change "dep" because it's used by reference and will affect the other
+    // computations for pool state updates (e.g. holding credits)
     delete deposits[token][msg.sender];
 
     return withdrawAmount;
   }
 
-  function _depositTimeHeld(Deposit storage dep) internal view returns (uint) {
+  function _withdrawalEvent(
+    address token, 
+    Deposit storage dep,
+    uint penalty,
+    uint holdBonus,
+    uint commitBonus,
+    uint withdrawAmount
+  ) internal {  
+    emit Withdrawed(
+      token,
+      msg.sender,
+      withdrawAmount, 
+      dep.value, 
+      _shareToAmount(token, penalty), 
+      _shareToAmount(token, holdBonus), 
+      _shareToAmount(token, commitBonus), 
+      _timeHeld(dep));
+  }
+
+  ////// INTERNAL VIEWS
+
+  function _timeLeft(Deposit storage dep) internal view returns (uint) {
+    if (dep.value == 0) { // division by zero
+      return 0; 
+    } else {
+      uint timeHeld = _timeHeld(dep);
+      return (timeHeld < dep.commitPeriod) ? (dep.commitPeriod - timeHeld) : 0;
+    }
+  }
+
+  function _shareToAmount(address token, uint share) internal view returns (uint) {
+    // all tokens that belong to this contract are either 
+    // in deposits or in the two bonuses pools
+    Pool storage pool = pools[token];
+    uint totalShares = pool.depositsSum + pool.holdBonusesSum + pool.commitBonusesSum;
+    if (totalShares == 0) {  // don't divide by zero
+      return 0;  
+    } else {
+      // it's safe to call external balanceOf here because 
+      // it's a view (and this method is also view)
+      uint actualBalance = IERC20(token).balanceOf(address(this));      
+      return actualBalance * share / totalShares;
+    }
+  }
+  
+  function _holdPoints(Deposit storage dep) internal view returns (uint) {
+    // credits proportional to value held since deposit start    
+    return dep.prevHoldPoints + (dep.value * _timeHeld(dep));
+  }
+
+  function _fullCommitPoints(Deposit storage dep) internal view returns (uint) {
+    // triangle area of commitpent time and penalty
+    return (
+      dep.value * dep.initialPenaltyPercent * dep.commitPeriod
+      / 100 / 2
+    );
+  }
+
+  function _outstandingCommitPoints(Deposit storage dep) internal view returns (uint) {
+    // triangle area of commitpent time and penalty
+    uint timeLeft = _timeLeft(dep);
+    if (timeLeft == 0) {
+      return 0;
+    } else {      
+      // smaller triangle of left commitment time left * smaller penalty left
+      // can refactor to use _currentPenaltyPercent() here, but it's better for precision
+      // to do all multiplications before all divisions
+      return (
+        dep.value * dep.initialPenaltyPercent * timeLeft * timeLeft / 
+        (dep.commitPeriod * 100 * 2)  // triangle area
+      );
+    }
+  }
+
+  function _currentPenaltyPercent(Deposit storage dep) internal view returns (uint) {
+    uint timeLeft = _timeLeft(dep);
+    if (timeLeft == 0) {
+      return 0;
+    } else {
+      // current penalty percent is proportional to time left
+      uint curPercent = (dep.initialPenaltyPercent * timeLeft) / dep.commitPeriod;
+      // if calculation was rounded down to 0 (can happen towards end of term), return 1
+      return curPercent > 0 ? curPercent : 1;  // testcase
+    }
+  }
+
+  function _totalHoldPoints(Pool storage pool) internal view returns (uint) {
+    // credits proportional to value held in pool since last update
+    uint elapsed = block.timestamp - pool.totalHoldPointsUpdateTime;
+    return pool.totalHoldPoints + (pool.depositsSum * elapsed);
+  }
+
+  function _timeHeld(Deposit storage dep) internal view returns (uint) {
     return block.timestamp - dep.time;
   }
 
   function _depositPenalty(Deposit storage dep) internal view returns (uint) {
-    uint timeHeld = _depositTimeHeld(dep);
-    if (timeHeld >= dep.commitPeriod) {
+    uint timeLeft = _timeLeft(dep);
+    if (timeLeft == 0) {
       return 0;
     } else {
-      uint timeLeft = dep.commitPeriod - timeHeld;
       // order important to prevent rounding to 0
       return (
         (dep.value * dep.initialPenaltyPercent * timeLeft) 
@@ -338,19 +460,31 @@ contract HodlPoolV2 {
     }
   }
 
-  function _depositBonus(
+  function _holdBonus(
     Pool storage pool, 
     Deposit storage dep
   ) internal view returns (uint) {
-    if (dep.value == 0 || pool.bonusSum == 0) {
+    if (dep.value == 0 || pool.holdBonusesSum == 0) {
       return 0;  // no luck
     } else {
-      // V2 calculation: takes into account time held already, instead of
-      // snapshot of deposists
+      // share of bonus is proportional to hold-time-credits of this deposit relative
+      // to all other hold-time-credits in the pool
       // order important to prevent rounding to 0
-      return (pool.bonusSum * _holdTimeCredits(dep)) / _totalHoldTimeCredits(pool);
-      // V1 calculation: depends on current deposits only
-      // return (pool.bonusSum * dep.value) / pool.depositsSum;
+      return (pool.holdBonusesSum * _holdPoints(dep)) / _totalHoldPoints(pool);
+    }
+  }
+
+  function _commitBonus(
+    Pool storage pool, 
+    Deposit storage dep
+  ) internal view returns (uint) {
+    if (dep.value == 0 || pool.commitBonusesSum == 0) {
+      return 0;  // no luck
+    } else {
+      // share of bonus is proportional to commit-time-credits of this deposit relative
+      // to all other commit-time-credits in the pool
+      // order important to prevent rounding to 0
+      return (pool.commitBonusesSum * dep.commitPoints) / pool.totalCommitPoints;
     }
   }
 
