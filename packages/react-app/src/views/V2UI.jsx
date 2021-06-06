@@ -14,29 +14,48 @@ class HodlPoolV2StateHooks {
   constructor(contract, address, tokenAddress) {
     this.address = contract?.address;
     this.tokenAddress = tokenAddress;
-    this.balance = useContractReader(tokenAddress && contract, "balanceOf", [tokenAddress, address]);
-    this.bonus = useContractReader(tokenAddress && contract, "bonusOf", [tokenAddress, address]);
-    this.penalty = useContractReader(tokenAddress && contract, "penaltyOf", [tokenAddress, address]);
-    this.timeLeft = useContractReader(tokenAddress && contract, "timeLeftToHold", [tokenAddress, address]);
-    this.bonusesPool = useContractReader(tokenAddress && contract, "bonusesPool", [tokenAddress]);
-    this.depositsSum = useContractReader(tokenAddress && contract, "depositsSum", [tokenAddress]);
-    this.commitPeriod = useContractReader(contract, "defaultCommitPeriod", [], 86400 * 1000);
-    this.initialPenaltyPercent = useContractReader(contract, "defaultInitialPenaltyPercent", [], 86400 * 1000);
     this.WETHAddress = useContractReader(contract, "WETH", [], 86400 * 1000);
+    this.depositDetails = useContractReader(tokenAddress && contract, "depositDetails", [tokenAddress, address]);
+    this.poolDetails = useContractReader(tokenAddress && contract, "poolDetails", [tokenAddress]);
+
+    // unpack deposit details
+    this.balance = this.depositDetails && this.depositDetails[0]; 
+    this.timeLeft = this.depositDetails && this.depositDetails[1]; 
+    this.penalty = this.depositDetails && this.depositDetails[2]; 
+    this.holdBonus = this.depositDetails && this.depositDetails[3]; 
+    this.commitBonus = this.depositDetails && this.depositDetails[4]; 
+    this.holdPoints = this.depositDetails && this.depositDetails[5]; 
+    this.commitPoints = this.depositDetails && this.depositDetails[6]; 
+    this.initialPenaltyPercent = this.depositDetails && this.depositDetails[7]; 
+    this.currentPenaltyPercent = this.depositDetails && this.depositDetails[8]; 
+    this.commitPeriod = this.depositDetails && this.depositDetails[9]; 
+
+    // unpack pool details
+    this.depositsSum = this.poolDetails && this.poolDetails[0]; 
+    this.holdBonusesSum = this.poolDetails && this.poolDetails[1]; 
+    this.commitBonusesSum = this.poolDetails && this.poolDetails[2]; 
+    this.totalHoldPoints = this.poolDetails && this.poolDetails[3]; 
+    this.totalCommitPoints = this.poolDetails && this.poolDetails[4]; 
+
+    // sum values (TODO: add UI for breakdow)
+    this.bonus = this.holdBonus?.add(this.commitBonus);
+    this.bonusesPool = this.holdBonusesSum?.add(this.commitBonusesSum);
 
     // time convenience variables
-    this.commitDays = parseFloat((this.commitPeriod || "0").toString()) / 86400;
-    this.timeLeftDays = parseFloat((this.timeLeft || "0").toString()) / 86400;
     this.commitString = `${(this.commitPeriod || "").toString()}s 
-                        or ${(this.commitDays).toPrecision(2)} days`;
+                        or ${bigNumberSecondsToDays(this.commitPeriod)} days`;
     this.timeLeftString = `${(this.timeLeft || "").toString()}s
-                           or ${(this.timeLeftDays.toPrecision(2)).toString()} days`;
+                           or ${bigNumberSecondsToDays(this.timeLeft)} days`;
     // withdrawal convenience variables
     this.withdrawWithPenalty = this.balance && this.penalty?.gt(0) ?
       parseFloat(this.balance.sub(this.penalty).toString()) : 0;
     this.withdrawWithBonus = this.bonus && this.balance && this.penalty?.eq(0) ?
       parseFloat(this.balance.add(this.bonus).toString()) : 0;
   }
+}
+
+function bigNumberSecondsToDays(sec, precision = 2) {
+  return (parseFloat((sec || "0").toString()) / 86400).toPrecision(precision)
 }
 
 class TokenStateHooks {
@@ -744,12 +763,15 @@ function EventsList({ contract, address }) {
             eventText = (
               `deposited ${item.amount.toString()} ` + 
               `(received ${item.amountReceived.toString()}) ` +
-              `at ${item.time.toString()}`);
+              `at ${item.time.toString()} ` + 
+              `committed to ${bigNumberSecondsToDays(item.commitPeriod)} days at ` + 
+              `${item.initialPenaltyPercent.toString()}% initial penalty`
+            );
           } else if (item.eventName === "Withdrawed") {
             eventText = (
               `withdrew ${item.amount.toString()} ` +
               `for initial deposit of ${item.depositAmount.toString()} ` +
-              `(held for ${item.timeHeld.toString()}s)`
+              `(held for ${bigNumberSecondsToDays(item.timeHeld)} days)`
             );
             eventText += (item.penalty > 0) ? ` with ${item.penalty} penalty` : ''
             eventText += (item.bonus > 0) ? ` with ${item.bonus} bonus` : ''
@@ -758,7 +780,7 @@ function EventsList({ contract, address }) {
             <List.Item key={item.blockNumber + item.eventName + item.sender}>
               block {item.blockNumber}:
               user <Address address={item.sender} fontSize={16} />&nbsp;
-              {eventText} of token <Address address={item.token} fontSize={16} />.
+              {eventText}. Token <Address address={item.token} fontSize={16} />.
             </List.Item>
           )
         }}
