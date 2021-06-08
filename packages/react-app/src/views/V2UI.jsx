@@ -15,6 +15,10 @@ class HodlPoolV2StateHooks {
     this.address = contract?.address;
     this.tokenAddress = tokenAddress;
     this.WETHAddress = useContractReader(contract, "WETH", [], 86400 * 1000);
+    this.minInitialPenaltyPercent = useContractReader(
+      contract, "minInitialPenaltyPercent", [], 86400 * 1000);
+    this.minCommitPeriod = useContractReader(
+        contract, "minCommitPeriod", [], 86400 * 1000);
     this.depositDetails = useContractReader(tokenAddress && contract, "depositDetails", [tokenAddress, address]);
     this.poolDetails = useContractReader(tokenAddress && contract, "poolDetails", [tokenAddress]);
 
@@ -482,7 +486,12 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
             if (amountToSend && amountToSend > 0 && tokenState.decimals) {
               contractTx(
                 "deposit",
-                [tokenState.address, parseUnits(amountToSend, tokenState.decimals)],
+                [
+                  tokenState.address,
+                  parseUnits(amountToSend, tokenState.decimals),
+                  contractState.minInitialPenaltyPercent,
+                  contractState.minCommitPeriod,
+                ],
                 () => deposittingSet(false)
               );
             }
@@ -556,7 +565,11 @@ function DepositElementETH({ contractState, contractTx }) {
             if (amountToSend && amountToSend > 0) {
               contractTx(
                 "depositETH",
-                [{ value: parseEther(amountToSend) }],
+                [
+                  contractState.minInitialPenaltyPercent,
+                  contractState.minCommitPeriod,
+                  { value: parseEther(amountToSend) }
+                ],
                 () => deposittingSet(false));
             }
           }}

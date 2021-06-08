@@ -28,7 +28,6 @@ contract HodlPoolV2 {
     uint totalCommitPoints;
   }
   
-  // TODO: pass in deposit
   uint public immutable minInitialPenaltyPercent;  
 
   uint public immutable minCommitPeriod;
@@ -65,6 +64,14 @@ contract HodlPoolV2 {
     _;
   }
 
+  modifier validCommitment(uint initialPenaltyPercent, uint commitPeriod) {
+    require(initialPenaltyPercent >= minInitialPenaltyPercent, "penalty too small"); 
+    require(initialPenaltyPercent <= 100, "initial penalty > 100%"); 
+    require(commitPeriod >= minCommitPeriod, "commitment period too short");
+    require(commitPeriod <= 365 days, "commitment period too long");
+    _;
+  }
+
   constructor (uint _minInitialPenaltyPercent, uint _minCommitPeriod, address _WETH) {
     require(_minInitialPenaltyPercent > 0, "no penalty"); 
     require(_minInitialPenaltyPercent <= 100, "minimum initial penalty > 100%"); 
@@ -84,15 +91,22 @@ contract HodlPoolV2 {
 
   //////// PUBLIC TRANSACTIONS
 
-  function deposit(address token, uint amount) external {
+  function deposit(
+    address token, 
+    uint amount, 
+    uint initialPenaltyPercent,
+    uint commitPeriod
+  ) external
+    validCommitment(initialPenaltyPercent, commitPeriod) 
+  {
     require(amount > 0, "deposit too small");
 
     // interal accounting update
     _depositStateUpdate(
       token, 
       amount,
-      minInitialPenaltyPercent, 
-      minCommitPeriod
+      initialPenaltyPercent, 
+      commitPeriod
     );
 
     // this contract's balance before the transfer
@@ -110,20 +124,26 @@ contract HodlPoolV2 {
       amount, 
       amountReceived, 
       block.timestamp, 
-      minInitialPenaltyPercent, 
-      minCommitPeriod
+      initialPenaltyPercent, 
+      commitPeriod
     );
   }
 
-  function depositETH() external payable {
+  function depositETH(
+    uint initialPenaltyPercent,
+    uint commitPeriod
+  ) external
+    validCommitment(initialPenaltyPercent, commitPeriod) 
+    payable
+  {
     require(msg.value > 0, "deposit too small");
 
     // interal accounting update
     _depositStateUpdate(
       WETH, 
       msg.value,
-      minInitialPenaltyPercent, 
-      minCommitPeriod
+      initialPenaltyPercent, 
+      commitPeriod
     );
 
     // note: no share vs. balance accounting for WETH because it's assumed to
@@ -135,8 +155,8 @@ contract HodlPoolV2 {
       msg.value, 
       msg.value, 
       block.timestamp, 
-      minInitialPenaltyPercent, 
-      minCommitPeriod
+      initialPenaltyPercent, 
+      commitPeriod
     );
   }
   
