@@ -317,7 +317,7 @@ contract HodlPoolV2 {
     uint commitBonusPoolUpdate = penalty - holdBonusPoolUpdate;
     pool.holdBonusesSum = pool.holdBonusesSum + holdBonusPoolUpdate - holdBonus;
     // update commitBonus pool
-    pool.commitBonusesSum = pool.holdBonusesSum + commitBonusPoolUpdate - commitBonus;  
+    pool.commitBonusesSum = pool.commitBonusesSum + commitBonusPoolUpdate - commitBonus;  
 
     // remove deposit
     // WARNING: note that removing the deposit before this line will 

@@ -52,6 +52,10 @@ class HodlPoolV2StateHooks {
     this.withdrawWithBonus = this.bonus && this.balance && this.penalty?.eq(0) ?
       parseFloat(this.balance.add(this.bonus).toString()) : 0;
   }
+
+  pointsToTokenDays(val, decimals) {
+    return val && decimals && parseFloat(formatUnits(val.div(86400), decimals));
+  }
 }
 
 function bigNumberSecondsToDays(sec, precision = 2) {
@@ -244,6 +248,7 @@ export function HodlPoolV2UI(
               blockExplorer={blockExplorer}
               contractAddress={contractAddress}
               symbol={symbol}
+              tokenState={tokenState}
             />
           </div>
         }
@@ -303,10 +308,17 @@ function TokenSelection({ provider, addessUpdateFn }) {
   const tokenListURI = activeChainId === 31337 ?
     "local" : "https://gateway.ipfs.io/ipns/tokens.uniswap.org";
   const externalTokensList = useTokenList(tokenListURI, activeChainId);
-
+  
   // track the input state
   const [rawInput, rawInputSet] = useState("");
   const [selectedValue, selectedValueSet] = useState("");
+
+  // select initial value
+  useEffect(() => {
+    const defaultChoice = "ETH";
+    addessUpdateFn(defaultChoice);
+    selectedValueSet(defaultChoice);
+  }, []);
 
   // any additional tokens
   const [extraTokens, extraTokensSet] = useState([{
@@ -563,59 +575,103 @@ function DepositElementETH({ contractState, contractTx }) {
 function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
   const symbol = ethMode ? "ETH" : tokenState.symbol;
 
-  let depositInfo = "";
-  if (contractState?.balance?.gt(0)) {
-    depositInfo = (
-      <div>
+  const pointsToTokenDays = (val) => {
+    return contractState?.pointsToTokenDays(val, tokenState?.decimals);
+  }
 
-        <h2>Available to withdraw:
+  function pointsSummary(title, points, totalPoints) {
+    return (
+      <p>{title}:&nbsp;
+        {pointsToTokenDays(points)?.toPrecision(3)} token-days&nbsp;
+        ({(100 * pointsToTokenDays(points) / 
+          pointsToTokenDays(totalPoints))?.toPrecision(3)}% of&nbsp;
+        {pointsToTokenDays(totalPoints)?.toPrecision(3)} token-days in pool)
+      </p>)
+  }
+
+  function bonusTooltip() {
+    return <Tooltip
+      placement="top"
+      color="gray"
+      title={
+        <div>
+          <p>Hold bonus + Commitment bonus:</p>
+          <p>
+            <b><Balance balance={contractState.holdBonus} symbol={symbol} size="20" /></b>
+            +
+            <b><Balance balance={contractState.commitBonus} symbol={symbol} size="20" /></b>
+          </p>
+          <br/>
+          {pointsSummary(
+            "Hold points", contractState.holdPoints, contractState.totalHoldPoints)}
+          {pointsSummary(
+            "Commit points", contractState.commitPoints, contractState.totalCommitPoints)}
+        </div>
+      }>
+      <InfoCircleTwoTone></InfoCircleTwoTone>
+    </Tooltip>
+  }
+
+  function depositInfo() {
+    return <div>
+
+      <h3>Can withdraw:
             <Balance
-            balance={"" + (contractState.withdrawWithBonus || contractState.withdrawWithPenalty)}
-            symbol={symbol}
-            size="20" />
-        </h2>
+          balance={"" + (contractState.withdrawWithBonus || contractState.withdrawWithPenalty)}
+          symbol={symbol}
+          size="20" />
+      </h3>
 
-        {contractState?.bonus?.gt(0) ?
-          <h2>Current bonus:
+      {contractState?.bonus?.gt(0) ?
+        <h3>Current bonus:
             <Balance balance={contractState.bonus} symbol={symbol} size="20" />
-          </h2>
-          : ""}
+          {bonusTooltip()}
+        </h3>
+        : ""}
 
+      {contractState.withdrawWithBonus > 0 ?
+        <WithdrawWithBonusButton
+          contractState={contractState}
+          txFn={contractTx}
+          tokenState={tokenState}
+          ethMode={ethMode}
+        />
+        : ""}
 
-        {contractState.withdrawWithBonus > 0 ?
-          <WithdrawWithBonusButton
+      {contractState.withdrawWithPenalty > 0 ?
+        <div>
+          <h3>Current penalty:
+              <Balance balance={contractState.penalty} symbol={symbol} size="20" />
+          </h3>
+
+          <h3>Penalty percent:&nbsp;
+                {(contractState.currentPenaltyPercent || "").toString()}%
+                (initial was {(contractState.initialPenaltyPercent || "").toString()}%)
+            </h3>
+
+          <h3>
+            Time left to hold: {contractState.timeLeftString}&nbsp;
+              (of {contractState.commitString})
+            </h3>
+
+          <WithdrawWithPenaltyButton
             contractState={contractState}
             txFn={contractTx}
             tokenState={tokenState}
             ethMode={ethMode}
           />
-          : ""}
+        </div>
+        : ""}
 
-        {contractState.withdrawWithPenalty > 0 ?
-          <div>
-            <h2>Current penalty:
-              <Balance balance={contractState.penalty} symbol={symbol} size="20" />
-            </h2>
-            <h2>Time left to hold: {contractState.timeLeftString}</h2>
-            <WithdrawWithPenaltyButton
-              contractState={contractState}
-              txFn={contractTx}
-              tokenState={tokenState}
-              ethMode={ethMode}
-            />
-          </div>
-          : ""}
-
-      </div>
-    );
+    </div>
   }
 
   return (
     <div>
-      <h2>Your deposit:
+      <h3>Your deposit:
         <Balance balance={contractState.balance} symbol={symbol} size="20" />
-      </h2>
-      { depositInfo}
+      </h3>
+      { contractState?.balance?.gt(0) ? depositInfo() : ""}
     </div>
   );
 }
@@ -717,7 +773,36 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
   );
 }
 
-function PoolInfo({ contractState, blockExplorer, contractAddress, symbol }) {
+function PoolInfo({ contractState, blockExplorer, contractAddress, tokenState, symbol }) {
+
+  const pointsToTokenDays = (val) => {
+    return contractState?.pointsToTokenDays(val, tokenState?.decimals);
+  }
+
+  function bonusTotalsTooltip() {
+    return <Tooltip
+      placement="top"
+      color="gray"
+      title={
+        <div>
+          <p>Hold bonus pool + Commitment bonus pool:</p>
+          <p>
+            <b><Balance balance={contractState.holdBonusesSum} symbol={symbol} size="20" /></b>
+            +
+            <b><Balance balance={contractState.commitBonusesSum} symbol={symbol} size="20" /></b>
+          </p>
+          <p>Total hold points:&nbsp;
+          {pointsToTokenDays(contractState.totalHoldPoints)?.toPrecision(3)} token-days.
+          </p>
+          <p>Total commitment points:&nbsp;
+          {pointsToTokenDays(contractState.totalCommitPoints)?.toPrecision(3)} token-days.
+          </p>
+        </div>
+      }>
+      <InfoCircleTwoTone></InfoCircleTwoTone>
+    </Tooltip>
+  }
+
   return (
     <div>
       <h3>Total deposits in {symbol} pool:
@@ -726,12 +811,7 @@ function PoolInfo({ contractState, blockExplorer, contractAddress, symbol }) {
 
       <h3>Total bonus in {symbol} pool:
           <Balance balance={contractState.bonusesPool} symbol={symbol} size="20" />
-      </h3>
-
-      <h3>Commitment period: {contractState.commitString}</h3>
-
-      <h3>Initial penalty percent:&nbsp;
-          {(contractState.initialPenaltyPercent || "").toString()}%
+          {bonusTotalsTooltip()}
       </h3>
 
       <h3>Contract address:&nbsp;
