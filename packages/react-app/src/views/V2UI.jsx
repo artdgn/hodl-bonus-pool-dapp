@@ -1,7 +1,9 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect } from "react";
-import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Space, notification, Select, Steps, Result, Tooltip, Skeleton, Empty } from "antd";
+import { Button, List, Divider, Input, Card, Row, Col, Modal, 
+  Typography, Space, notification, Select, Steps, Result, Tooltip, 
+  Empty, InputNumber } from "antd";
 import { Address, Balance } from "../components";
 import { parseEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
@@ -46,10 +48,8 @@ class HodlPoolV2StateHooks {
     this.bonusesPool = this.holdBonusesSum?.add(this.commitBonusesSum);
 
     // time convenience variables
-    this.commitString = `${(this.commitPeriod || "").toString()}s 
-                        or ${bigNumberSecondsToDays(this.commitPeriod)} days`;
-    this.timeLeftString = `${(this.timeLeft || "").toString()}s
-                           or ${bigNumberSecondsToDays(this.timeLeft)} days`;
+    this.commitString = secondsToCommitTimeString(this.commitPeriod);
+    this.timeLeftString = secondsToCommitTimeString(this.timeLeft);
     // withdrawal convenience variables
     this.withdrawWithPenalty = this.balance && this.penalty?.gt(0) ?
       parseFloat(this.balance.sub(this.penalty).toString()) : 0;
@@ -64,6 +64,10 @@ class HodlPoolV2StateHooks {
 
 function bigNumberSecondsToDays(sec, precision = 2) {
   return (parseFloat((sec || "0").toString()) / 86400).toPrecision(precision)
+}
+
+function secondsToCommitTimeString(sec) {
+  return `${(sec || "").toString()}s or ${bigNumberSecondsToDays(sec)} days`;
 }
 
 class TokenStateHooks {
@@ -397,6 +401,59 @@ function TokenSelection({ provider, addessUpdateFn }) {
   );
 }
 
+function CommitmentInput(
+   { contractState, penalty, penaltySet, period, periodSet } ) 
+{
+  const [timeUnit, timeUnitSet] = useState("sec");
+  const [timeValue, timeValueSet] = useState(period);
+  const minPeriodSec = contractState?.minCommitPeriod?.toNumber();
+  const minPeriodDays = contractState?.minCommitPeriod?.div(86400).toNumber();
+
+  // set default when available
+  useEffect(() => timeValueSet(minPeriodSec), [minPeriodSec]);
+
+  // call the update function when either changes
+  useEffect(() => {
+    periodSet(timeValue * (timeUnit == "sec" ? 1 : 86400));
+  }, [timeValue, timeUnit])
+
+  return (<div>
+    <Space align="center" >
+      <h3>Deposit for</h3>
+      <div>
+        <InputNumber
+          min={timeUnit == "sec" ? minPeriodSec : (minPeriodDays || 1)}
+          max={timeUnit == "sec" ? 365 * 86400 : 365}
+          style={{ margin: '0 16px' }}
+          value={timeValue}
+          onChange={timeValueSet}
+        />
+        <Select 
+          value={timeUnit} 
+          onChange={timeUnitSet}>
+          <Select.Option value="sec">Seconds</Select.Option>
+          <Select.Option value="day">Days</Select.Option>
+        </Select>
+      </div>
+      <InfoCircleTwoTone />
+
+    </Space>
+    <Space align="center" >
+      <h3>with initial penalty of </h3>
+      <InputNumber
+        min={contractState?.minInitialPenaltyPercent?.toNumber()}
+        max={100}
+        style={{ margin: '0 16px' }}
+        value={penalty}
+        formatter={value => `${value}%`}
+        parser={value => value.replace('%', '')}
+        onChange={penaltySet}
+      />
+      <InfoCircleTwoTone />
+    </Space>
+  </div>)
+}
+
 function DepositElementToken({ contractState, contractTx, tokenState, tokenTx }) {
   const [amountToSend, setAmountToSend] = useState("0");
   const [depositModalVisible, setDepositModalVisible] = useState(false);
@@ -404,6 +461,14 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
   const [approveButtonEnabled, setApproveButtonEnabled] = useState(false);
   const [approving, approvingSet] = useState(false);
   const [depositting, deposittingSet] = useState(false);
+  const [penalty, penaltySet] = useState();
+  const [period, periodSet] = useState();
+
+  useEffect(() => {
+    // set defaults when available
+    penaltySet(contractState?.minInitialPenaltyPercent);
+    periodSet(contractState?.minCommitPeriod);
+  }, [contractState?.minInitialPenaltyPercent, contractState?.minCommitPeriod])
 
   useEffect(() => {
     const sendAmountBig = tokenState.decimals && parseUnits(amountToSend, tokenState.decimals);
@@ -413,6 +478,13 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
 
   return (
     <div style={{ margin: 8 }}>
+      <CommitmentInput 
+        contractState={contractState}
+        penalty={penalty}
+        period={period}
+        penaltySet={penaltySet}
+        periodSet={periodSet}
+        />
       <Row justify="center" style={{ margin: 12 }}>
         <Col span={20}>
           <Steps current={
@@ -489,15 +561,16 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
                 [
                   tokenState.address,
                   parseUnits(amountToSend, tokenState.decimals),
-                  contractState.minInitialPenaltyPercent,
-                  contractState.minCommitPeriod,
+                  penalty,
+                  period,
                 ],
                 () => deposittingSet(false)
               );
             }
           }}
           onCancel={() => setDepositModalVisible(false)}>
-          <h2>Commitment period: {contractState.commitString}</h2>
+          <h2>Commitment period: {secondsToCommitTimeString(period)}</h2>
+          <h2>Initial penalty: {penalty}%</h2>
           <Divider />
           <h2>
             <WarningTwoTone twoToneColor="red" /> Withdrawing without
@@ -513,6 +586,14 @@ function DepositElementETH({ contractState, contractTx }) {
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
   const [depositting, deposittingSet] = useState(false);
+  const [penalty, penaltySet] = useState();
+  const [period, periodSet] = useState();
+
+  useEffect(() => {
+    // set defaults when available
+    penaltySet(contractState?.minInitialPenaltyPercent?.toNumber());
+    periodSet(contractState?.minCommitPeriod?.toNumber());
+  }, [contractState?.minInitialPenaltyPercent, contractState?.minCommitPeriod])
 
   useEffect(() => {
     const sendAmountBig = parseEther(amountToSend);
@@ -521,6 +602,13 @@ function DepositElementETH({ contractState, contractTx }) {
 
   return (
     <div style={{ margin: 8 }}>
+      <CommitmentInput 
+        contractState={contractState}
+        penalty={penalty}
+        period={period}
+        penaltySet={penaltySet}
+        periodSet={periodSet}
+        />
       <Row justify="center" style={{ margin: 12 }}>
         <Col span={12}>
           <Steps current={(depositting || depositButtonEnabled) ? 1 : 0} size="small">
@@ -565,16 +653,13 @@ function DepositElementETH({ contractState, contractTx }) {
             if (amountToSend && amountToSend > 0) {
               contractTx(
                 "depositETH",
-                [
-                  contractState.minInitialPenaltyPercent,
-                  contractState.minCommitPeriod,
-                  { value: parseEther(amountToSend) }
-                ],
+                [penalty, period, { value: parseEther(amountToSend) }],
                 () => deposittingSet(false));
             }
           }}
           onCancel={() => setDepositModalVisible(false)}>
-          <h2>Commitment period: {contractState.commitString}</h2>
+          <h2>Commitment period: {secondsToCommitTimeString(period)}</h2>
+          <h2>Initial penalty: {penalty}%</h2>
           <Divider />
           <h2>
             <WarningTwoTone twoToneColor="red" /> Withdrawing without

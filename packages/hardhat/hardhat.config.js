@@ -37,7 +37,7 @@ module.exports = {
   wethContractName: "WETH",
 
   deployArgs: {
-    localhost: [100, 60], // for quick testing
+    localhost: [10, 60], // for quick testing
     kovan: [10, 86400],  // for longer testing with multiple addresses
   },
 
