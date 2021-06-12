@@ -168,17 +168,27 @@ export function HodlPoolV2UI(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // commitment params
+  const [penalty, penaltySet] = useState();
+  const [period, periodSet] = useState();
+
   // contract state hooks
   const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
   const tokenState = new TokenStateHooks(
     tokenContract, address, contractAddress, setLoading, setError);
   const contractState = new HodlPoolV2StateHooks(contract, address, tokenAddress);
 
+  useEffect(() => {
+    // set defaults when available
+    penaltySet(contractState?.minInitialPenaltyPercent?.toNumber());
+    periodSet(contractState?.minCommitPeriod?.toNumber());
+  }, [contractState?.minInitialPenaltyPercent, contractState?.minCommitPeriod])
+
   // switch token address and eth-mode depending on token choice
   useEffect(() => {
     setTokenAddress(tokenChoice === "ETH" ? contractState.WETHAddress : tokenChoice);
     ethModeSet(tokenChoice === "ETH");
-  }, [tokenChoice, contractState.WETHAddress])
+  }, [tokenChoice, contractState?.WETHAddress])
 
   // transaction wrappers
   const contractTx = (method, args, callback) =>
@@ -229,6 +239,8 @@ export function HodlPoolV2UI(
               <DepositElementETH
                 contractState={contractState}
                 contractTx={contractTx}
+                penalty={penalty}
+                period={period}
               />
               :
               <DepositElementToken
@@ -236,9 +248,18 @@ export function HodlPoolV2UI(
                 contractTx={contractTx}
                 tokenTx={tokenTx}
                 tokenState={tokenState}
-                ethMode={ethMode}
+                penalty={penalty}
+                period={period}
               />
             }
+
+            <CommitmentInput
+              contractState={contractState}
+              penalty={penalty}
+              period={period}
+              penaltySet={penaltySet}
+              periodSet={periodSet}
+            />
 
             <Divider dashed>Withdraw from {symbol} pool</Divider>
 
@@ -375,7 +396,7 @@ function TokenSelection({ provider, addessUpdateFn }) {
     <Tooltip title="Paste address to add a token to the list" 
       placement="left" 
       autoAdjustOverflow="false"
-      color="gray">
+      color="blue">
       <Select
         showSearch
         value={selectedValue}
@@ -408,6 +429,7 @@ function CommitmentInput(
   const [timeValue, timeValueSet] = useState(period);
   const minPeriodSec = contractState?.minCommitPeriod?.toNumber();
   const minPeriodDays = contractState?.minCommitPeriod?.div(86400).toNumber();
+  const minInitialPenaltyPercent = contractState?.minInitialPenaltyPercent?.toNumber();
 
   // set default when available
   useEffect(() => timeValueSet(minPeriodSec), [minPeriodSec]);
@@ -417,74 +439,110 @@ function CommitmentInput(
     periodSet(timeValue * (timeUnit == "sec" ? 1 : 86400));
   }, [timeValue, timeUnit])
 
-  return (<div>
-    <Space align="center" >
-      <h3>Deposit for</h3>
-      <div>
-        <InputNumber
-          min={timeUnit == "sec" ? minPeriodSec : (minPeriodDays || 1)}
-          max={timeUnit == "sec" ? 365 * 86400 : 365}
-          style={{ margin: '0 16px' }}
-          value={timeValue}
-          onChange={timeValueSet}
-        />
-        <Select 
-          value={timeUnit} 
-          onChange={timeUnitSet}>
-          <Select.Option value="sec">Seconds</Select.Option>
-          <Select.Option value="day">Days</Select.Option>
-        </Select>
-      </div>
-      <InfoCircleTwoTone />
+  return (
+    <Space align="center" direction="vertical" style={{ marginTop: 16 }}>
 
-    </Space>
-    <Space align="center" >
-      <h3>with initial penalty of </h3>
-      <InputNumber
-        min={contractState?.minInitialPenaltyPercent?.toNumber()}
-        max={100}
-        style={{ margin: '0 16px' }}
-        value={penalty}
-        formatter={value => `${value}%`}
-        parser={value => value.replace('%', '')}
-        onChange={penaltySet}
-      />
-      <InfoCircleTwoTone />
-    </Space>
-  </div>)
+      <Row justify="start" align="top" span={24} gutter={8}>
+        <Col span={9} wrap="false" offset={3}>
+          <h3>Commitment time</h3>
+        </Col>
+        <Col span={4}>
+          <InputNumber
+            size="small"
+            min={timeUnit == "sec" ? minPeriodSec : (minPeriodDays || 1)}
+            max={timeUnit == "sec" ? 365 * 86400 : 365}
+            style={{ "width": "100%" }}
+            value={timeValue}
+            onChange={timeValueSet}
+          />
+        </Col>
+        <Col span={6}>
+          <Select
+            size="small"
+            style={{ "width": "100%" }}
+            value={timeUnit}
+            onChange={timeUnitSet}>
+            <Select.Option value="sec">Seconds</Select.Option>
+            <Select.Option value="day">Days</Select.Option>
+          </Select>
+        </Col>
+        <Col>
+          <Tooltip title={
+            <div>
+              <p>
+                <b>Length of time before which withdrawing will only be possible with a penalty.</b>
+              </p>
+              <p>
+                <b>Withdrawing with bonus will only be possible after this time.</b>
+              </p>
+              <p>
+                The minimum commitment time allowed: {minPeriodSec} seconds (roughtly {minPeriodDays} days).
+                The maximum is one year.
+              </p>
+            </div>
+          }>
+            <InfoCircleTwoTone />
+          </Tooltip>
+        </Col>
+      </Row>
+
+      <Row justify="start" align="top" span={24} gutter={8}>
+        <Col span={9} wrap="false" offset={3}>
+          <h3>Initial penalty </h3>
+        </Col>
+        <Col span={6}>
+          <InputNumber
+            size="small"
+            min={minInitialPenaltyPercent}
+            max={100}
+            style={{ "width": "100%" }}
+            value={penalty}
+            formatter={value => `${value}%`}
+            parser={value => value.replace('%', '')}
+            onChange={penaltySet}
+          />
+        </Col>
+        <Col>
+          <Tooltip title={
+            <div>
+              <p>
+                <b>Starting value of the penalty percent</b>.
+              </p><p>
+                <b>The penalty decreases with time from the initial value to 0</b>. 
+                So immediately after deposit it's roughly this initial percent,  
+                and just before the end of the commitment period it's roughly 0.              
+              </p><p>
+                The minimum initial penalty allowed as initial value: {minInitialPenaltyPercent}%.
+                The maximum is 100%.
+              </p>
+            </div>
+          }>
+            <InfoCircleTwoTone />
+          </Tooltip>
+        </Col>
+      </Row>
+
+    </Space>)
 }
 
-function DepositElementToken({ contractState, contractTx, tokenState, tokenTx }) {
+function DepositElementToken({ contractState, contractTx, tokenState, tokenTx, penalty, period }) {
   const [amountToSend, setAmountToSend] = useState("0");
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
   const [approveButtonEnabled, setApproveButtonEnabled] = useState(false);
   const [approving, approvingSet] = useState(false);
   const [depositting, deposittingSet] = useState(false);
-  const [penalty, penaltySet] = useState();
-  const [period, periodSet] = useState();
-
-  useEffect(() => {
-    // set defaults when available
-    penaltySet(contractState?.minInitialPenaltyPercent);
-    periodSet(contractState?.minCommitPeriod);
-  }, [contractState?.minInitialPenaltyPercent, contractState?.minCommitPeriod])
 
   useEffect(() => {
     const sendAmountBig = tokenState.decimals && parseUnits(amountToSend, tokenState.decimals);
-    setApproveButtonEnabled(sendAmountBig && tokenState?.allowance?.lt(sendAmountBig));
-    setDepositButtonEnabled(sendAmountBig && tokenState?.allowance?.gte(sendAmountBig));
+    setApproveButtonEnabled(
+      sendAmountBig?.gt(0) && tokenState?.allowance?.lt(sendAmountBig));
+    setDepositButtonEnabled(
+      sendAmountBig?.gt(0) && tokenState?.allowance?.gte(sendAmountBig));
   }, [amountToSend, tokenState.address, tokenState.allowance, tokenState.decimals])
 
   return (
     <div style={{ margin: 8 }}>
-      <CommitmentInput 
-        contractState={contractState}
-        penalty={penalty}
-        period={period}
-        penaltySet={penaltySet}
-        periodSet={periodSet}
-        />
       <Row justify="center" style={{ margin: 12 }}>
         <Col span={20}>
           <Steps current={
@@ -581,19 +639,11 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx })
     </div>)
 }
 
-function DepositElementETH({ contractState, contractTx }) {
+function DepositElementETH({ contractState, contractTx, penalty, period }) {
   const [amountToSend, setAmountToSend] = useState("0");
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositButtonEnabled, setDepositButtonEnabled] = useState(false);
   const [depositting, deposittingSet] = useState(false);
-  const [penalty, penaltySet] = useState();
-  const [period, periodSet] = useState();
-
-  useEffect(() => {
-    // set defaults when available
-    penaltySet(contractState?.minInitialPenaltyPercent?.toNumber());
-    periodSet(contractState?.minCommitPeriod?.toNumber());
-  }, [contractState?.minInitialPenaltyPercent, contractState?.minCommitPeriod])
 
   useEffect(() => {
     const sendAmountBig = parseEther(amountToSend);
@@ -602,13 +652,6 @@ function DepositElementETH({ contractState, contractTx }) {
 
   return (
     <div style={{ margin: 8 }}>
-      <CommitmentInput 
-        contractState={contractState}
-        penalty={penalty}
-        period={period}
-        penaltySet={penaltySet}
-        periodSet={periodSet}
-        />
       <Row justify="center" style={{ margin: 12 }}>
         <Col span={12}>
           <Steps current={(depositting || depositButtonEnabled) ? 1 : 0} size="small">
@@ -690,7 +733,6 @@ function WithdrawElement({ contractState, tokenState, ethMode, contractTx }) {
   function bonusTooltip() {
     return <Tooltip
       placement="top"
-      color="gray"
       title={
         <div>
           <p>Hold bonus + Commitment bonus:</p>
@@ -880,7 +922,6 @@ function PoolInfo({ contractState, blockExplorer, contractAddress, tokenState, s
   function bonusTotalsTooltip() {
     return <Tooltip
       placement="top"
-      color="gray"
       title={
         <div>
           <p>Hold bonus pool + Commitment bonus pool:</p>
