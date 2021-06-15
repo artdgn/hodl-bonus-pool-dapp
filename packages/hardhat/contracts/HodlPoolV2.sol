@@ -64,16 +64,16 @@ contract HodlPoolV2 {
     _;
   }
 
-  modifier validCommitment(uint initialPenaltyPercent, uint commitPeriod) {
-    require(initialPenaltyPercent >= minInitialPenaltyPercent, "penalty too small"); 
-    require(initialPenaltyPercent <= 100, "initial penalty > 100%"); 
-    require(commitPeriod >= minCommitPeriod, "commitment period too short");
-    require(commitPeriod <= 365 days, "commitment period too long");
+  modifier validCommitment(uint _initialPenaltyPercent, uint _commitPeriod) {
+    require(_initialPenaltyPercent >= minInitialPenaltyPercent, "penalty too small"); 
+    require(_initialPenaltyPercent <= 100, "initial penalty > 100%"); 
+    require(_commitPeriod >= minCommitPeriod, "commitment period too short");
+    require(_commitPeriod <= 365 days, "commitment period too long");
     _;
   }
 
   constructor (uint _minInitialPenaltyPercent, uint _minCommitPeriod, address _WETH) {
-    require(_minInitialPenaltyPercent > 0, "no penalty"); 
+    require(_minInitialPenaltyPercent > 0, "no min penalty"); 
     require(_minInitialPenaltyPercent <= 100, "minimum initial penalty > 100%"); 
     require(_minCommitPeriod >= 10 seconds, "minimum commitment period too short");
     require(_minCommitPeriod <= 365 days, "minimum commitment period too long");
@@ -204,6 +204,46 @@ contract HodlPoolV2 {
     ];
   }
 
+  // function balanceOf(address token, address sender) public view returns (uint) {
+  //   return _shareToAmount(token, deposits[token][sender].value);
+  // }
+
+  // function timeLeftToHoldOf(address token, address sender) public view returns (uint) {
+  //   return _timeLeft(deposits[token][sender]);
+  // }
+
+  // function penaltyOf(address token, address sender) public view returns (uint) {
+  //   return _shareToAmount(token, _depositPenalty(deposits[token][sender]));
+  // }
+
+  // function holdBonusOf(address token, address sender) public view returns (uint) {
+  //   return _shareToAmount(token, _holdBonus(pools[token], deposits[token][sender]));
+  // }
+
+  // function commitBonusOf(address token, address sender) public view returns (uint) {
+  //   return _shareToAmount(token, _commitBonus(pools[token], deposits[token][sender]));
+  // }
+
+  // function holdPointsOf(address token, address sender) public view returns (uint) {
+  //   return _holdPoints(deposits[token][sender]);
+  // }
+
+  // function commitPointsOf(address token, address sender) public view returns (uint) {
+  //   return deposits[token][sender].commitPoints;
+  // }
+
+  // function initialPenaltyPercentOf(address token, address sender) public view returns (uint) {
+  //   return deposits[token][sender].initialPenaltyPercent;
+  // }
+
+  // function currentPenaltyPercentOf(address token, address sender) public view returns (uint) {
+  //   return _currentPenaltyPercent(deposits[token][sender]);
+  // }
+
+  // function commitPeriodOf(address token, address sender) public view returns (uint) {
+  //   return deposits[token][sender].commitPeriod;
+  // }
+
   function poolDetails(address token) public view returns (uint[5] memory) {
     Pool storage pool = pools[token];
     return [
@@ -214,6 +254,26 @@ contract HodlPoolV2 {
       pool.totalCommitPoints  // totalCommitPoints
     ];
   }
+
+  // function depositsSum(address token) public view returns (uint) {
+  //   return _shareToAmount(token, pools[token].depositsSum);
+  // }
+
+  // function holdBonusesSum(address token) public view returns (uint) {
+  //   return _shareToAmount(token, pools[token].holdBonusesSum);
+  // }
+
+  // function commitBonusesSum(address token) public view returns (uint) {
+  //   return _shareToAmount(token, pools[token].commitBonusesSum);
+  // }  
+
+  // function holdPointsSum(address token) public view returns (uint) {
+  //   return _totalHoldPoints(pools[token]);
+  // }  
+
+  // function commitPointsSum(address token) public view returns (uint) {
+  //   return pools[token].totalCommitPoints;
+  // }
 
   ////// INTERNAL TRANSACTIONS
 
