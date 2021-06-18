@@ -12,7 +12,7 @@ const wethContractName = "WETH";
 
 use(solidity);
 
-describe(`${contractName} tokens`, function () {
+describe(`${contractName} tokens: basic logic`, function () {
 
   this.retries(3);  // some time dependant tests are flaky
   this.timeout(4000);  // some tests are slow in isolation (several interactions)
@@ -556,8 +556,8 @@ describe(`${contractName} tokens`, function () {
       expect(withdrawal2.lastEvent.commitBonus).to.eq(state2.commitBonus);
       const actualBonus = withdrawal2.delta.sub(tx * 2);
       // actual holdBonus may be slightly different because of time
-      expect(actualBonus.toNumber()).to.be
-        .closeTo(state3.holdBonus.add(state3.commitBonus).toNumber(), 10);      
+      expect(actualBonus).to.be
+        .closeTo(state3.holdBonus.add(state3.commitBonus), 10);      
     });    
 
   });

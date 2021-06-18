@@ -281,8 +281,8 @@ describe(`${contractName} ETH`, function () {
       expect(withdrawal2.lastEvent.commitBonus).to.eq(state2.commitBonus);
       const actualBonus = withdrawal2.delta.sub(tx.value * 2);
       // actual holdBonus may be slightly different because of time
-      expect(actualBonus.toNumber()).to.be
-        .closeTo(state3.holdBonus.add(state2.commitBonus).toNumber(), 10);    
+      expect(actualBonus).to.be
+        .closeTo(state3.holdBonus.add(state2.commitBonus), 10);    
     });    
 
   });

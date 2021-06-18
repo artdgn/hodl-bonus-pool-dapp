@@ -222,12 +222,7 @@ contract HodlPoolV2 {
     uint amount, 
     uint initialPenaltyPercent, 
     uint commitPeriod
-  ) internal {            
-    // testcases
-    require(initialPenaltyPercent > 0, "no penalty");  
-    require(initialPenaltyPercent <= 100, "initial penalty > 100%"); 
-    require(commitPeriod >= 10 seconds, "commitment period too short");
-    require(commitPeriod <= 365 days, "commitment period too long");    
+  ) internal {      
 
     // possible commit points that will need to be subtracted from deposit and pool
     uint commitPointsToSubtract = 0; 
@@ -237,12 +232,12 @@ contract HodlPoolV2 {
     if (dep.value > 0) {  // adding to previous deposit      
       require(
         initialPenaltyPercent >= _currentPenaltyPercent(dep), 
-        "add deposit: penalty percent less than existing deposits's percent"
-      );  // testcase
+        "penalty percent less than existing deposits's percent"
+      );
       require(
         commitPeriod >= _timeLeft(dep),
-        "add deposit: commit period less than existing deposit's time left"
-      );  // testcase
+        "commit period less than existing deposit's time left"
+      );
 
       // carry over previous points and add points for the time 
       // held since latest deposit
@@ -418,9 +413,9 @@ contract HodlPoolV2 {
     if (timeLeft == 0) {
       return 0;
     } else {      
-      // smaller triangle of left commitment time left * smaller penalty left
-      // can refactor to use _currentPenaltyPercent() here, but it's better for precision
-      // to do all multiplications before all divisions
+      // smaller triangle of left commitment time * smaller penalty left
+      // can refactor to use _currentPenaltyPercent() here, but it's more precise to 
+      // do all calculations here to avoid rounding (all multiplication before all divisions)
       return (
         dep.value * dep.initialPenaltyPercent * timeLeft * timeLeft / 
         (dep.commitPeriod * 100 * 2)  // triangle area
@@ -435,8 +430,8 @@ contract HodlPoolV2 {
     } else {
       // current penalty percent is proportional to time left
       uint curPercent = (dep.initialPenaltyPercent * timeLeft) / dep.commitPeriod;
-      // if calculation was rounded down to 0 (can happen towards end of term), return 1
-      return curPercent > 0 ? curPercent : 1;  // testcase
+      // add 1 to compensate for rounding down unless when below initial value
+      return curPercent < dep.initialPenaltyPercent ? curPercent + 1 : curPercent;
     }
   }
 
