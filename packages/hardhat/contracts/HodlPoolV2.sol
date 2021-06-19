@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /*
  * @title Token pools that allow different ERC20 tokens and ETH deposits and withdrawals
- * with penalty and bonus mechanisms. 
+ * with penalty and bonus mechanisms that incentivise long term holding. 
  * The initial penalty and commitment time are chosen at the time of the deposit by
  * the user.
  * There are two bonus types for each pool - holding bonus (to incetivise holding), 
@@ -396,8 +396,8 @@ contract HodlPoolV2 {
     // possible commit points that will need to be subtracted from deposit and pool
     uint commitPointsToSubtract = 0; 
 
-    // deposit updates
     Deposit storage dep = pool.deposits[account];
+
     if (dep.value > 0) {  // adding to previous deposit            
       require(
         initialPenaltyPercent >= _currentPenaltyPercent(dep), 
@@ -533,7 +533,7 @@ contract HodlPoolV2 {
       _shareToAmount(token, penalty), 
       _shareToAmount(token, holdBonus), 
       _shareToAmount(token, commitBonus), 
-      _timeHeld(dep));
+      _timeHeld(dep.time));
   }
 
   /* * * * * * * * *
@@ -545,12 +545,8 @@ contract HodlPoolV2 {
 
 
   function _timeLeft(Deposit storage dep) internal view returns (uint) {
-    if (dep.value == 0) { // division by zero
-      return 0; 
-    } else {
-      uint timeHeld = _timeHeld(dep);
-      return (timeHeld < dep.commitPeriod) ? (dep.commitPeriod - timeHeld) : 0;
-    }
+    uint timeHeld = _timeHeld(dep.time);
+    return (timeHeld < dep.commitPeriod) ? (dep.commitPeriod - timeHeld) : 0;
   }
 
   /// @dev translates deposit shares to actual token amounts - which can be different 
@@ -575,9 +571,9 @@ contract HodlPoolV2 {
     address account
   ) internal view returns (uint) {
     Deposit storage dep = pools[token].deposits[account];
-    CarryOver storage carry = pools[token].carryOvers[account];
+    uint prev = pools[token].carryOvers[account].prevHoldPoints;
     // points proportional to value held since deposit start    
-    return carry.prevHoldPoints + (dep.value * _timeHeld(dep));
+    return prev + (dep.value * _timeHeld(dep.time));
   }
 
   function _commitPoints(
@@ -585,9 +581,9 @@ contract HodlPoolV2 {
     address account
   ) internal view returns (uint) {
     Deposit storage dep = pools[token].deposits[account];
-    CarryOver storage carry = pools[token].carryOvers[account];
+    uint prev = pools[token].carryOvers[account].prevCommitPoints;
     // points proportional to value held since deposit start    
-    return carry.prevCommitPoints + _fullCommitPoints(dep);
+    return prev + _fullCommitPoints(dep);
   }
 
   function _totalHoldPoints(Pool storage pool) internal view returns (uint) {
@@ -607,7 +603,7 @@ contract HodlPoolV2 {
   function _outstandingCommitPoints(Deposit storage dep) internal view returns (uint) {
     // triangle area of commitpent time and penalty
     uint timeLeft = _timeLeft(dep);
-    if (timeLeft == 0) {
+    if (timeLeft == 0) {  // no outstanding commitment
       return 0;
     } else {      
       // smaller triangle of left commitment time * smaller penalty left
@@ -622,7 +618,7 @@ contract HodlPoolV2 {
 
   function _currentPenaltyPercent(Deposit storage dep) internal view returns (uint) {
     uint timeLeft = _timeLeft(dep);
-    if (timeLeft == 0) {
+    if (timeLeft == 0) { // no penalty
       return 0;
     } else {
       // current penalty percent is proportional to time left
@@ -632,13 +628,13 @@ contract HodlPoolV2 {
     }
   }
 
-  function _timeHeld(Deposit storage dep) internal view returns (uint) {
-    return block.timestamp - dep.time;
+  function _timeHeld(uint time) internal view returns (uint) {
+    return block.timestamp - time;
   }
 
   function _depositPenalty(Deposit storage dep) internal view returns (uint) {
     uint timeLeft = _timeLeft(dep);
-    if (timeLeft == 0) {
+    if (timeLeft == 0) {  // no penalty
       return 0;
     } else {
       // order important to prevent rounding to 0
@@ -654,18 +650,12 @@ contract HodlPoolV2 {
     address account
   ) internal view returns (uint) {
     Pool storage pool = pools[token];
-    if (
-      pool.deposits[account].value == 0 ||  pool.holdBonusesSum == 0
-    ) {
-      return 0;  // no luck
-    } else {
-      // share of bonus is proportional to hold-points of this deposit relative
-      // to total hold-points in the pool
-      // order important to prevent rounding to 0
-      uint denom = _totalHoldPoints(pool);  // don't divide by 0
-      uint holdPoints = _holdPoints(token, account);
-      return denom > 0 ? ((pool.holdBonusesSum * holdPoints) / denom) : 0;
-    }
+    // share of bonus is proportional to hold-points of this deposit relative
+    // to total hold-points in the pool
+    // order important to prevent rounding to 0
+    uint denom = _totalHoldPoints(pool);  // don't divide by 0
+    uint holdPoints = _holdPoints(token, account);
+    return denom > 0 ? ((pool.holdBonusesSum * holdPoints) / denom) : 0;
   }
 
   function _commitBonus(
@@ -673,17 +663,12 @@ contract HodlPoolV2 {
     address account
   ) internal view returns (uint) {
     Pool storage pool = pools[token];
-    Deposit storage dep = pool.deposits[account];
-    if (dep.value == 0 || pool.commitBonusesSum == 0 || pool.totalCommitPoints == 0) {
-      return 0;  // no luck
-    } else {
-      // share of bonus is proportional to commit-points of this deposit relative
-      // to all other commit-points in the pool
-      // order important to prevent rounding to 0
-      uint denom = pool.totalCommitPoints;  // don't divide by 0
-      uint commitPoints = _commitPoints(token, account);
-      return denom > 0 ? ((pool.commitBonusesSum * commitPoints) / denom) : 0;
-    }
+    // share of bonus is proportional to commit-points of this deposit relative
+    // to all other commit-points in the pool
+    // order important to prevent rounding to 0
+    uint denom = pool.totalCommitPoints;  // don't divide by 0
+    uint commitPoints = _commitPoints(token, account);
+    return denom > 0 ? ((pool.commitBonusesSum * commitPoints) / denom) : 0;
   }
 }
 
