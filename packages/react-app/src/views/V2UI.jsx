@@ -996,9 +996,9 @@ function EventsList({ contract, address }) {
             eventText += (item.bonus > 0) ? ` with ${item.bonus} bonus` : ''
           }
           return (
-            <List.Item key={item.blockNumber + item.eventName + item.sender}>
+            <List.Item key={item.blockNumber + item.eventName + item.account}>
               block {item.blockNumber}:
-              user <Address address={item.sender} fontSize={16} />&nbsp;
+              user <Address address={item.account} fontSize={16} />&nbsp;
               {eventText}. Token <Address address={item.token} fontSize={16} />.
             </List.Item>
           )

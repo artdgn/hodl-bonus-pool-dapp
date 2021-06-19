@@ -88,7 +88,7 @@ contract HodlPoolV2 {
     uint totalHoldPoints;  // sum of hold-points
     uint totalHoldPointsUpdateTime;  // holds the time of the latest incremental hold-points update
     uint totalCommitPoints;  // sum of commit-points
-    // token deposits per token contract and per user, each sender has only a single deposit 
+    // token deposits per token contract and per user, each account has only a single deposit 
     mapping(address => Deposit) deposits;
     // carry overs for subsequent deposits per token contract and per user
     mapping(address => CarryOver) carryOvers;
@@ -108,7 +108,7 @@ contract HodlPoolV2 {
 
   /*
    * @param token ERC20 token address for the deposited token
-   * @param sender address that has made the deposit
+   * @param account address that has made the deposit
    * @param amount size of new deposit, or deposit increase
    * @param amountReceived received balance after transfer (actual deposit)
    *  which may be different due to transfer-fees and other token shenanigans
@@ -118,7 +118,7 @@ contract HodlPoolV2 {
    */
   event Deposited(
     address indexed token, 
-    address indexed sender, 
+    address indexed account, 
     uint amount, 
     uint amountReceived, 
     uint time,
@@ -128,8 +128,8 @@ contract HodlPoolV2 {
 
   /*
    * @param token ERC20 token address for the withdrawed token
-   * @param sender address that has made the withdrawal
-   * @param amount amount sent out to sender as withdrawal
+   * @param account address that has made the withdrawal
+   * @param amount amount sent out to account as withdrawal
    * @param depositAmount the original amount deposited
    * @param penalty the penalty incurred for this withdrawal
    * @param holdBonus the hold-bonus included in this withdrawal
@@ -138,7 +138,7 @@ contract HodlPoolV2 {
    */
   event Withdrawed(
     address indexed token,
-    address indexed sender, 
+    address indexed account, 
     uint amount, 
     uint depositAmount, 
     uint penalty, 
@@ -301,8 +301,8 @@ contract HodlPoolV2 {
 
   /*
    * @param token address of token contract
-   * @param sender address of the depositor
-   * @return token amount that corresponds to the deposit share of the sender
+   * @notice withdraw the deposit with any applicable penalty. Will withdraw 
+   * with any available bonus if penalty is 0 (commitment period elapsed).
    */
   function withdrawWithPenalty(address token) external onlyDepositors(token) {
     _withdraw(token);
@@ -322,7 +322,7 @@ contract HodlPoolV2 {
 
   /*
    * @param token address of token contract
-   * @param sender address of the depositor
+   * @param account address of the depositor
    * @return array of 10 values corresponding to the details of the deposit:
    *  0. balance - original deposit(s) value
    *  1. timeLeftToHold - time in seconds until deposit can be withdrawed 
@@ -337,17 +337,17 @@ contract HodlPoolV2 {
    *  9. commitPeriod - commitment period set at the time of deposit
    */
   function depositDetails(
-    address token, address sender
+    address token, address account
   ) public view returns (uint[10] memory) {
-    Deposit storage dep = pools[token].deposits[sender];
+    Deposit storage dep = pools[token].deposits[account];
     return [
       _shareToAmount(token, dep.value),  // balance
       _timeLeft(dep),  // timeLeftToHold
       _shareToAmount(token, _depositPenalty(dep)),  // penalty
-      _shareToAmount(token, _holdBonus(token, sender)),  // holdBonus
-      _shareToAmount(token, _commitBonus(token, sender)),  // commitBonus
-      _holdPoints(token, sender),  // holdPoints
-      _commitPoints(token, sender),  // commitPoints
+      _shareToAmount(token, _holdBonus(token, account)),  // holdBonus
+      _shareToAmount(token, _commitBonus(token, account)),  // commitBonus
+      _holdPoints(token, account),  // holdPoints
+      _commitPoints(token, account),  // commitPoints
       dep.initialPenaltyPercent,  // initialPenaltyPercent
       _currentPenaltyPercent(dep),  // currentPenaltyPercent
       dep.commitPeriod  // commitPeriod

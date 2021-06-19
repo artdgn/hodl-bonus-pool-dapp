@@ -83,7 +83,7 @@ describe(`${contractName} ETH: basic logic`, function () {
       // check depositsSum      
       expect(state.depositsSum).to.equal(expectedSum);
       // check event
-      expect(depositTwice.lastEvent.sender).to.equal(addr1.address);
+      expect(depositTwice.lastEvent.account).to.equal(addr1.address);
       expect(depositTwice.lastEvent.amount).to.equal(tx.value);
       expect(depositTwice.lastEvent.time).to.equal(blockTimestamp);
     });
@@ -128,7 +128,7 @@ describe(`${contractName} ETH: basic logic`, function () {
       // should be able to withdraw without penalty now
       expect(withdrawal.delta).to.equal(depositBalance);
 
-      expect(withdrawal.lastEvent.sender).to.equal(addr1.address);
+      expect(withdrawal.lastEvent.account).to.equal(addr1.address);
       expect(withdrawal.lastEvent.amount).to.equal(depositBalance);
       expect(withdrawal.lastEvent.penalty).to.equal(0);
       expect(withdrawal.lastEvent.holdBonus).to.equal(0);
@@ -159,7 +159,7 @@ describe(`${contractName} ETH: basic logic`, function () {
       expect(withdrawal.delta).to.equal(tx.value / 2);
 
       // check event
-      expect(withdrawal.lastEvent.sender).to.equal(addr1.address);
+      expect(withdrawal.lastEvent.account).to.equal(addr1.address);
       expect(withdrawal.lastEvent.amount).to.equal(tx.value / 2);
       expect(withdrawal.lastEvent.penalty).to.equal(tx.value / 2);
       expect(withdrawal.lastEvent.holdBonus).to.equal(0);
@@ -231,7 +231,7 @@ describe(`${contractName} ETH: basic logic`, function () {
       expect(bonus2).to.equal(penalty1);
 
       // check event
-      expect(withdrawal2.lastEvent.sender).to.equal(addr2.address);
+      expect(withdrawal2.lastEvent.account).to.equal(addr2.address);
       expect(withdrawal2.lastEvent.amount).to.be.equal(withdrawal2.delta);
       expect(withdrawal2.lastEvent.penalty).to.equal(0);
       expect(withdrawal2.lastEvent.holdBonus.add(withdrawal2.lastEvent.commitBonus))
