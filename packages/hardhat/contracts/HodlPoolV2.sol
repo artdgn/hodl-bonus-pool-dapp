@@ -267,6 +267,7 @@ contract HodlPoolV2 {
     // note: no share vs. balance accounting for WETH because it's assumed to
     // exactly correspond to actual deposits and withdrawals (no fee-on-transfer etc)
     IWETH(WETH).deposit{value: msg.value}();
+
     emit Deposited(
       WETH, 
       msg.sender, 
@@ -436,8 +437,8 @@ contract HodlPoolV2 {
     // for the passed time were updated
     pool.depositsSum += amount;    
     // the full new amount is committed minus any commit points that need to be sutracted
-    pool.totalCommitPoints -= commitPointsToSubtract;
-    pool.totalCommitPoints += _fullCommitPoints(dep);
+    pool.totalCommitPoints = (
+      pool.totalCommitPoints + _fullCommitPoints(dep) - commitPointsToSubtract);
   }
 
   // this happens on every pool interaction (so every withdrawal and deposit to that pool)
@@ -543,7 +544,6 @@ contract HodlPoolV2 {
    * * * * * * * * *
   */
 
-
   function _timeLeft(Deposit storage dep) internal view returns (uint) {
     uint timeHeld = _timeHeld(dep.time);
     return (timeHeld < dep.commitPeriod) ? (dep.commitPeriod - timeHeld) : 0;
@@ -552,6 +552,9 @@ contract HodlPoolV2 {
   /// @dev translates deposit shares to actual token amounts - which can be different 
   /// from the initial deposit amount for tokens with funky fees and supply mechanisms.
   function _shareToAmount(address token, uint share) internal view returns (uint) {
+    if (share == 0) {  // gas savings
+      return 0;
+    }
     // all tokens that belong to this contract are either 
     // in deposits or in the two bonuses pools
     Pool storage pool = pools[token];
