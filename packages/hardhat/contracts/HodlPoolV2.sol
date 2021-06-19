@@ -68,11 +68,16 @@ contract HodlPoolV2 {
   /// @dev state variables for a deposit in a pool
   struct Deposit {
     uint value;
-    uint time;
-    uint initialPenaltyPercent;
-    uint commitPeriod;
-    uint prevHoldPoints;  // to carry over hold time credit from unfinished deposit
-    uint commitPoints; // to store commit time points, possibly from unfinished deposit
+    uint120 time;
+    uint16 initialPenaltyPercent;
+    uint120 commitPeriod;
+  }
+
+  /// @dev state variables for a carry over deposits (not first deposits)
+  ///   separate mapping for gas savings
+  struct CarryOver {
+    uint prevHoldPoints;
+    uint prevCommitPoints;
   }
 
   /// @dev state variables for a token pool
@@ -100,6 +105,9 @@ contract HodlPoolV2 {
   /// @dev token deposits per token contract and per user
   /// each sender has only a single deposit 
   mapping(address => mapping(address => Deposit)) internal deposits;  
+
+  /// @dev carry overs for subsequent deposits per token contract and per user
+  mapping(address => mapping(address => CarryOver)) internal carryOvers;  
 
   /*
    * @param token ERC20 token address for the deposited token
@@ -339,10 +347,10 @@ contract HodlPoolV2 {
       _shareToAmount(token, dep.value),  // balance
       _timeLeft(deposits[token][sender]),  // timeLeftToHold
       _shareToAmount(token, _depositPenalty(dep)),  // penalty
-      _shareToAmount(token, _holdBonus(pools[token], dep)),  // holdBonus
-      _shareToAmount(token, _commitBonus(pools[token], dep)),  // commitBonus
-      _holdPoints(dep),  // holdPoints
-      dep.commitPoints,  // commitPoints
+      _shareToAmount(token, _holdBonus(token, sender)),  // holdBonus
+      _shareToAmount(token, _commitBonus(token, sender)),  // commitBonus
+      _holdPoints(token, sender),  // holdPoints
+      _commitPoints(token, sender),  // commitPoints
       dep.initialPenaltyPercent,  // initialPenaltyPercent
       _currentPenaltyPercent(dep),  // currentPenaltyPercent
       dep.commitPeriod  // commitPeriod
@@ -388,8 +396,8 @@ contract HodlPoolV2 {
     uint commitPointsToSubtract = 0; 
 
     // deposit updates
-    Deposit storage dep = deposits[token][msg.sender];        
-    if (dep.value > 0) {  // adding to previous deposit      
+    Deposit storage dep = deposits[token][msg.sender];
+    if (dep.value > 0) {  // adding to previous deposit            
       require(
         initialPenaltyPercent >= _currentPenaltyPercent(dep), 
         "penalty percent less than existing deposits's percent"
@@ -399,25 +407,25 @@ contract HodlPoolV2 {
         "commit period less than existing deposit's time left"
       );
 
+      CarryOver storage carry = carryOvers[token][msg.sender];
+
       // carry over previous points and add points for the time 
       // held since latest deposit
       // WARNING: this needs to happen before deposit value is updated
-      dep.prevHoldPoints = _holdPoints(dep);
+      carry.prevHoldPoints = _holdPoints(token, msg.sender);
       
       // this value will need to be sutracted from both deposit and pool's points
       commitPointsToSubtract = _outstandingCommitPoints(dep);
       // subtract un-held commitment from commit points
-      dep.commitPoints -= commitPointsToSubtract;
+      carry.prevCommitPoints = _commitPoints(token, msg.sender) - commitPointsToSubtract;
     }
 
     // deposit update for both new & existing
     dep.value += amount;  // add the amount
-    dep.time = block.timestamp;  // set the time
+    dep.time = uint120(block.timestamp);  // set the time
     // set the commitment params
-    dep.commitPeriod = commitPeriod;  
-    dep.initialPenaltyPercent = initialPenaltyPercent;
-    // add full commitment points for commitment holdBonus calculations
-    dep.commitPoints += _fullCommitPoints(dep);  
+    dep.commitPeriod = uint120(commitPeriod);  
+    dep.initialPenaltyPercent = uint16(initialPenaltyPercent);
 
     // pool update
     Pool storage pool = pools[token];
@@ -464,8 +472,8 @@ contract HodlPoolV2 {
     uint penalty = _depositPenalty(dep);
     
     // only get any bonuses if no penalty
-    uint holdBonus = (penalty == 0) ? _holdBonus(pool, dep) : 0;
-    uint commitBonus = (penalty == 0) ? _commitBonus(pool, dep) : 0;
+    uint holdBonus = (penalty == 0) ? _holdBonus(token, msg.sender) : 0;
+    uint commitBonus = (penalty == 0) ? _commitBonus(token, msg.sender) : 0;
     uint withdrawShare = dep.value - penalty + holdBonus + commitBonus;    
 
     // WARNING: get amount here before state is updated
@@ -482,9 +490,9 @@ contract HodlPoolV2 {
     // update total deposits
     pool.depositsSum -= dep.value;        
     // remove the acrued hold-points for this deposit
-    pool.totalHoldPoints -= _holdPoints(dep);
+    pool.totalHoldPoints -= _holdPoints(token, msg.sender);
     // remove the commit-points
-    pool.totalCommitPoints -= dep.commitPoints;
+    pool.totalCommitPoints -= _commitPoints(token, msg.sender);
     // update hold-bonus pool: split the penalty into two parts
     // half for hold bonuses, half for commit bonuses
     uint holdBonusPoolUpdate = penalty / 2;
@@ -498,6 +506,7 @@ contract HodlPoolV2 {
     // change "dep" because it's used by reference and will affect the other
     // computations for pool state updates (e.g. hold points)
     delete deposits[token][msg.sender];
+    delete carryOvers[token][msg.sender];
 
     return withdrawAmount;
   }
@@ -556,9 +565,24 @@ contract HodlPoolV2 {
     }
   }
   
-  function _holdPoints(Deposit storage dep) internal view returns (uint) {
+  function _holdPoints(
+    address token, 
+    address depositor
+  ) internal view returns (uint) {
+    Deposit storage dep = deposits[token][depositor];
+    CarryOver storage carry = carryOvers[token][depositor];
     // points proportional to value held since deposit start    
-    return dep.prevHoldPoints + (dep.value * _timeHeld(dep));
+    return carry.prevHoldPoints + (dep.value * _timeHeld(dep));
+  }
+
+  function _commitPoints(
+    address token, 
+    address depositor
+  ) internal view returns (uint) {
+    Deposit storage dep = deposits[token][depositor];
+    CarryOver storage carry = carryOvers[token][depositor];
+    // points proportional to value held since deposit start    
+    return carry.prevCommitPoints + _fullCommitPoints(dep);
   }
 
   function _totalHoldPoints(Pool storage pool) internal view returns (uint) {
@@ -621,24 +645,29 @@ contract HodlPoolV2 {
   }
 
   function _holdBonus(
-    Pool storage pool, 
-    Deposit storage dep
+    address token, 
+    address depositor
   ) internal view returns (uint) {
-    if (dep.value == 0 || pool.holdBonusesSum == 0) {
+    if (
+      deposits[token][depositor].value == 0 ||  pools[token].holdBonusesSum == 0
+    ) {
       return 0;  // no luck
     } else {
       // share of bonus is proportional to hold-points of this deposit relative
       // to total hold-points in the pool
       // order important to prevent rounding to 0
-      uint denom = _totalHoldPoints(pool);  // don't divide by 0
-      return denom > 0 ? ((pool.holdBonusesSum * _holdPoints(dep)) / denom) : 0;
+      uint denom = _totalHoldPoints(pools[token]);  // don't divide by 0
+      uint holdPoints = _holdPoints(token, depositor);
+      return denom > 0 ? ((pools[token].holdBonusesSum * holdPoints) / denom) : 0;
     }
   }
 
   function _commitBonus(
-    Pool storage pool, 
-    Deposit storage dep
+    address token, 
+    address depositor
   ) internal view returns (uint) {
+    Deposit storage dep = deposits[token][depositor];
+    Pool storage pool = pools[token];
     if (dep.value == 0 || pool.commitBonusesSum == 0 || pool.totalCommitPoints == 0) {
       return 0;  // no luck
     } else {
@@ -646,10 +675,10 @@ contract HodlPoolV2 {
       // to all other commit-points in the pool
       // order important to prevent rounding to 0
       uint denom = pool.totalCommitPoints;  // don't divide by 0
-      return denom > 0 ? ((pool.commitBonusesSum * dep.commitPoints) / denom) : 0;
+      uint commitPoints = _commitPoints(token, depositor);
+      return denom > 0 ? ((pool.commitBonusesSum * commitPoints) / denom) : 0;
     }
   }
-
 }
 
 /// @dev interface for interacting with WETH (wrapped ether) for handling ETH
