@@ -1,4 +1,4 @@
-const { ethers, network, config } = require("hardhat");
+const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 

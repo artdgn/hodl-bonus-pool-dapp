@@ -1,7 +1,6 @@
 const { ethers, network, config } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
-const { parseUnits } = require("@ethersproject/units");
 
 const { TestUtils: Utils } = require("./utils.js")
 
@@ -10,7 +9,7 @@ const wethContractName = "WETH";
 
 use(solidity);
 
-describe(`${contractName} ETH`, function () {
+describe(`${contractName} ETH: basic logic`, function () {
 
   this.retries(3);  // some time dependant tests are flaky
   this.timeout(4000);  // some tests are slow in isolation (several interactions)

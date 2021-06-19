@@ -28,6 +28,16 @@ class TestUtils {
         }
     }
 
+    // logging helper
+    static logState(stateObj) {
+        const numbersObj = Object.fromEntries(
+            Object.entries(stateObj).map(v => {
+                v[1] = v[1].toNumber(); 
+                return v;
+            }));
+        console.log(numbersObj);
+    }
+
     // advances EVM time into the future
     static evmIncreaseTime = async (seconds) => {
         await network.provider.send("evm_increaseTime", [seconds + 0.5]);

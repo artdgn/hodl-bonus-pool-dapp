@@ -7,7 +7,6 @@ const { TestUtils: Utils } = require("./utils.js")
 
 const contractName = "HodlPoolV2";
 const tokenContractName = "SomeToken";
-const feeTokenContractName = "FeeToken";
 const wethContractName = "WETH";
 
 use(solidity);
@@ -30,8 +29,6 @@ describe(`${contractName} tokens: basic logic`, function () {
   const minCommitPeriod = 10;
   const deployArgs = [minInitialPenaltyPercent, minCommitPeriod];
 
-  // fee percent for token with fee
-  const tokenFeePercent = 10;
 
   beforeEach(async () => {
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
@@ -40,11 +37,6 @@ describe(`${contractName} tokens: basic logic`, function () {
     tokenContract = await ethers.getContractFactory(tokenContractName);
     deployedToken = await tokenContract.deploy(
       "Token1", "TK1", addr1.address, parseUnits("1", 18));
-
-    // deploy a token with fees on transfer
-    feeTokenContract = await ethers.getContractFactory(feeTokenContractName);
-    deployedFeeToken = await feeTokenContract.deploy(
-      "FeeToken", "FeeTK", addr1.address, parseUnits("1", 18), tokenFeePercent);
 
     // deploy WETH
     WETHContract = await ethers.getContractFactory(wethContractName);
@@ -62,7 +54,6 @@ describe(`${contractName} tokens: basic logic`, function () {
     beforeEach(async () => {
       addr1Caller = deployed.connect(addr1);
       addr1TokenCaller = deployedToken.connect(addr1);
-      addr1FeeTokenCaller = deployedFeeToken.connect(addr1);
     });
 
     it("fails on non-token address", async function () {
@@ -292,102 +283,7 @@ describe(`${contractName} tokens: basic logic`, function () {
       expect(addr1Caller.withdrawWithPenalty(deployedToken.address))
         .to.revertedWith("no deposit");
     });
-
-    it("withdraw and balances with fee-on-transfer token", async function () {
-      const tx = 1000;
-      const transferRatio = (100 - tokenFeePercent) / 100;
-      // approve tokens
-      await addr1FeeTokenCaller.approve(deployed.address, tx);
-
-      // make deposits
-      await addr1Caller.deposit(
-        deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
-
-      const state = await Utils.getState(deployed, deployedFeeToken, addr1);
-
-      // check balanceOf()
-      expect(state.balance).to.equal(tx * transferRatio);
-
-      // check depositsSum
-      expect(state.depositsSum).to.equal(tx * transferRatio);
-
-      // check contract token balance
-      expect(await deployedFeeToken.balanceOf(deployed.address))
-        .to.equal(tx * transferRatio);
-
-      // move time to be able to withdraw fully
-      await Utils.evmIncreaseTime(minCommitPeriod);
-      
-      const withdrawal = await Utils.callCaptureEventAndBalanceToken(
-        addr1.address, 
-        () => deployed.queryFilter(deployed.filters.Withdrawed()),
-        deployedFeeToken,
-        async () => {
-          await expect(addr1Caller.withdrawWithBonus(deployedFeeToken.address))
-            .to.emit(deployed, "Withdrawed");
-        }
-      );
-
-      // should be able to withdraw but expect to pay token fee again
-      expect(withdrawal.lastEvent.amount).to.equal(tx * transferRatio);
-      expect(withdrawal.delta).to.equal(tx * transferRatio * transferRatio);  // due to second transfer
-    })
-
-    it("withdraw penalty and bonus with fee-on-transfer token", async function () {
-      const tx = 1000;
-      const transferRatio = (100 - tokenFeePercent) / 100;
-      // approve and deposit
-      await addr1FeeTokenCaller.approve(deployed.address, tx);
-      await addr1Caller.deposit(
-        deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
-
-      // move time
-      await Utils.evmIncreaseTime((minCommitPeriod / 2) - 1);
-      
-      const withdrawal1 = await Utils.callCaptureEventAndBalanceToken(
-        addr1.address, 
-        () => deployed.queryFilter(deployed.filters.Withdrawed()), 
-        deployedFeeToken,
-        async () => {
-          await expect(addr1Caller.withdrawWithPenalty(deployedFeeToken.address))
-            .to.emit(deployed, "Withdrawed");
-        }
-      );
-
-      // should be able to withdraw but expect to pay token fee again
-      expect(withdrawal1.lastEvent.amount).to.equal(tx * transferRatio / 2);
-      expect(withdrawal1.delta).to.equal(tx * transferRatio * transferRatio / 2);  // due to second transfer
-
-      const state = await Utils.getState(deployed, deployedFeeToken, addr1);
-      // check bonus pool
-      expect(state.holdBonusesSum.add(state.commitBonusesSum))
-        .to.equal(tx * transferRatio / 2)
-
-      // deposit again
-      await addr1FeeTokenCaller.approve(deployed.address, tx);
-      await addr1Caller.deposit(
-        deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
-
-      // move time
-      await Utils.evmIncreaseTime(minCommitPeriod);
-
-      const withdrawal2 = await Utils.callCaptureEventAndBalanceToken(
-        addr1.address, 
-        () => deployed.queryFilter(deployed.filters.Withdrawed()), 
-        deployedFeeToken,
-        async () => {
-          await expect(addr1Caller.withdrawWithBonus(deployedFeeToken.address))
-            .to.emit(deployed, "Withdrawed");
-        }
-      );
-
-      // should be able to withdraw but expect to pay token fee again
-      expect(withdrawal2.lastEvent.amount).to.equal(
-        (tx * transferRatio / 2) + (tx * transferRatio));  // bonus + deposit
-      expect(withdrawal2.delta).to.equal(
-        ((tx * transferRatio / 2) + (tx * transferRatio)) * transferRatio);  // due to second transfer
-    })
-
+    
   });
 
   describe("tokens: two accounts bonus behavior", function () {
