@@ -283,6 +283,54 @@ describe(`${contractName} tokens: advanced logic`, function () {
       expect(state1.totalHoldPoints).to.eq(state1.holdPoints);
       expect(state2.totalHoldPoints).to.eq(state2.holdPoints);
     });
+
+    it("points don't carry over after withdrawWithBonus", async function () {
+      // wait some time
+      await Utils.evmIncreaseTime(period1);  // half of commit period
+
+      // withdraw with bonus
+      await addr1Caller.withdrawWithBonus(deployedToken.address);
+      
+      // deposit 2
+      await addr1Caller.deposit(deployedToken.address, 1000, 50, period1);
+
+      const state2 = await Utils.getState(deployed, deployedToken, addr1);
+
+      // second despoit points (as if new deposit)
+      const expectedCommitPoints = state2.balance.mul(period1).div(2).div(2);
+
+      // check values
+      expect(state2.holdPoints).to.eq(0);
+      expect(state2.commitPoints).to.eq(expectedCommitPoints);
+
+      // check pool accounting
+      expect(state2.totalHoldPoints).to.eq(0);
+      expect(state2.totalCommitPoints).to.eq(expectedCommitPoints);
+    });
+
+    it("points don't carry over after withdrawWithPenalty", async function () {
+      // wait some time
+      await Utils.evmIncreaseTime(period1 / 2);  // half of commit period
+
+      // withdraw with bonus
+      await addr1Caller.withdrawWithPenalty(deployedToken.address);
+      
+      // deposit 2
+      await addr1Caller.deposit(deployedToken.address, 1000, 50, period1);
+
+      const state2 = await Utils.getState(deployed, deployedToken, addr1);
+
+      // second despoit points (as if new deposit)
+      const expectedCommitPoints = state2.balance.mul(period1).div(2).div(2);
+
+      // check values
+      expect(state2.holdPoints).to.eq(0);
+      expect(state2.commitPoints).to.eq(expectedCommitPoints);
+
+      // check pool accounting
+      expect(state2.totalHoldPoints).to.eq(0);
+      expect(state2.totalCommitPoints).to.eq(expectedCommitPoints);
+    });
   });
 
   describe("single account: bonus points accounting with time", function () {

@@ -263,6 +263,54 @@ describe(`${contractName} ETH: advanced logic`, function () {
       expect(state1.totalHoldPoints).to.eq(state1.holdPoints);
       expect(state2.totalHoldPoints).to.eq(state2.holdPoints);
     });
+
+    it("points don't carry over after withdrawWithBonusETH", async function () {
+      // wait some time
+      await Utils.evmIncreaseTime(period1);  // half of commit period
+
+      // withdraw with bonus
+      await addr1Caller.withdrawWithBonusETH();
+      
+      // deposit 2
+      await addr1Caller.depositETH(50, period1, { value: 1000 });
+
+      const state2 = await Utils.getState(deployed, deployedWETH, addr1);
+
+      // second despoit points (as if new deposit)
+      const expectedCommitPoints = state2.balance.mul(period1).div(2).div(2);
+
+      // check values
+      expect(state2.holdPoints).to.eq(0);
+      expect(state2.commitPoints).to.eq(expectedCommitPoints);
+
+      // check pool accounting
+      expect(state2.totalHoldPoints).to.eq(0);
+      expect(state2.totalCommitPoints).to.eq(expectedCommitPoints);
+    });
+
+    it("points don't carry over after withdrawWithPenaltyETH", async function () {
+      // wait some time
+      await Utils.evmIncreaseTime(period1 / 2);  // half of commit period
+
+      // withdraw with bonus
+      await addr1Caller.withdrawWithPenaltyETH();
+      
+      // deposit 2
+      await addr1Caller.depositETH(50, period1, { value: 1000 });
+
+      const state2 = await Utils.getState(deployed, deployedWETH, addr1);
+
+      // second despoit points (as if new deposit)
+      const expectedCommitPoints = state2.balance.mul(period1).div(2).div(2);
+
+      // check values
+      expect(state2.holdPoints).to.eq(0);
+      expect(state2.commitPoints).to.eq(expectedCommitPoints);
+
+      // check pool accounting
+      expect(state2.totalHoldPoints).to.eq(0);
+      expect(state2.totalCommitPoints).to.eq(expectedCommitPoints);
+    });
   });
 
   describe("single account: bonus points accounting with time", function () {
