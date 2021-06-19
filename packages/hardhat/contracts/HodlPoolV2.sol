@@ -88,6 +88,10 @@ contract HodlPoolV2 {
     uint totalHoldPoints;  // sum of hold-points
     uint totalHoldPointsUpdateTime;  // holds the time of the latest incremental hold-points update
     uint totalCommitPoints;  // sum of commit-points
+    // token deposits per token contract and per user, each sender has only a single deposit 
+    mapping(address => Deposit) deposits;
+    // carry overs for subsequent deposits per token contract and per user
+    mapping(address => CarryOver) carryOvers;
   }
   
   /// @notice minimum initial percent of penalty
@@ -101,13 +105,6 @@ contract HodlPoolV2 {
 
   /// @dev the pool states for each token contract address
   mapping(address => Pool) internal pools;  
-
-  /// @dev token deposits per token contract and per user
-  /// each sender has only a single deposit 
-  mapping(address => mapping(address => Deposit)) internal deposits;  
-
-  /// @dev carry overs for subsequent deposits per token contract and per user
-  mapping(address => mapping(address => CarryOver)) internal carryOvers;  
 
   /*
    * @param token ERC20 token address for the deposited token
@@ -152,7 +149,7 @@ contract HodlPoolV2 {
 
   /// @dev limits interaction to depositors in the pool
   modifier onlyDepositors(address token) {
-    require(deposits[token][msg.sender].value > 0, "no deposit");
+    require(pools[token].deposits[msg.sender].value > 0, "no deposit");
     _;
   }
 
@@ -287,7 +284,7 @@ contract HodlPoolV2 {
    */
   function withdrawWithBonus(address token) external onlyDepositors(token) {
     require(
-      _depositPenalty(deposits[token][msg.sender]) == 0, 
+      _depositPenalty(pools[token].deposits[msg.sender]) == 0, 
       "cannot withdraw without penalty yet, use withdrawWithPenalty()"
     );
     _withdraw(token);
@@ -296,7 +293,7 @@ contract HodlPoolV2 {
   /// @notice withdraw ETH with penalty with same logic as withdrawWithPenalty()
   function withdrawWithBonusETH() external onlyDepositors(WETH) {
     require(
-      _depositPenalty(deposits[WETH][msg.sender]) == 0, 
+      _depositPenalty(pools[WETH].deposits[msg.sender]) == 0, 
       "cannot withdraw without penalty yet, use withdrawWithPenalty()"
     );
     _withdrawETH();
@@ -342,10 +339,10 @@ contract HodlPoolV2 {
   function depositDetails(
     address token, address sender
   ) public view returns (uint[10] memory) {
-    Deposit storage dep = deposits[token][sender];
+    Deposit storage dep = pools[token].deposits[sender];
     return [
       _shareToAmount(token, dep.value),  // balance
-      _timeLeft(deposits[token][sender]),  // timeLeftToHold
+      _timeLeft(dep),  // timeLeftToHold
       _shareToAmount(token, _depositPenalty(dep)),  // penalty
       _shareToAmount(token, _holdBonus(token, sender)),  // holdBonus
       _shareToAmount(token, _commitBonus(token, sender)),  // commitBonus
@@ -391,12 +388,13 @@ contract HodlPoolV2 {
     uint initialPenaltyPercent, 
     uint commitPeriod
   ) internal {      
+    Pool storage pool = pools[token];
 
     // possible commit points that will need to be subtracted from deposit and pool
     uint commitPointsToSubtract = 0; 
 
     // deposit updates
-    Deposit storage dep = deposits[token][msg.sender];
+    Deposit storage dep = pool.deposits[msg.sender];
     if (dep.value > 0) {  // adding to previous deposit            
       require(
         initialPenaltyPercent >= _currentPenaltyPercent(dep), 
@@ -407,7 +405,7 @@ contract HodlPoolV2 {
         "commit period less than existing deposit's time left"
       );
 
-      CarryOver storage carry = carryOvers[token][msg.sender];
+      CarryOver storage carry = pool.carryOvers[msg.sender];
 
       // carry over previous points and add points for the time 
       // held since latest deposit
@@ -427,8 +425,7 @@ contract HodlPoolV2 {
     dep.commitPeriod = uint120(commitPeriod);  
     dep.initialPenaltyPercent = uint16(initialPenaltyPercent);
 
-    // pool update
-    Pool storage pool = pools[token];
+    // pool update    
     // update pool's total hold time due to passage of time
     // because the deposits sum is going to change
     _updatePoolHoldPoints(pool);
@@ -466,7 +463,7 @@ contract HodlPoolV2 {
     _updatePoolHoldPoints(pool);
 
     // WARNING: deposit is only read here and is not updated until it's removal
-    Deposit storage dep = deposits[token][msg.sender];
+    Deposit storage dep = pool.deposits[msg.sender];
 
     // calculate penalty & bunus before making changes
     uint penalty = _depositPenalty(dep);
@@ -505,8 +502,8 @@ contract HodlPoolV2 {
     // WARNING: note that removing the deposit before this line will 
     // change "dep" because it's used by reference and will affect the other
     // computations for pool state updates (e.g. hold points)
-    delete deposits[token][msg.sender];
-    delete carryOvers[token][msg.sender];
+    delete pool.deposits[msg.sender];
+    delete pool.carryOvers[msg.sender];
 
     return withdrawAmount;
   }
@@ -569,8 +566,8 @@ contract HodlPoolV2 {
     address token, 
     address depositor
   ) internal view returns (uint) {
-    Deposit storage dep = deposits[token][depositor];
-    CarryOver storage carry = carryOvers[token][depositor];
+    Deposit storage dep = pools[token].deposits[depositor];
+    CarryOver storage carry = pools[token].carryOvers[depositor];
     // points proportional to value held since deposit start    
     return carry.prevHoldPoints + (dep.value * _timeHeld(dep));
   }
@@ -579,8 +576,8 @@ contract HodlPoolV2 {
     address token, 
     address depositor
   ) internal view returns (uint) {
-    Deposit storage dep = deposits[token][depositor];
-    CarryOver storage carry = carryOvers[token][depositor];
+    Deposit storage dep = pools[token].deposits[depositor];
+    CarryOver storage carry = pools[token].carryOvers[depositor];
     // points proportional to value held since deposit start    
     return carry.prevCommitPoints + _fullCommitPoints(dep);
   }
@@ -648,17 +645,18 @@ contract HodlPoolV2 {
     address token, 
     address depositor
   ) internal view returns (uint) {
+    Pool storage pool = pools[token];
     if (
-      deposits[token][depositor].value == 0 ||  pools[token].holdBonusesSum == 0
+      pool.deposits[depositor].value == 0 ||  pool.holdBonusesSum == 0
     ) {
       return 0;  // no luck
     } else {
       // share of bonus is proportional to hold-points of this deposit relative
       // to total hold-points in the pool
       // order important to prevent rounding to 0
-      uint denom = _totalHoldPoints(pools[token]);  // don't divide by 0
+      uint denom = _totalHoldPoints(pool);  // don't divide by 0
       uint holdPoints = _holdPoints(token, depositor);
-      return denom > 0 ? ((pools[token].holdBonusesSum * holdPoints) / denom) : 0;
+      return denom > 0 ? ((pool.holdBonusesSum * holdPoints) / denom) : 0;
     }
   }
 
@@ -666,8 +664,8 @@ contract HodlPoolV2 {
     address token, 
     address depositor
   ) internal view returns (uint) {
-    Deposit storage dep = deposits[token][depositor];
     Pool storage pool = pools[token];
+    Deposit storage dep = pool.deposits[depositor];
     if (dep.value == 0 || pool.commitBonusesSum == 0 || pool.totalCommitPoints == 0) {
       return 0;  // no luck
     } else {
