@@ -145,6 +145,8 @@ module.exports = {
     currency: 'USD',
     gasPrice: 20,
     onlyCalledMethods: true,
+    outputFile: "gasReportResults.txt",
+    noColors: true,
   }
 };
 
