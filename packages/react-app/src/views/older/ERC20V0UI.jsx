@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Button, List, Divider, Input, Card, Row, Col, Modal, Typography, Drawer, Space, notification, Steps } from "antd";
-import { Address, Balance } from "../components";
+import { Address, Balance } from "../../components";
 import { parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { useContractExistsAtAddress, useContractReader, useEventListener, useOnBlock } from "../hooks";
+import { useContractExistsAtAddress, useContractReader, useEventListener, useOnBlock } from "../../hooks";
 import ReactMarkdown from "react-markdown";
 import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlined } from "@ant-design/icons";
 
