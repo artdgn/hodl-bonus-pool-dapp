@@ -70,33 +70,81 @@ export function DepositModalContent({contractState, period, penalty}) {
 }
 
 
-export function RulesButton() {
+export function MechanismButton() {
   const markdown = `
-## Pool Rules
-- Each token has one independent pool. i.e. all accounting is separate for each token.
+## Pool Mechanism
+A depositor is committing for "commitment period" and an "initial penalty percent" 
+of his choice (within allowed ranges). **After the commitment period the
+deposit can be withdrawn with its share of both of the bonus pools**. 
+#### Bonus mechanics: "Hold bonus" & "Commit bonus":
+The bonus share is determined from the deposit's size, initial commitment, and actual 
+holding time relative to other deposits in the pool.
+- The two **bonus pools are populated from the penalties for early withdrawals**,
+  which are withdrawals before a deposit's commitment period is elapsed. 
+  The penalties are split in half and added to both bonus pools (isolated per token): 
+  **Hold bonus** pool and **Commit bonus** pool.
+- The share of the bonus pools is equal to the share of the bonus points (**hold-points** 
+  and **commit-points**) for the deposit at the time of withdrawal relative to the other
+  deposits in the pool.
+- **Hold points** are calculated as amount of token (or ETH) x seconds held. So **more tokens
+  held for longer add more points** - and increase the bonus share. **This bonus is
+  independent of commitment or penalties**. The points keep increasing after commitment period
+  is over.
+- **Commit points** are calculated as amount of token (or ETH) x seconds committed to penalty.
+  These points **depend only on commitment time and commitment penalty** 
+  at the time of the deposit.
+#### Penalty mechanics:
+- **Withdrawal before commitment period is not entitled to any part of the bonus**
+  and is instead "slashed" with a penalty (that is split between the bonuses pools).
+- The **penalty percent is decreasing with time** from the chosen
+  initialPenaltyPercent to 0 at the end of the commitPeriod. 
+#### Additional notes:
+- Any **additional deposit is added to the current deposit**, carries over commit-points
+  and hold-points that already actrued, and "resets" the commitment period and penalty
+  according to the new user choice (but not in a way that will reduce the outstanding 
+  commitment for the initial deposit).
+- Some ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
+  kinds of tokens this pool tracks everything as "shares of initial deposits".
+- **Each token** has **one independent pool**. i.e. all accounting is separate for each token.
 - There is no pool creation process - one contract holds all pools.
-- Depositor commits for a "commitment period", after which the deposit 
-can be withdrawn with any bonus share.
-- The bonus pool share is equal to the share of the deposit from all deposits
-at the time of withdrawal. E.g. if when you withdraw, the bonus pool is 2 Token, 
-total deposits are 10 Token, and your deposit is 1 Token - you get 
-0.2 Token ( = 2 * (1 / 10)) as bonus.
-- Bonus pool is collected from penalties paid by early withdrawals 
-(withdrawals before the commitment period).
-- Withdrawal before commitment period does not get any bonus. 
-Instead, it is "slashed" with a penalty (that is added to the bonus pool).  
-- The penalty percent is decreasing linearly with time from 
-"initialPenaltyPercent" to 0 (for the duration of the commitPeriod). 
-E.g. if initialPenaltyPercent was 10%, and you withdraw after half the 
-commitment period, you get 5% penalty and withdraw 95% of the initial deposit.
-- Any additional deposits are added to current deposit, and "reset" the
-  commitment period required to wait.
-- ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
-kinds of tokens this pool tracks everything as "shares of initial deposits".`;
+`;
 
   return <MarkdownModalButton
     markdown={markdown}
-    title={<div><InfoCircleTwoTone /> Rules</div>} />;
+    title={<div><InfoCircleTwoTone /> Contract rules </div>} />;
+}
+
+export function IncentivesButton() {
+  const markdown = `
+## Incentives considerations:
+All incentives are aligned for longer holding.
+- **Commit bonus** (future focused) - rewards committing for higher penalties and longer periods:
+  - **Rewards proportionally to their risk (skin in the game)**.
+  - Increases the potential bonus - making the pool more attractive.
+- **Hold bonus** (past focused) - rewards holding regardless of initial commitment:
+  - **Rewards depositors proportionally to their actual past opportunity cost** and reduction
+  of tokens in circulation.
+  - Even people who are unwilling to commit for a large penalty or period **can
+  "earn" bonuses by depositing without withdrawing**.
+  - Even after commitment period is over - **holding for longer increases
+  the hold-bonus** share relative to future deposits.
+  - More **"Whale" resistant** - new large deposits do no affect bonus share
+  unless actually held in pool.
+- No bonus with penalty: 
+  - Incetivises finishing the commitment period.
+  - Prevents early withdrawals if bonus is larger than penalty.
+- Deferring bonus until withdrawal (no claiming during deposit):
+  - Prevents claiming bonus too early and reducing incentive to hold.
+  - Reduces bonus for other potential depositors
+- Low minimal penalty / commitment period:
+  - Allowing more loss-averse depositors to participate.
+- Non-zero minimal penalty / commitment period:
+  - Preventing no skin in the game situation.
+`;
+
+  return <MarkdownModalButton
+    markdown={markdown}
+    title={<div><InfoCircleTwoTone /> Incentives</div>} />;
 }
 
 export function MotivationButton() {
@@ -130,8 +178,8 @@ function MarkdownModalButton({ title, markdown }) {
     <div>
       <Button
         onClick={() => setDrawerVisible(true)}
-        size="large"
-        style={{ fontSize: 16 }}
+        size="small"
+        style={{ fontSize: 12 }}
       >{title}</Button>
 
       <Modal
