@@ -54,10 +54,13 @@ describe(`${contractName} ETH: advanced logic`, function () {
         .to.revertedWith("too short");
     })
 
-    it("cannot commit to more than a year", async function () {
+    it("cannot commit to more than four years", async function () {
       expect(
         addr1Caller
-        .depositETH( minInitialPenaltyPercent, 366 * 86400, { value: 1000 }))
+        .depositETH(
+          minInitialPenaltyPercent, 
+          (4 * 365 + 1) * 86400, 
+          { value: 1000 }))
         .to.revertedWith("too long");
     })
 

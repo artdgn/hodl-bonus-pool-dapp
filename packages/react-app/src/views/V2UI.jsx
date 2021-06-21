@@ -450,7 +450,7 @@ function CommitmentInput(
           <InputNumber
             size="small"
             min={timeUnit == "sec" ? minPeriodSec : (minPeriodDays || 1)}
-            max={timeUnit == "sec" ? 365 * 86400 : 365}
+            max={timeUnit == "sec" ? 4 * 365 * 86400 : 4 * 365}
             style={{ "width": "100%" }}
             value={timeValue}
             onChange={timeValueSet}

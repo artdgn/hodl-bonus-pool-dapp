@@ -158,7 +158,7 @@ contract HodlPoolV2 {
     require(initialPenaltyPercent >= minInitialPenaltyPercent, "penalty too small"); 
     require(initialPenaltyPercent <= 100, "initial penalty > 100%"); 
     require(commitPeriod >= minCommitPeriod, "commitment period too short");
-    require(commitPeriod <= 365 days, "commitment period too long");
+    require(commitPeriod <= 4 * 365 days, "commitment period too long");
     _;
   }
 
@@ -171,7 +171,7 @@ contract HodlPoolV2 {
     require(_minInitialPenaltyPercent > 0, "no min penalty"); 
     require(_minInitialPenaltyPercent <= 100, "minimum initial penalty > 100%"); 
     require(_minCommitPeriod >= 10 seconds, "minimum commitment period too short");
-    require(_minCommitPeriod <= 365 days, "minimum commitment period too long");
+    require(_minCommitPeriod <= 4 * 365 days, "minimum commitment period too long");
     require(_WETH != address(0), "WETH address can't be 0x0");
     minInitialPenaltyPercent = _minInitialPenaltyPercent;
     minCommitPeriod = _minCommitPeriod;

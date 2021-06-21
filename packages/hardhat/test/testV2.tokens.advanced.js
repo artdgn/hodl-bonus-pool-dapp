@@ -66,11 +66,14 @@ describe(`${contractName} tokens: advanced logic`, function () {
         .to.revertedWith("too short");
     })
 
-    it("cannot commit to more than a year", async function () {
+    it("cannot commit to more than a four years", async function () {
       expect(
         addr1Caller
         .deposit(
-          deployedToken.address, 1000, minInitialPenaltyPercent, 366 * 86400))
+          deployedToken.address, 
+          1000, 
+          minInitialPenaltyPercent, 
+          (4 * 365 + 1) * 86400))
         .to.revertedWith("too long");
     })
 

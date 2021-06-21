@@ -61,8 +61,12 @@ describe(`${contractName} deployment`, function () {
       const badArgs = [minInitialPenaltyPercent, 2, deployedWETH.address];
       expect(contract.deploy(...badArgs)).to.be.revertedWith("too short");
     });
-    it("should not deploy minCommitPeriod > 365 days", async function () {
-      const badArgs = [minInitialPenaltyPercent, 366 * 86400, deployedWETH.address];
+    it("should not deploy minCommitPeriod > 4 * 365 days", async function () {
+      const badArgs = [
+        minInitialPenaltyPercent, 
+        (4 * 365 + 1) * 86400, 
+        deployedWETH.address
+      ];
       expect(contract.deploy(...badArgs)).to.be.revertedWith("too long");
     });
     it("should not deploy WETH zero address", async function () {
