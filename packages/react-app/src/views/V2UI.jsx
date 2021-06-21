@@ -9,7 +9,8 @@ import { parseEther, parseUnits, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
 import { useContractExistsAtAddress, useContractReader, useEventListener, useTokenList } from "../hooks";
 import ReactMarkdown from "react-markdown";
-import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, LoadingOutlined, QuestionOutlined } from "@ant-design/icons";
+import { InfoCircleTwoTone, QuestionCircleTwoTone, WarningTwoTone, 
+  LoadingOutlined, QuestionOutlined, DollarTwoTone } from "@ant-design/icons";
 
 class HodlPoolV2StateHooks {
 
@@ -235,6 +236,14 @@ export function HodlPoolV2UI(
           <div>
             <Divider dashed>Deposit to {symbol} pool</Divider>
 
+            <CommitmentInput
+              contractState={contractState}
+              penalty={penalty}
+              period={period}
+              penaltySet={penaltySet}
+              periodSet={periodSet}
+            />
+
             {ethMode ?
               <DepositElementETH
                 contractState={contractState}
@@ -252,15 +261,7 @@ export function HodlPoolV2UI(
                 period={period}
               />
             }
-
-            <CommitmentInput
-              contractState={contractState}
-              penalty={penalty}
-              period={period}
-              penaltySet={penaltySet}
-              periodSet={periodSet}
-            />
-
+            
             <Divider dashed>Withdraw from {symbol} pool</Divider>
 
             <WithdrawElement
@@ -425,104 +426,114 @@ function TokenSelection({ provider, addessUpdateFn }) {
 function CommitmentInput(
    { contractState, penalty, penaltySet, period, periodSet } ) 
 {
-  const [timeUnit, timeUnitSet] = useState("sec");
-  const [timeValue, timeValueSet] = useState(period);
+  const [daysValue, daysValueSet] = useState(period);
   const minPeriodSec = contractState?.minCommitPeriod?.toNumber();
-  const minPeriodDays = contractState?.minCommitPeriod?.div(86400).toNumber();
+  const minPeriodDaysRoundDown = (minPeriodSec / 86400).toPrecision(2);    
   const minInitialPenaltyPercent = contractState?.minInitialPenaltyPercent?.toNumber();
 
+  // round up by adding a 0.0001 at whatever is the last decimal
+  const minPeriodDays = ( 
+    parseFloat(minPeriodDaysRoundDown) + 
+    parseFloat(minPeriodDaysRoundDown.replace(/\d/ig, "0").slice(0, -1) + "1")
+  ).toPrecision(2)
+
   // set default when available
-  useEffect(() => timeValueSet(minPeriodSec), [minPeriodSec]);
+  useEffect(() => daysValueSet(minPeriodDays), [minPeriodDays]);
 
   // call the update function when either changes
-  useEffect(() => {
-    periodSet(timeValue * (timeUnit == "sec" ? 1 : 86400));
-  }, [timeValue, timeUnit])
-
+  useEffect(() => periodSet(parseInt(daysValue * 86400)) , [daysValue])
+  
   return (
-    <Space align="center" direction="vertical" style={{ marginTop: 16 }}>
+    <h3>
+      Deposit for:&nbsp;
+      <InputNumber
+        style={{ margin: 8, width: "8rem" }}
+        size="large"
+        min={minPeriodDays}
+        max={4 * 365}
+        value={daysValue}
+        onChange={daysValueSet}
+        formatter={value => `${value} days`}
+        parser={value => value.replace(' days', '')}
+      />
+      <CommitTimeTooltip contractState={contractState} />&nbsp;
+      with&nbsp;
+      <InputNumber
+        size="large"
+        step={5}
+        min={minInitialPenaltyPercent}
+        max={100}
+        style={{ margin: 8 }}
+        value={penalty}
+        formatter={value => `${value}%`}
+        parser={value => value.replace('%', '')}
+        onChange={penaltySet}
+      />
+      <PenaltyTooltip contractState={contractState}/>&nbsp;
+      penalty
+    </h3>)
+}
 
-      <Row justify="start" align="top" span={24} gutter={8}>
-        <Col span={9} wrap="false" offset={3}>
-          <h3>Commitment time</h3>
-        </Col>
-        <Col span={4}>
-          <InputNumber
-            size="small"
-            min={timeUnit == "sec" ? minPeriodSec : (minPeriodDays || 1)}
-            max={timeUnit == "sec" ? 4 * 365 * 86400 : 4 * 365}
-            style={{ "width": "100%" }}
-            value={timeValue}
-            onChange={timeValueSet}
-          />
-        </Col>
-        <Col span={6}>
-          <Select
-            size="small"
-            style={{ "width": "100%" }}
-            value={timeUnit}
-            onChange={timeUnitSet}>
-            <Select.Option value="sec">Seconds</Select.Option>
-            <Select.Option value="day">Days</Select.Option>
-          </Select>
-        </Col>
-        <Col>
-          <Tooltip title={
-            <div>
-              <p>
-                <b>Length of time before which withdrawing will only be possible with a penalty.</b>
-              </p>
-              <p>
-                <b>Withdrawing with bonus will only be possible after this time.</b>
-              </p>
-              <p>
-                The minimum commitment time allowed: {minPeriodSec} seconds (roughtly {minPeriodDays} days).
-                The maximum is one year.
-              </p>
-            </div>
-          }>
-            <InfoCircleTwoTone />
-          </Tooltip>
-        </Col>
-      </Row>
+function CommitTimeTooltip({ contractState }) {
+  const minPeriodSec = contractState?.minCommitPeriod?.toNumber();
+  return (
+    <Tooltip title={
+      <div>
+        <b>Length of time before which withdrawing will only be possible with a penalty.</b>
+        <ul>
+          <li><b>Commit for longer to receive higher share of the bonus!</b></li>
+          <li>Withdrawing with bonus will only be possible after this time.</li>
+          <li>The minimum value allowed: {minPeriodSec} seconds (roughly {
+            (minPeriodSec / 86400).toPrecision(2)
+          } days).</li>
+          <li>The maximum value allowed: four years.</li>
+        </ul>
+      </div>
+    }>
+      <InfoCircleTwoTone />
+    </Tooltip>
+  );
+}
 
-      <Row justify="start" align="top" span={24} gutter={8}>
-        <Col span={9} wrap="false" offset={3}>
-          <h3>Initial penalty </h3>
-        </Col>
-        <Col span={6}>
-          <InputNumber
-            size="small"
-            min={minInitialPenaltyPercent}
-            max={100}
-            style={{ "width": "100%" }}
-            value={penalty}
-            formatter={value => `${value}%`}
-            parser={value => value.replace('%', '')}
-            onChange={penaltySet}
-          />
-        </Col>
-        <Col>
-          <Tooltip title={
-            <div>
-              <p>
-                <b>Starting value of the penalty percent</b>.
-              </p><p>
-                <b>The penalty decreases with time from the initial value to 0</b>. 
-                So immediately after deposit it's roughly this initial percent,  
-                and just before the end of the commitment period it's roughly 0.              
-              </p><p>
-                The minimum initial penalty allowed as initial value: {minInitialPenaltyPercent}%.
-                The maximum is 100%.
-              </p>
-            </div>
-          }>
-            <InfoCircleTwoTone />
-          </Tooltip>
-        </Col>
-      </Row>
+function PenaltyTooltip({ contractState }) {
+  return (
+    <Tooltip title={
+      <div>
+        <b>Starting value of the penalty percent</b>.
+        <ul>
+          <li><b>Commit to higher penalty to receive higher share of the bonus!</b></li>
+          <li><b>The penalty decreases with time from the initial value to 0. </b>
+            So immediately after deposit it's roughly this initial percent,
+            and just before the end of the commitment period it's roughly 0.
+          </li>
+          <li>The minimum value allowed: {contractState?.minInitialPenaltyPercent?.toNumber()}%.</li>
+          <li>The maximum value allowed: 100%.</li>
+        </ul>
+      </div>
+    }>
+      <InfoCircleTwoTone />
+    </Tooltip>);
+}
 
-    </Space>)
+function DepositModalContent({contractState, period, penalty}) {
+  return (
+    <div>
+      <h2>
+        <DollarTwoTone twoToneColor="#52c41a" />&nbsp;
+        Tip: Increasing commitment period and/or penalty percent will result higher share of bonus!
+      </h2>
+      <Divider />
+      <h2>Chosen commitment period <CommitTimeTooltip contractState={contractState}/> : {
+        secondsToCommitTimeString(period)
+        }</h2>
+      <h2>Chosen initial penalty <PenaltyTooltip contractState={contractState}/> : {penalty}%</h2>
+      <Divider />      
+      <h2>
+        <WarningTwoTone twoToneColor="red" />&nbsp;
+        Withdrawing without penalty before end of commitment period won't be possible!!
+      </h2>
+    </div>
+  );
 }
 
 function DepositElementToken({ contractState, contractTx, tokenState, tokenTx, penalty, period }) {
@@ -605,37 +616,32 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx, p
               "Add to deposit" : "Make a deposit"}
           </Button>
         </Col>
-
-        <Modal
-          title={`Confirm deposit of ${amountToSend} ${tokenState.symbol}`}
-          okText="Confirm and commit"
-          visible={depositModalVisible}
-          onOk={() => {
-            setDepositModalVisible(false);
-            deposittingSet(true);
-            if (amountToSend && amountToSend > 0 && tokenState.decimals) {
-              contractTx(
-                "deposit",
-                [
-                  tokenState.address,
-                  parseUnits(amountToSend, tokenState.decimals),
-                  penalty,
-                  period,
-                ],
-                () => deposittingSet(false)
-              );
-            }
-          }}
-          onCancel={() => setDepositModalVisible(false)}>
-          <h2>Commitment period: {secondsToCommitTimeString(period)}</h2>
-          <h2>Initial penalty: {penalty}%</h2>
-          <Divider />
-          <h2>
-            <WarningTwoTone twoToneColor="red" /> Withdrawing without
-            penalty before that time won't be possible!!</h2>
-        </Modal>
-
       </Row>
+
+      <Modal
+        title={<h3 style={{textAlign: "center"}}>
+          Confirm deposit of {amountToSend} {tokenState.symbol}</h3>}
+        okText="Confirm and commit"
+        visible={depositModalVisible}
+        onOk={() => {
+          setDepositModalVisible(false);
+          deposittingSet(true);
+          if (amountToSend && amountToSend > 0 && tokenState.decimals) {
+            contractTx(
+              "deposit",
+              [
+                tokenState.address,
+                parseUnits(amountToSend, tokenState.decimals),
+                penalty,
+                period,
+              ],
+              () => deposittingSet(false)
+            );
+          }
+        }}
+        onCancel={() => setDepositModalVisible(false)}>
+          <DepositModalContent contractState={contractState} period={period} penalty={penalty}/>
+      </Modal>     
     </div>)
 }
 
@@ -686,30 +692,26 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
           </Button>
         </Col>
 
-        <Modal
-          title={`Confirm deposit of ${amountToSend} ETH`}
-          okText="Confirm and commit"
-          visible={depositModalVisible}
-          onOk={() => {
-            setDepositModalVisible(false);
-            deposittingSet(true);
-            if (amountToSend && amountToSend > 0) {
-              contractTx(
-                "depositETH",
-                [penalty, period, { value: parseEther(amountToSend) }],
-                () => deposittingSet(false));
-            }
-          }}
-          onCancel={() => setDepositModalVisible(false)}>
-          <h2>Commitment period: {secondsToCommitTimeString(period)}</h2>
-          <h2>Initial penalty: {penalty}%</h2>
-          <Divider />
-          <h2>
-            <WarningTwoTone twoToneColor="red" /> Withdrawing without
-            penalty before that time won't be possible!!</h2>
-        </Modal>
-
       </Row>
+
+      <Modal
+        title={<h3 style={{ textAlign: "center" }}>Confirm deposit of {amountToSend} ETH</h3>}
+        okText="Confirm and commit"
+        visible={depositModalVisible}
+        onOk={() => {
+          setDepositModalVisible(false);
+          deposittingSet(true);
+          if (amountToSend && amountToSend > 0) {
+            contractTx(
+              "depositETH",
+              [penalty, period, { value: parseEther(amountToSend) }],
+              () => deposittingSet(false));
+          }
+        }}
+        onCancel={() => setDepositModalVisible(false)}>
+        <DepositModalContent contractState={contractState} period={period} penalty={penalty} />
+      </Modal>
+
     </div>)
 }
 
@@ -832,10 +834,12 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode })
       </Button>
 
       <Modal
-        title={`Confirm withdrawal of 
-                ${tokenState.decimals &&
-          formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)} 
-                ${symbol} with penalty`}
+        title={<h3 style={{ textAlign: "center" }}>
+          Confirm withdrawal of {
+            tokenState.decimals && 
+            formatUnits("" + contractState.withdrawWithPenalty, tokenState.decimals)
+          } {symbol} with penalty
+        </h3>}
         okText="Withdraw with penalty"
         visible={penaltyModalVisible}
         okButtonProps={{ danger: true }}
@@ -857,8 +861,9 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode })
           <WarningTwoTone twoToneColor="red" /> Wait until end of commitment period
           ({contractState.timeLeftString})
           to withdraw full deposit + any bonus share!
+          <br/>
           {contractState?.bonus?.gt(0) ?
-            ` Current bonus share ${formatUnits(contractState.bonus, tokenState.decimals)} 
+            `Current bonus share is ${formatUnits(contractState.bonus, tokenState.decimals)} 
             ${symbol}.` : ""}
         </h2>
       </Modal>
@@ -883,9 +888,10 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
       </Button>
 
       <Modal
-        title={`Confirm withdrawal of 
-              ${formatUnits("" + contractState.withdrawWithBonus, tokenState.decimals)} 
-              ${symbol}`}
+        title={<h3 style={{ textAlign: "center" }}>
+          Confirm withdrawal of {
+            formatUnits("" + contractState.withdrawWithBonus, tokenState.decimals)
+          } {symbol}</h3>}
         okText="Withdraw"
         visible={bonusModalVisible}
         onOk={() => {
