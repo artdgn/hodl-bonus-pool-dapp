@@ -1,5 +1,5 @@
 ![CI](https://github.com/artdgn/hodl-bonus-pool-dapp/workflows/CI/badge.svg) 
-<a href=https://hodl-pool-dapp-v1-kovan.surge.sh/><img src=https://img.shields.io/badge/Kovan--V1-Surge-blueviolet></img></a>
+<a href=https://hodl-pool-dapp-v2-kovan.surge.sh/><img src=https://img.shields.io/badge/V2@Kovan-Surge-blueviolet></img></a>
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A project for learning smart-contract-full-stack-whizz-bang-dApp-buidling using the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth)**.
@@ -66,23 +66,24 @@
     - deliver: UI ✔️ [frontend (ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v1-kovan.surge.sh/), explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xf15E3349B9CB5452638130cd958E3f1be2f934Eb#code) ✔️, some feedback ✔️   
     </details>
 
-1. v2 ⌛:
+1. v2 ✔️:
     - goal & scope: bonus depends on time held ✔️, flexible commitment params when depositting ✔️
-    - deliver: UI ✔️, deployed UI ⌛, contract on testnet ⌛
+    - deliver: UI ✔️, [frontend new(ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v2-kovan.surge.sh/), [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x42dF7571ae24135E892128B7C70400d8C02c757f#code) ✔️
     
 1. v3 (planned):
     - goal & scope: deposit on behalf someone else, multiple deposits for same account
 
 ---
 
-# Basic V1 demo:
-![](https://artdgn.github.io/images/hodl-pool-v1.gif)
+# Basic V2 demo ([Try it out](https://hodl-pool-dapp-v2-kovan.surge.sh/)):
+
+![](https://artdgn.github.io/images/hodl-pool-v2.gif)
 
 ---
 
 # Local development
 
-System dependencies: [Node](https://nodejs.org/dist/latest-v12.x/) plus [Yarn](https://classic.yarnpkg.com/en/docs/install/)
+System dependencies: [Node](https://nodejs.org/dist/latest-v12.x/) & [Yarn](https://classic.yarnpkg.com/en/docs/install/)
 
 ## Running local chain + contract + local frontend
 1. Install dependecies: `yarn install`

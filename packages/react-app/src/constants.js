@@ -19,8 +19,8 @@ export const NETWORK = chainId => {
 };
 
 // default network to use
-export const defaultNetwork = "localhost";
-// export const defaultNetwork = "kovan";
+// export const defaultNetwork = "localhost";
+export const defaultNetwork = "kovan";
 
 // deployed contract
 // export const contractName = "HodlPoolEthV0";
@@ -54,7 +54,8 @@ export const NETWORKS = {
     blockExplorer: "https://kovan.etherscan.io/",
     faucet: "https://gitter.im/kovan-testnet/faucet", // https://faucet.kovan.network/
     contractAddresses: {
-      "HodlPoolV1": "0xf15E3349B9CB5452638130cd958E3f1be2f934Eb"
+      // "HodlPoolV1": "0xf15E3349B9CB5452638130cd958E3f1be2f934Eb",
+      "HodlPoolV2": "0x42dF7571ae24135E892128B7C70400d8C02c757f"
     },
   },
   rinkeby: {

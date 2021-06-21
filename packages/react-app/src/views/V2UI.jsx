@@ -433,11 +433,13 @@ function CommitmentInput(
   const minPeriodDaysRoundDown = (minPeriodSec / 86400).toPrecision(2);    
   const minInitialPenaltyPercent = contractState?.minInitialPenaltyPercent?.toNumber();
 
-  // round up by adding a 0.0001 at whatever is the last decimal
-  const minPeriodDays = ( 
-    parseFloat(minPeriodDaysRoundDown) + 
-    parseFloat(minPeriodDaysRoundDown.replace(/\d/ig, "0").slice(0, -1) + "1")
-  ).toPrecision(2)
+  // round up by adding a 0.0001 at whatever is the last decimal if is fraction
+  const minPeriodDays = parseFloat(minPeriodDaysRoundDown) >= 1 ? 
+    minPeriodDaysRoundDown : 
+    ( 
+      parseFloat(minPeriodDaysRoundDown) + 
+      parseFloat(minPeriodDaysRoundDown.replace(/\d/ig, "0").slice(0, -1) + "1")
+    ).toPrecision(2);
 
   // set default when available
   useEffect(() => daysValueSet(minPeriodDays), [minPeriodDays]);

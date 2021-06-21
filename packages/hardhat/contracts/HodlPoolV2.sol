@@ -82,12 +82,18 @@ contract HodlPoolV2 {
 
   /// @dev state variables for a token pool
   struct Pool {
-    uint depositsSum;  // sum of all current deposits
-    uint holdBonusesSum;  // sum of hold bonus pool
-    uint commitBonusesSum;  // sum of commit bonus pool
-    uint totalHoldPoints;  // sum of hold-points
-    uint totalHoldPointsUpdateTime;  // holds the time of the latest incremental hold-points update
-    uint totalCommitPoints;  // sum of commit-points
+    // sum of all current deposits
+    uint depositsSum;  
+    // sum of hold bonus pool
+    uint holdBonusesSum;  
+    // sum of commit bonus pool
+    uint commitBonusesSum; 
+    // sum of hold-points 
+    uint totalHoldPoints;  
+    // holds the time of the latest incremental hold-points update
+    uint totalHoldPointsUpdateTime;  
+    // sum of commit-points
+    uint totalCommitPoints;  
     // token deposits per token contract and per user, each account has only a single deposit 
     mapping(address => Deposit) deposits;
     // carry overs for subsequent deposits per token contract and per user

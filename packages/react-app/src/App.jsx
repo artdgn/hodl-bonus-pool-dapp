@@ -152,25 +152,26 @@ function App(props) {
       {networkDisplay}
 
       {wrongNetwork ? "" :
-        <BrowserRouter>
+        // <BrowserRouter>
 
-          <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
-            <Menu.Item key="/">
-              <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
-            </Menu.Item>
-            <Menu.Item key="/contract">
-              <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
-            </Menu.Item>
-            <Menu.Item key="/token">
-              <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
-            </Menu.Item>
-            <Menu.Item key="/fee-token">
-              <Link onClick={()=>{setRoute("/fee-token")}} to="/fee-token">Fee-Token</Link>
-            </Menu.Item>
-          </Menu>
+        //   <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
+        //     <Menu.Item key="/">
+        //       <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
+        //     </Menu.Item>
+        //     <Menu.Item key="/contract">
+        //       <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
+        //     </Menu.Item>
+        //     <Menu.Item key="/token">
+        //       <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
+        //     </Menu.Item>
+        //     <Menu.Item key="/fee-token">
+        //       <Link onClick={()=>{setRoute("/fee-token")}} to="/fee-token">Fee-Token</Link>
+        //     </Menu.Item>
+        //   </Menu>
 
-          <Switch>
-            <Route exact path="/">
+        //   <Switch>
+        //     <Route exact path="/">
+
               <HodlPoolV2UI
                 address={address}
                 tx={tx}
@@ -180,51 +181,42 @@ function App(props) {
                 provider={userProvider}
                 blockExplorer={blockExplorer}
               />
-            </Route>
 
-            <Route exact path="/contract">
-              <Contract
-                name={contractName}
-                signer={userProvider.getSigner()}
-                provider={localProvider}
-                address={address}
-                blockExplorer={blockExplorer}
-              />
-            { /* Uncomment to display and interact with an external contract (DAI on mainnet):
-              <Contract
-                name="DAI"
-                customContract={mainnetDAIContract}
-                signer={userProvider.getSigner()}
-                provider={mainnetProvider}
-                address={address}
-                blockExplorer={blockExplorer}
-              />
-              */ }
-            </Route>
+        //     </Route>
 
-            <Route exact path="/token">
-              <Contract
-                name={tokenContractName}
-                signer={userProvider.getSigner()}
-                provider={localProvider}
-                address={address}
-                blockExplorer={blockExplorer}
-              />
-            </Route>
+        //     <Route exact path="/contract">
+        //       <Contract
+        //         name={contractName}
+        //         signer={userProvider.getSigner()}
+        //         provider={localProvider}
+        //         address={address}
+        //         blockExplorer={blockExplorer}
+        //       />
+        //     </Route>
 
-            <Route exact path="/fee-token">
-              <Contract
-                name={feeTokenContractName}
-                signer={userProvider.getSigner()}
-                provider={localProvider}
-                address={address}
-                blockExplorer={blockExplorer}
-              />
-            </Route>
+        //     <Route exact path="/token">
+        //       <Contract
+        //         name={tokenContractName}
+        //         signer={userProvider.getSigner()}
+        //         provider={localProvider}
+        //         address={address}
+        //         blockExplorer={blockExplorer}
+        //       />
+        //     </Route>
 
-          </Switch>
+        //     <Route exact path="/fee-token">
+        //       <Contract
+        //         name={feeTokenContractName}
+        //         signer={userProvider.getSigner()}
+        //         provider={localProvider}
+        //         address={address}
+        //         blockExplorer={blockExplorer}
+        //       />
+        //     </Route>
 
-        </BrowserRouter>
+        //   </Switch>
+
+        // </BrowserRouter>
       }
 
       <ThemeSwitch />

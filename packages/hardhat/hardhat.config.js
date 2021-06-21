@@ -21,8 +21,8 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = "localhost";
-// const defaultNetwork = "kovan";
+// const defaultNetwork = "localhost";
+const defaultNetwork = "kovan";
 
 module.exports = {
 
@@ -39,6 +39,7 @@ module.exports = {
   deployArgs: {
     localhost: [10, 60], // for quick testing
     kovan: [10, 86400],  // for longer testing with multiple addresses
+    mainnet: [5, 7 * 86400], 
   },
 
   // don't forget to set your provider like:
