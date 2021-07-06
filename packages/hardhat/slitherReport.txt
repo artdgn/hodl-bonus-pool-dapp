@@ -1,0 +1,44 @@
+'npx hardhat compile --force' running
+Compiling 10 files with 0.8.4
+Compilation finished successfully
+
+Solidity 0.8.4 is not fully supported yet. You can still use Hardhat, but some features, like stack traces, might not work correctly.
+
+Learn more at https://hardhat.org/reference/solidity-support"
+
+
+INFO:Printers:
+Compiled with Builder
+Number of lines: 817 (+ 698 in dependencies, + 0 in tests)
+Number of assembly lines: 0
+Number of contracts: 5 (+ 6 in dependencies, + 0 tests) 
+
+Number of optimization issues: 0
+Number of informational issues: 0
+Number of low issues: 0
+Number of medium issues: 0
+Number of high issues: 0
+
+
+Use: Openzeppelin-ERC20
+ERCs: ERC20
+
++------------+-------------+-------+--------------------+--------------+--------------------+
+|    Name    | # functions |  ERCS |     ERC20 info     | Complex code |      Features      |
++------------+-------------+-------+--------------------+--------------+--------------------+
+| HodlPoolV2 |      28     |       |                    |      No      |    Receive ETH     |
+|            |             |       |                    |              |      Send ETH      |
+|            |             |       |                    |              | Tokens interaction |
+|   IWETH    |      3      |       |                    |      No      |    Receive ETH     |
+|  FeeToken  |      30     | ERC20 |     No Minting     |      No      |                    |
+|            |             |       | Approve Race Cond. |              |                    |
+|            |             |       |                    |              |                    |
+| SomeToken  |      29     | ERC20 |     No Minting     |      No      |                    |
+|            |             |       | Approve Race Cond. |              |                    |
+|            |             |       |                    |              |                    |
+|    WETH    |      9      | ERC20 |     No Minting     |      No      |    Receive ETH     |
+|            |             |       | Approve Race Cond. |              |      Send ETH      |
+|            |             |       |                    |              |                    |
++------------+-------------+-------+--------------------+--------------+--------------------+
+INFO:Slither:. analyzed (11 contracts)
+INFO:Slither:Use https://crytic.io/ to get access to additional detectors and Github integration

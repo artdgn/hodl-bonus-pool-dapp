@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -107,6 +107,7 @@ contract HodlPoolV2 {
   uint public immutable minCommitPeriod;
 
   /// @notice WETH token contract this pool is using for handling ETH
+  // slither-disable-next-line naming-convention
   address public immutable WETH;
 
   /// @dev the pool states for each token contract address
@@ -236,6 +237,8 @@ contract HodlPoolV2 {
     // what was actually received
     uint amountReceived = IERC20(token).balanceOf(address(this)) - beforeBalance;
 
+    // because we want to know how much was received, reentrancy-events is low-risk
+    // slither-disable-next-line reentrancy-events
     emit Deposited(
       token,
       msg.sender, 
@@ -270,10 +273,6 @@ contract HodlPoolV2 {
       commitPeriod
     );
 
-    // note: no share vs. balance accounting for WETH because it's assumed to
-    // exactly correspond to actual deposits and withdrawals (no fee-on-transfer etc)
-    IWETH(WETH).deposit{value: msg.value}();
-
     emit Deposited(
       WETH, 
       msg.sender, 
@@ -283,6 +282,10 @@ contract HodlPoolV2 {
       initialPenaltyPercent, 
       commitPeriod
     );
+
+    // note: no share vs. balance accounting for WETH because it's assumed to
+    // exactly correspond to actual deposits and withdrawals (no fee-on-transfer etc)
+    IWETH(WETH).deposit{value: msg.value}();
   }
   
   /*
@@ -347,7 +350,7 @@ contract HodlPoolV2 {
    */
   function depositDetails(
     address token, address account
-  ) public view returns (uint[10] memory) {
+  ) external view returns (uint[10] memory) {
     Deposit storage dep = pools[token].deposits[account];
     return [
       _shareToAmount(token, dep.value),  // balance
@@ -372,7 +375,7 @@ contract HodlPoolV2 {
    *  3. totalHoldPoints - sum of hold-points of all current deposits
    *  4. totalCommitPoints - sum of commit-points of all current deposits
    */
-  function poolDetails(address token) public view returns (uint[5] memory) {
+  function poolDetails(address token) external view returns (uint[5] memory) {
     Pool storage pool = pools[token];
     return [
       _shareToAmount(token, pool.depositsSum),  // depositsSum

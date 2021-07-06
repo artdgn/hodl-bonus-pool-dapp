@@ -97,3 +97,10 @@ System dependencies: [Node](https://nodejs.org/dist/latest-v12.x/) & [Yarn](http
   1. Go to contracts package: `cd packages/hardhat`
   2. Start a local chain: `yarn chain`
   3. In second terminal: run e.g. "deployment" related tests - `yarn mocha -g deployment`
+
+## Other utils:
+In in `packages/hardhat`:
+  - Gas report: `yarn gas-report`. It's saved to `packages/hardhat/gasReportResults.txt`.
+  - [slither](https://github.com/crytic/slither) report:
+    - To install: `yarn install-slither` (this creates a python `.venv` virtual environment with `slither`)
+    - To run: `yarn slither`. Report is saved to `packages/hardhat/slitherReport.txt`.
