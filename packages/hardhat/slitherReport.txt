@@ -1,15 +1,15 @@
 'npx hardhat compile --force' running
-Compiling 10 files with 0.8.4
+Compiling 11 files with 0.8.6
 Compilation finished successfully
 
-Solidity 0.8.4 is not fully supported yet. You can still use Hardhat, but some features, like stack traces, might not work correctly.
+Solidity 0.8.6 is not fully supported yet. You can still use Hardhat, but some features, like stack traces, might not work correctly.
 
 Learn more at https://hardhat.org/reference/solidity-support"
 
 
 INFO:Printers:
 Compiled with Builder
-Number of lines: 817 (+ 698 in dependencies, + 0 in tests)
+Number of lines: 820 (+ 698 in dependencies, + 0 in tests)
 Number of assembly lines: 0
 Number of contracts: 5 (+ 6 in dependencies, + 0 tests) 
 

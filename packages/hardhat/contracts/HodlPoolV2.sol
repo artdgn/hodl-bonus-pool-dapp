@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./IWETH.sol";
 
 /*
  * @title Token pools that allow different ERC20 tokens and ETH deposits and withdrawals
@@ -465,7 +466,8 @@ contract HodlPoolV2 {
   function _withdrawETH(address account) internal {
     uint withdrawAmount = _withdrawAmountAndUpdate(WETH, account);
     IWETH(WETH).withdraw(withdrawAmount);
-    payable(account).transfer(withdrawAmount);
+    (bool success,) = payable(account).call{value: withdrawAmount}("");
+    require(success);
   }
 
   /// @dev the order of calculations is important for correct accounting
@@ -682,12 +684,4 @@ contract HodlPoolV2 {
     uint commitPoints = _commitPoints(token, account);
     return denom > 0 ? ((pool.commitBonusesSum * commitPoints) / denom) : 0;
   }
-}
-
-/// @dev interface for interacting with WETH (wrapped ether) for handling ETH
-/// https://github.com/Uniswap/uniswap-v2-periphery/blob/master/contracts/interfaces/IWETH.sol
-interface IWETH {
-  function deposit() external payable;
-  function transfer(address to, uint value) external returns (bool);
-  function withdraw(uint) external;
 }
