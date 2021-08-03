@@ -1,5 +1,5 @@
 'npx hardhat compile --force' running
-Compiling 11 files with 0.8.6
+Compiling 21 files with 0.8.6
 Compilation finished successfully
 
 Solidity 0.8.6 is not fully supported yet. You can still use Hardhat, but some features, like stack traces, might not work correctly.
@@ -9,9 +9,9 @@ Learn more at https://hardhat.org/reference/solidity-support"
 
 INFO:Printers:
 Compiled with Builder
-Number of lines: 820 (+ 698 in dependencies, + 0 in tests)
+Number of lines: 1331 (+ 1558 in dependencies, + 0 in tests)
 Number of assembly lines: 0
-Number of contracts: 5 (+ 6 in dependencies, + 0 tests) 
+Number of contracts: 6 (+ 15 in dependencies, + 0 tests) 
 
 Number of optimization issues: 0
 Number of informational issues: 0
@@ -20,25 +20,29 @@ Number of medium issues: 0
 Number of high issues: 0
 
 
-Use: Openzeppelin-ERC20
-ERCs: ERC20
+Use: Openzeppelin-ERC20, Openzeppelin-ERC721
+ERCs: ERC20, ERC721, ERC165
 
-+------------+-------------+-------+--------------------+--------------+--------------------+
-|    Name    | # functions |  ERCS |     ERC20 info     | Complex code |      Features      |
-+------------+-------------+-------+--------------------+--------------+--------------------+
-| HodlPoolV2 |      28     |       |                    |      No      |    Receive ETH     |
-|            |             |       |                    |              |      Send ETH      |
-|            |             |       |                    |              | Tokens interaction |
-|   IWETH    |      3      |       |                    |      No      |    Receive ETH     |
-|  FeeToken  |      30     | ERC20 |     No Minting     |      No      |                    |
-|            |             |       | Approve Race Cond. |              |                    |
-|            |             |       |                    |              |                    |
-| SomeToken  |      29     | ERC20 |     No Minting     |      No      |                    |
-|            |             |       | Approve Race Cond. |              |                    |
-|            |             |       |                    |              |                    |
-|    WETH    |      9      | ERC20 |     No Minting     |      No      |    Receive ETH     |
-|            |             |       | Approve Race Cond. |              |      Send ETH      |
-|            |             |       |                    |              |                    |
-+------------+-------------+-------+--------------------+--------------+--------------------+
-INFO:Slither:. analyzed (11 contracts)
++------------+-------------+---------------+--------------------+--------------+--------------------+
+|    Name    | # functions |      ERCS     |     ERC20 info     | Complex code |      Features      |
++------------+-------------+---------------+--------------------+--------------+--------------------+
+| HodlPoolV2 |      28     |               |                    |      No      |    Receive ETH     |
+|            |             |               |                    |              |      Send ETH      |
+|            |             |               |                    |              | Tokens interaction |
+| HodlPoolV3 |      82     | ERC165,ERC721 |                    |      No      |    Receive ETH     |
+|            |             |               |                    |              |      Send ETH      |
+|            |             |               |                    |              | Tokens interaction |
+|            |             |               |                    |              |      Assembly      |
+|   IWETH    |      3      |               |                    |      No      |    Receive ETH     |
+|  FeeToken  |      30     |     ERC20     |     No Minting     |      No      |                    |
+|            |             |               | Approve Race Cond. |              |                    |
+|            |             |               |                    |              |                    |
+| SomeToken  |      29     |     ERC20     |     No Minting     |      No      |                    |
+|            |             |               | Approve Race Cond. |              |                    |
+|            |             |               |                    |              |                    |
+|    WETH    |      9      |     ERC20     |     No Minting     |      No      |    Receive ETH     |
+|            |             |               | Approve Race Cond. |              |      Send ETH      |
+|            |             |               |                    |              |                    |
++------------+-------------+---------------+--------------------+--------------+--------------------+
+INFO:Slither:. analyzed (21 contracts)
 INFO:Slither:Use https://crytic.io/ to get access to additional detectors and Github integration

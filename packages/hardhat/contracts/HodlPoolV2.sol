@@ -466,6 +466,8 @@ contract HodlPoolV2 {
   function _withdrawETH(address account) internal {
     uint withdrawAmount = _withdrawAmountAndUpdate(WETH, account);
     IWETH(WETH).withdraw(withdrawAmount);
+    // call is used because if contract is withdrawing it may need more gas than what .transfer sends
+    // slither-disable-next-line low-level-calls 
     (bool success,) = payable(account).call{value: withdrawAmount}("");
     require(success);
   }
