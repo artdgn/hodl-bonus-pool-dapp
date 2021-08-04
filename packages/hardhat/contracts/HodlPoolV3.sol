@@ -238,8 +238,7 @@ contract HodlPoolV3 is ERC721Enumerable {
     ];
   }
 
-  function poolDetails(uint tokenId) external view returns (uint[5] memory) {
-    address asset = deposits[tokenId].asset;
+  function poolDetails(address asset) external view returns (uint[5] memory) {
     Pool storage pool = pools[asset];
     return [
       _sharesToAmount(asset, pool.depositsSum),  // depositsSum
@@ -248,6 +247,21 @@ contract HodlPoolV3 is ERC721Enumerable {
       _totalHoldPoints(pool),  // totalHoldPoints
       pool.totalCommitPoints  // totalCommitPoints
     ];
+  }
+
+  function depositsOfOwner(
+    address account
+  ) external view returns (
+    uint[] memory tokenIds,
+    Deposit[] memory accountDeposits
+  ) {
+    uint balance = balanceOf(account);
+    tokenIds = new uint[](balance);
+    accountDeposits = new Deposit[](balance);
+    for (uint i; i < balance; i++) {
+      tokenIds[i] = tokenOfOwnerByIndex(account, i);
+      accountDeposits[i] = deposits[tokenIds[i]];
+    }
   }
 
   /* * * * * * * * * * * *

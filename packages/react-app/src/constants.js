@@ -55,7 +55,7 @@ export const NETWORKS = {
     faucet: "https://gitter.im/kovan-testnet/faucet", // https://faucet.kovan.network/
     contractAddresses: {
       // "HodlPoolV1": "0xf15E3349B9CB5452638130cd958E3f1be2f934Eb",
-      "HodlPoolV2": "0x42dF7571ae24135E892128B7C70400d8C02c757f"
+      // "HodlPoolV2": "0x42dF7571ae24135E892128B7C70400d8C02c757f"
     },
   },
   rinkeby: {

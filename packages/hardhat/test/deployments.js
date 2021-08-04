@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
 
-const contractName = "HodlPoolV2";
+const contractName = "HodlPoolV3";
 const wethContractName = "WETH";
 
 use(solidity);

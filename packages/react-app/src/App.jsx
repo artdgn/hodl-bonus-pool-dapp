@@ -11,7 +11,7 @@ import { useGasPrice, useUserProvider, useContractLoader } from "./hooks";
 import { Header, Account, Faucet, Contract, ThemeSwitch } from "./components";
 import { Transactor } from "./helpers";
 import { parseEther } from "@ethersproject/units";
-import { HodlPoolV2UI } from "./views"
+import { HodlPoolV3UI } from "./views"
 // import {  Subgraph } from "./views"
 import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork, feeTokenContractName, tokenContractName } from "./constants";
 // eslint-disable-next-line
@@ -172,7 +172,7 @@ function App(props) {
         //   <Switch>
         //     <Route exact path="/">
 
-              <HodlPoolV2UI
+              <HodlPoolV3UI
                 address={address}
                 tx={tx}
                 writeContracts={writeContracts}

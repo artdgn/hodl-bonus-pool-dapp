@@ -3,23 +3,37 @@ const { ethers, network, config } = require("hardhat");
 class TestUtils {
     
     // all contract views in a single object
-    static async getState(contract, tokenContract, signer) {
-        const depositDetails = await contract.depositDetails(
-            tokenContract.address, signer.address);
+    static async getState(contract, tokenContract, depositId) {
+        return {
+            ...await this.depositDetails(contract, depositId), 
+            ...await this.poolDetails(contract, tokenContract)
+        }
+    }
+
+    // all contract views in a single object
+    static async depositDetails(contract, depositId) {
+        const depositDetails = await contract.depositDetails(depositId);
+        const numToAddress = (v) => ethers.utils.getAddress(`0x${v.toHexString().slice(-40)}`);
+        return {
+            asset: numToAddress(depositDetails[0]),
+            account: numToAddress(depositDetails[1]),
+            balance: depositDetails[2],
+            timeLeftToHold: depositDetails[3],
+            penalty: depositDetails[4],
+            holdBonus: depositDetails[5],
+            commitBonus: depositDetails[6],
+            holdPoints: depositDetails[7],
+            commitPoints: depositDetails[8],
+            initialPenaltyPercent: depositDetails[9],
+            currentPenaltyPercent: depositDetails[10],
+            commitPeriod: depositDetails[11],
+        }
+    }
+
+    // all contract views in a single object
+    static async poolDetails(contract, tokenContract) {
         const poolDetails = await contract.poolDetails(tokenContract.address);
         return {
-            // deposit
-            balance: depositDetails[0],
-            timeLeftToHold: depositDetails[1],
-            penalty: depositDetails[2],
-            holdBonus: depositDetails[3],
-            commitBonus: depositDetails[4],
-            holdPoints: depositDetails[5],
-            commitPoints: depositDetails[6],
-            initialPenaltyPercent: depositDetails[7],
-            currentPenaltyPercent: depositDetails[8],
-            commitPeriod: depositDetails[9],
-            // pool
             depositsSum: poolDetails[0],
             holdBonusesSum: poolDetails[1],
             commitBonusesSum: poolDetails[2],
@@ -28,11 +42,20 @@ class TestUtils {
         }
     }
 
+    // all contract views in a single object
+    static async depositsOfOwner(contract, signer) {
+        const res = await contract.depositsOfOwner(signer.address);
+        return {
+            ids: res.tokenIds,
+            assets: res.tokenIds,
+        }       
+    }
+
     // logging helper
     static logState(stateObj) {
         const numbersObj = Object.fromEntries(
             Object.entries(stateObj).map(v => {
-                v[1] = v[1].toNumber(); 
+                v[1] = v[1]?.toNumber ? v[1].toNumber() : v[1]; 
                 return v;
             }));
         console.log(numbersObj);
@@ -56,6 +79,10 @@ class TestUtils {
             delta: endBalance.sub(startBalance),
             lastEvent,
         };
+    }
+
+    static async lastDepositEvent(contract) {
+        return (await contract.queryFilter(contract.filters.Deposited())).pop().args;
     }
 
     // runs transactions and checks ETH balance difference and last event

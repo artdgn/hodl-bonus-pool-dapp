@@ -5,7 +5,7 @@ const { parseUnits } = require("@ethersproject/units");
 
 const { TestUtils: Utils } = require("./utils.js")
 
-const contractName = "HodlPoolV2";
+const contractName = "HodlPoolV3";
 const feeTokenContractName = "FeeToken";
 const wethContractName = "WETH";
 
@@ -66,8 +66,8 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       // make deposits
       await addr1Caller.deposit(
         deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
-
-      const state = await Utils.getState(deployed, deployedFeeToken, addr1);
+      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      const state = await Utils.getState(deployed, deployedFeeToken, dep1);
 
       // check balanceOf()
       expect(state.balance).to.equal(tx * transferRatio);
@@ -87,7 +87,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
         () => deployed.queryFilter(deployed.filters.Withdrawed()),
         deployedFeeToken,
         async () => {
-          await expect(addr1Caller.withdrawWithBonus(deployedFeeToken.address))
+          await expect(addr1Caller.withdrawWithBonus(dep1))
             .to.emit(deployed, "Withdrawed");
         }
       );
@@ -104,6 +104,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       await addr1FeeTokenCaller.approve(deployed.address, tx);
       await addr1Caller.deposit(
         deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
+      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
 
       // move time
       await Utils.evmIncreaseTime((minCommitPeriod / 2) - 1);
@@ -113,7 +114,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
         deployedFeeToken,
         async () => {
-          await expect(addr1Caller.withdrawWithPenalty(deployedFeeToken.address))
+          await expect(addr1Caller.withdrawWithPenalty(dep1))
             .to.emit(deployed, "Withdrawed");
         }
       );
@@ -122,7 +123,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       expect(withdrawal1.lastEvent.amount).to.equal(tx * transferRatio / 2);
       expect(withdrawal1.delta).to.equal(tx * transferRatio * transferRatio / 2);  // due to second transfer
 
-      const state = await Utils.getState(deployed, deployedFeeToken, addr1);
+      const state = await Utils.poolDetails(deployed, deployedFeeToken);
       // check bonus pool
       expect(state.holdBonusesSum.add(state.commitBonusesSum))
         .to.equal(tx * transferRatio / 2)
@@ -131,6 +132,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       await addr1FeeTokenCaller.approve(deployed.address, tx);
       await addr1Caller.deposit(
         deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
+      const dep2 = (await Utils.lastDepositEvent(deployed)).tokenId;
 
       // move time
       await Utils.evmIncreaseTime(minCommitPeriod);
@@ -140,7 +142,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
         deployedFeeToken,
         async () => {
-          await expect(addr1Caller.withdrawWithBonus(deployedFeeToken.address))
+          await expect(addr1Caller.withdrawWithBonus(dep2))
             .to.emit(deployed, "Withdrawed");
         }
       );

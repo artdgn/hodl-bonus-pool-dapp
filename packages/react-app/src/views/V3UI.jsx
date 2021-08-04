@@ -11,9 +11,9 @@ import { useContractExistsAtAddress, useContractReader, useEventListener, useTok
 import { InfoCircleTwoTone, WarningTwoTone, 
   LoadingOutlined, QuestionOutlined, DollarTwoTone } from "@ant-design/icons";
 import { MotivationButton, MechanismButton, IncentivesButton, PenaltyTooltip, 
-  CommitTimeTooltip, DepositModalContent } from "./V2ContentComponents";
+  CommitTimeTooltip, DepositModalContent } from "./V3ContentComponents";
 
-class HodlPoolV2StateHooks {
+class HodlPoolV3StateHooks {
 
   constructor(contract, address, tokenAddress) {
     this.address = contract?.address;
@@ -157,7 +157,7 @@ function useERC20ContractAtAddress(address, provider) {
   return contract;
 }
 
-export function HodlPoolV2UI(
+export function HodlPoolV3UI(
   { address, provider, blockExplorer, tx, readContracts, writeContracts, contractName }) {
 
   // main contract
@@ -180,7 +180,7 @@ export function HodlPoolV2UI(
   const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
   const tokenState = new TokenStateHooks(
     tokenContract, address, contractAddress, setLoading, setError);
-  const contractState = new HodlPoolV2StateHooks(contract, address, tokenAddress);
+  const contractState = new HodlPoolV3StateHooks(contract, address, tokenAddress);
 
   useEffect(() => {
     // set defaults when available

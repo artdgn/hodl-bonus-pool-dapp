@@ -4,7 +4,7 @@ const { solidity } = require("ethereum-waffle");
 
 const { TestUtils: Utils } = require("./utils.js")
 
-const contractName = "HodlPoolV2";
+const contractName = "HodlPoolV3";
 const wethContractName = "WETH";
 
 use(solidity);
@@ -48,15 +48,15 @@ describe(`${contractName} ETH: basic logic`, function () {
 
     it("can't deposit 0", async function () {
       expect(addr1Caller
-        .depositETH(minInitialPenaltyPercent, minCommitPeriod)).to.revertedWith("too small");
+        .depositETH(minInitialPenaltyPercent, minCommitPeriod)).to.revertedWith("empty deposit");
     })
 
     it("can't withdrawWithBonusETH if didn't deposit", async function () {
-      expect(addr1Caller.withdrawWithBonusETH()).to.revertedWith("no deposit");
+      expect(addr1Caller.withdrawWithBonusETH(0)).to.revertedWith("nonexistent");
     });
 
     it("can't withdrawWithPenaltyETH if didn't deposit", async function () {
-      expect(addr1Caller.withdrawWithPenaltyETH()).to.revertedWith("no deposit");
+      expect(addr1Caller.withdrawWithPenaltyETH(0)).to.revertedWith("nonexistent");
     });
 
     it("can deposit twice", async function () {
@@ -75,13 +75,29 @@ describe(`${contractName} ETH: basic logic`, function () {
       );
       
       const blockTimestamp = (await ethers.provider.getBlock()).timestamp;
+      const numDeposits = await deployed.balanceOf(addr1.address);
+      const dep1 = await deployed.tokenOfOwnerByIndex(addr1.address, 0);
+      const dep2 = await deployed.tokenOfOwnerByIndex(addr1.address, 1);
+
+      expect(numDeposits).to.equal(2);
+      const deposits = await deployed.depositsOfOwner(addr1.address);
+
+      // check deposits
+      expect(deposits.tokenIds.length).to.equal(2)
+      expect(deposits.tokenIds[0]).to.equal(dep1)
+      expect(deposits.accountDeposits[0].asset).to.equal(deployedWETH.address);
+      expect(deposits.accountDeposits[0].amount).to.equal(tx.value);
+      expect(deposits.tokenIds[1]).to.equal(dep2)
+      expect(deposits.accountDeposits[1].asset).to.equal(deployedWETH.address);
+      expect(deposits.accountDeposits[1].amount).to.equal(tx.value);
 
       const expectedSum = tx.value * 2;
-      const state = await Utils.getState(deployed, deployedWETH, addr1);
+      const state1 = await Utils.getState(deployed, deployedWETH, dep1);
+      const state2 = await Utils.getState(deployed, deployedWETH, dep2);
       // check balanceOf()
-      expect(state.balance).to.equal(expectedSum);
+      expect(state1.balance.add(state2.balance)).to.equal(expectedSum);
       // check depositsSum      
-      expect(state.depositsSum).to.equal(expectedSum);
+      expect(state1.depositsSum).to.equal(expectedSum);
       // check event
       expect(depositTwice.lastEvent.account).to.equal(addr1.address);
       expect(depositTwice.lastEvent.amount).to.equal(tx.value);
@@ -91,8 +107,9 @@ describe(`${contractName} ETH: basic logic`, function () {
     it("penaltyOf & withdrawWithBonusETH & timeLeftToHoldOf with time passage", async function () {
       await addr1Caller.depositETH(
         minInitialPenaltyPercent, minCommitPeriod, { value: 1000 });
+      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
         
-      const state0 = await Utils.getState(deployed, deployedWETH, addr1);
+      const state0 = await Utils.getState(deployed, deployedWETH, dep1);
       const depositBalance = state0.balance;
       // should be full penalty
       expect(state0.penalty).to.equal(depositBalance);
@@ -101,17 +118,17 @@ describe(`${contractName} ETH: basic logic`, function () {
 
       // back to the future to 50% time
       await Utils.evmIncreaseTime(minCommitPeriod / 2)
-      const state1 = await Utils.getState(deployed, deployedWETH, addr1);
+      const state1 = await Utils.getState(deployed, deployedWETH, dep1);
       expect(state1.penalty).to.equal(depositBalance / 2);
       // only half the time left to wait
       expect(state1.timeLeftToHold).to.equal(minCommitPeriod / 2);
 
       // try to withdraw without penalty and fail
-      await expect(addr1Caller.withdrawWithBonusETH()).to.revertedWith("penalty");
+      await expect(addr1Caller.withdrawWithBonusETH(dep1)).to.revertedWith("penalty");
       
       // back to the future to 100% time
       await Utils.evmIncreaseTime(minCommitPeriod / 2)
-      const state2 = await Utils.getState(deployed, deployedWETH, addr1);
+      const state2 = await Utils.getState(deployed, deployedWETH, dep1);
       expect(state2.penalty).to.equal(0);
       // no need to wait any longer
       expect(state2.timeLeftToHold).to.equal(0);
@@ -120,7 +137,7 @@ describe(`${contractName} ETH: basic logic`, function () {
         addr1.address, 
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
         async () => {
-          await expect(addr1Caller.withdrawWithBonusETH({ gasPrice: 0 }))
+          await expect(addr1Caller.withdrawWithBonusETH(dep1, { gasPrice: 0 }))
             .to.emit(deployed, "Withdrawed");
         }
       );
@@ -136,12 +153,13 @@ describe(`${contractName} ETH: basic logic`, function () {
       expect(withdrawal.lastEvent.timeHeld).to.gt(minCommitPeriod);
 
       // check can't withdraw any more
-      expect(addr1Caller.withdrawWithPenaltyETH()).to.revertedWith("no deposit");
+      expect(addr1Caller.withdrawWithPenaltyETH(dep1)).to.revertedWith("nonexistent");
     });
 
-    it("withdrawWithPenalty before commit period end", async function () {
+    it("withdrawWithPenaltyETH before commit period end", async function () {
       const tx = { value: 1000 };
       await addr1Caller.depositETH(minInitialPenaltyPercent, minCommitPeriod, tx);
+      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
 
       // back to the future to 50% time
       await Utils.evmIncreaseTime((minCommitPeriod / 2) - 1);  // write transaction will add some time
@@ -150,7 +168,7 @@ describe(`${contractName} ETH: basic logic`, function () {
         addr1.address,
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
         async () => {
-          await expect(addr1Caller.withdrawWithPenaltyETH({ gasPrice: 0 }))
+          await expect(addr1Caller.withdrawWithPenaltyETH(dep1, { gasPrice: 0 }))
             .to.emit(deployed, "Withdrawed");
         }
       );
@@ -167,7 +185,7 @@ describe(`${contractName} ETH: basic logic`, function () {
       expect(withdrawal.lastEvent.timeHeld).to.equal(minCommitPeriod / 2);
 
       // check can't withdraw any more
-      expect(addr1Caller.withdrawWithPenaltyETH()).to.revertedWith("no deposit");
+      expect(addr1Caller.withdrawWithPenaltyETH(dep1)).to.revertedWith("nonexistent");
     });
 
   });
@@ -185,11 +203,13 @@ describe(`${contractName} ETH: basic logic`, function () {
       const tx1 = { value: 1000 };
       const tx2 = { value: 2000 };
       await addr1Caller.depositETH(minInitialPenaltyPercent, minCommitPeriod, tx1);
+      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
       await addr2Caller.depositETH(minInitialPenaltyPercent, minCommitPeriod, tx2);
+      const dep2 = (await Utils.lastDepositEvent(deployed)).tokenId;
 
       // no bunus initially
-      const state1 = await Utils.getState(deployed, deployedWETH, addr1);
-      const state2 = await Utils.getState(deployed, deployedWETH, addr2);
+      const state1 = await Utils.getState(deployed, deployedWETH, dep1);
+      const state2 = await Utils.getState(deployed, deployedWETH, dep2);
       expect(state1.commitBonus).to.equal(0);
       expect(state1.holdBonus).to.equal(0);
       expect(state2.commitBonus).to.equal(0);
@@ -201,7 +221,7 @@ describe(`${contractName} ETH: basic logic`, function () {
       const withdrawal1 = await Utils.callCaptureEventAndBalanceETH(
         addr1.address, 
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
-        async () =>  await addr1Caller.withdrawWithPenaltyETH({ gasPrice: 0 })
+        async () =>  await addr1Caller.withdrawWithPenaltyETH(dep1, { gasPrice: 0 })
       );
       
       // check penalty was non-0
@@ -209,12 +229,12 @@ describe(`${contractName} ETH: basic logic`, function () {
       expect(penalty1).to.gt(0);
 
       // check bonus of 2 is penalty of 1
-      const state3 = await Utils.getState(deployed, deployedWETH, addr2);
+      const state3 = await Utils.getState(deployed, deployedWETH, dep2);
       expect(state3.holdBonus.add(state3.commitBonus)).to.equal(penalty1);
       expect(state3.holdBonusesSum.add(state3.commitBonusesSum)).to.equal(penalty1);
 
       // check 2 can't withdraw with bonus too soon
-      await expect(addr2Caller.withdrawWithBonusETH()).to.revertedWith("penalty");
+      await expect(addr2Caller.withdrawWithBonusETH(dep2)).to.revertedWith("penalty");
 
       // move time
       await Utils.evmIncreaseTime(minCommitPeriod);  
@@ -223,7 +243,7 @@ describe(`${contractName} ETH: basic logic`, function () {
       const withdrawal2 = await Utils.callCaptureEventAndBalanceETH(
         addr2.address, 
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
-        async () =>  await addr2Caller.withdrawWithBonusETH({ gasPrice: 0 })
+        async () =>  await addr2Caller.withdrawWithBonusETH(dep2, { gasPrice: 0 })
       );
 
       const bonus2 = ethers.BigNumber.from(withdrawal2.delta).sub(tx2.value);
@@ -239,23 +259,26 @@ describe(`${contractName} ETH: basic logic`, function () {
       expect(withdrawal2.lastEvent.timeHeld).to.gt(minCommitPeriod);
 
       // check can't withdraw any more
-      await expect(addr2Caller.withdrawWithPenaltyETH()).to.revertedWith("no deposit");
+      await expect(addr2Caller.withdrawWithPenaltyETH(dep2)).to.revertedWith("nonexistent");
     });
 
     it("bonus divided correctly between two holders", async function () {
       const tx = { value: 1000 };
       await addr1Caller.depositETH(minInitialPenaltyPercent, minCommitPeriod, tx);
+      const dep0 = (await Utils.lastDepositEvent(deployed)).tokenId;
       
       // withdraw with penalty
-      await addr1Caller.withdrawWithPenaltyETH();
+      await addr1Caller.withdrawWithPenaltyETH(dep0);
 
       // deposit again as 1, and deposit as 2, but twice as much
       await addr1Caller.depositETH(minInitialPenaltyPercent, minCommitPeriod, tx);
+      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
       await addr2Caller.depositETH(
         minInitialPenaltyPercent, minCommitPeriod, {value: tx.value * 2}); 
+      const dep2 = (await Utils.lastDepositEvent(deployed)).tokenId;
 
-      const state1 = await Utils.getState(deployed, deployedWETH, addr1);
-      const state2 = await Utils.getState(deployed, deployedWETH, addr2);
+      const state1 = await Utils.getState(deployed, deployedWETH, dep1);
+      const state2 = await Utils.getState(deployed, deployedWETH, dep2);
       // check 2 deserves bonus (if holds)
       expect(state1.commitBonus).to.gt(0);  // check deserves bonus
       // check bonuses are divided correctly
@@ -268,12 +291,12 @@ describe(`${contractName} ETH: basic logic`, function () {
       // move time
       await Utils.evmIncreaseTime(minCommitPeriod);
 
-      const state3 = await Utils.getState(deployed, deployedWETH, addr2);
+      const state3 = await Utils.getState(deployed, deployedWETH, dep2);
       // check actual withdrawal matches bonusOf
       const withdrawal2 = await Utils.callCaptureEventAndBalanceETH(
         addr2.address, 
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
-        async () =>  await addr2Caller.withdrawWithPenaltyETH({ gasPrice: 0 })
+        async () =>  await addr2Caller.withdrawWithPenaltyETH(dep2, { gasPrice: 0 })
       ); 
 
       // check two gets correct amount of commit bonus
