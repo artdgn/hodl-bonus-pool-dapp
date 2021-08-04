@@ -3,11 +3,11 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "./IWETH.sol";
+import "./extensions/ERC721EnumerableForOwner.sol";
+import "./extensions/IWETH.sol";
 
 
-contract HodlPoolV3 is ERC721Enumerable {
+contract HodlPoolV3 is ERC721EnumerableForOwner {
 
   using SafeERC20 for IERC20;
 
@@ -93,7 +93,7 @@ contract HodlPoolV3 is ERC721Enumerable {
   /// @notice contract doesn't support sending ETH directly
   receive() external payable {
     require(
-      _msgSender() == WETH, 
+      msg.sender == WETH, 
       "no receive() except from WETH contract, use depositETH()");
   }
 
@@ -118,7 +118,7 @@ contract HodlPoolV3 is ERC721Enumerable {
     // interal accounting update
     tokenId = _depositAndMint(
       asset, 
-      _msgSender(),
+      msg.sender,
       amount,
       initialPenaltyPercent, 
       commitPeriod
@@ -128,7 +128,7 @@ contract HodlPoolV3 is ERC721Enumerable {
     uint beforeBalance = IERC20(asset).balanceOf(address(this));
 
     // transfer
-    IERC20(asset).safeTransferFrom(_msgSender(), address(this), amount);
+    IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
     // what was actually received, this amount is only used in the event and 
     // not used for any internal accounting so reentrancy from transfer is not
@@ -139,7 +139,7 @@ contract HodlPoolV3 is ERC721Enumerable {
     // slither-disable-next-line reentrancy-events
     emit Deposited(
       asset,
-      _msgSender(), 
+      msg.sender, 
       amount, 
       amountReceived, 
       block.timestamp, 
@@ -162,7 +162,7 @@ contract HodlPoolV3 is ERC721Enumerable {
     // interal accounting update
     tokenId = _depositAndMint(
       WETH, 
-      _msgSender(),
+      msg.sender,
       msg.value,
       initialPenaltyPercent, 
       commitPeriod
@@ -170,7 +170,7 @@ contract HodlPoolV3 is ERC721Enumerable {
 
     emit Deposited(
       WETH, 
-      _msgSender(), 
+      msg.sender, 
       msg.value, 
       msg.value, 
       block.timestamp, 
@@ -186,7 +186,7 @@ contract HodlPoolV3 is ERC721Enumerable {
   
   function withdrawWithBonus(uint tokenId) external {
     require(
-      _depositPenalty(deposits[tokenId]) == 0, 
+      _timeLeft(deposits[tokenId]) == 0, 
       "cannot withdraw without penalty yet, use withdrawWithPenalty()"
     );
     _withdraw(tokenId);
@@ -195,7 +195,7 @@ contract HodlPoolV3 is ERC721Enumerable {
   /// @notice withdraw ETH with penalty with same logic as withdrawWithPenalty()
   function withdrawWithBonusETH(uint tokenId) external {
     require(
-      _depositPenalty(deposits[tokenId]) == 0, 
+      _timeLeft(deposits[tokenId]) == 0, 
       "cannot withdraw without penalty yet, use withdrawWithPenaltyETH()"
     );
     _withdrawETH(tokenId);
@@ -223,8 +223,8 @@ contract HodlPoolV3 is ERC721Enumerable {
     address account = ownerOf(tokenId);
     Deposit storage dep = deposits[tokenId];
     return [
-      uint(uint160(dep.asset)),
-      uint(uint160(account)),
+      uint(uint160(dep.asset)),  // asset
+      uint(uint160(account)),  // account owner
       _sharesToAmount(dep.asset, dep.amount),  // balance
       _timeLeft(dep),  // timeLeftToHold
       _sharesToAmount(dep.asset, _depositPenalty(dep)),  // penalty
@@ -252,8 +252,8 @@ contract HodlPoolV3 is ERC721Enumerable {
   function depositsOfOwner(
     address account
   ) external view returns (
-    uint[] memory tokenIds,
-    Deposit[] memory accountDeposits
+      uint[] memory tokenIds, 
+      Deposit[] memory accountDeposits
   ) {
     uint balance = balanceOf(account);
     tokenIds = new uint[](balance);
@@ -278,12 +278,14 @@ contract HodlPoolV3 is ERC721Enumerable {
     uint amount, 
     uint initialPenaltyPercent, 
     uint commitPeriod
-  ) internal returns (uint tokenId) {      
-        
+  ) internal returns (uint tokenId) {
+    // get token id and increment
     tokenId = nextTokenId++;
 
+    // mint token
     _mint(account, tokenId);
 
+    // add deposit data
     deposits[tokenId] = Deposit({
       asset: asset,
       time: uint40(block.timestamp),
@@ -292,13 +294,11 @@ contract HodlPoolV3 is ERC721Enumerable {
       amount: amount
     });
 
+    // pool state update
     _addDepositToPool(asset, deposits[tokenId]);
-
-    return tokenId;
   }
 
   function _addDepositToPool(address asset, Deposit storage dep) internal {
-    // pool update    
     Pool storage pool = pools[asset];
     // update pool's total hold time due to passage of time
     // because the deposits sum is going to change
@@ -319,7 +319,7 @@ contract HodlPoolV3 is ERC721Enumerable {
   function _withdraw(uint tokenId) internal {
     address asset = deposits[tokenId].asset;
     address account = ownerOf(tokenId);
-    require(account == _msgSender(), "not deposit owner");
+    require(account == msg.sender, "not deposit owner");
     uint amountOut = _amountOutAndBurn(tokenId);
     // WARNING: asset and account must be set before token is burned
     IERC20(asset).safeTransfer(account, amountOut);
@@ -327,7 +327,7 @@ contract HodlPoolV3 is ERC721Enumerable {
 
   function _withdrawETH(uint tokenId) internal {
     address account = ownerOf(tokenId);
-    require(account == _msgSender(), "not deposit owner");
+    require(account == msg.sender, "not deposit owner");
     require(deposits[tokenId].asset == WETH, "not an ETH / WETH deposit");
     
     uint amountOut = _amountOutAndBurn(tokenId);
@@ -335,9 +335,7 @@ contract HodlPoolV3 is ERC721Enumerable {
     IWETH(WETH).withdraw(amountOut);
     // WARNING: account must be set before token is burned
     // - call is used because if contract is withdrawing it may need more gas than what .transfer sends
-    // - arbitrary-send is disbaled because slither returns false positive
-    //   for using _msgSender() instead instead of using msg.sender directly and 
-    // slither-disable-next-line low-level-calls,arbitrary-send
+    // slither-disable-next-line low-level-calls
     (bool success, ) = payable(account).call{value: amountOut}("");
     require(success);
   }
@@ -346,76 +344,77 @@ contract HodlPoolV3 is ERC721Enumerable {
   function _amountOutAndBurn(uint tokenId) internal returns (uint amountOut) {
     // WARNING: deposit is only read here and is not updated until it's removal
     Deposit storage dep = deposits[tokenId];
+    address asset = dep.asset;
 
-    Pool storage pool = pools[dep.asset];
+    Pool storage pool = pools[asset];
     // update pool hold-time points due to passage of time
     // WARNING: failing to do so will break hold-time holdBonus calculation
     _updatePoolHoldPoints(pool);
 
     // calculate penalty & bunus before making changes
     uint penalty = _depositPenalty(dep);
+    uint holdBonus = 0;
+    uint commitBonus = 0;
+    uint withdrawShare = dep.amount - penalty;
+    if (penalty == 0) {
+      // only get any bonuses if no penalty
+      holdBonus =  _holdBonus(dep);
+      commitBonus =  _commitBonus(dep);
+      withdrawShare += holdBonus + commitBonus;
+    }
     
-    // only get any bonuses if no penalty
-    uint holdBonus = (penalty == 0) ? _holdBonus(dep) : 0;
-    uint commitBonus = (penalty == 0) ? _commitBonus(dep) : 0;
-    uint withdrawShare = dep.amount - penalty + holdBonus + commitBonus;    
-
     // WARNING: get amount here before state is updated
-    amountOut = _sharesToAmount(dep.asset, withdrawShare);
+    amountOut = _sharesToAmount(asset, withdrawShare);
 
-    // WARNING: emit event here with all the needed data, before state updates
-    // affect shareToAmount calculations
-    // this refactor is needed for handling stack-too-deep error because for some
-    // reason just putting it in its own scope didn't help
-    _emitWithdrawalEvent(
-      dep.asset, ownerOf(tokenId), dep, penalty, holdBonus, commitBonus, amountOut);
+    // WARNING: emit event here with all the needed data, before pool state updates
+    // affect shareToAmount calculations    
+    emit Withdrawed(
+      asset,
+      ownerOf(tokenId),
+      amountOut, 
+      dep.amount, 
+      _sharesToAmount(asset, penalty), 
+      _sharesToAmount(asset, holdBonus), 
+      _sharesToAmount(asset, commitBonus), 
+      _timeHeld(dep.time)
+    );
 
     // pool state update
-    // WARNING: should happen after calculating shares, because the depositSum changes    
+    // WARNING: shares calculations need to happen before this update
+    // because the depositSum changes    
+    _removeDepositFromPool(pool, dep, penalty, holdBonus, commitBonus);
+    
+    // deposit update: remove deposit
+    // WARNING: note that removing the deposit before this line will 
+    // change "dep" because it's used by reference and will affect the other
+    // computations for pool state updates (e.g. hold points)    
+    delete deposits[tokenId];   
+
+    // burn token
+    _burn(tokenId);
+  }
+
+  function _removeDepositFromPool(
+    Pool storage pool, Deposit storage dep, uint penalty, uint holdBonus, uint commitBonus
+  ) internal {
     // update total deposits
     pool.depositsSum -= dep.amount;        
     // remove the acrued hold-points for this deposit
     pool.totalHoldPoints -= _holdPoints(dep);
     // remove the commit-points
     pool.totalCommitPoints -= _commitPoints(dep);
-    // update hold-bonus pool: split the penalty into two parts
-    // half for hold bonuses, half for commit bonuses
-    uint holdBonusPoolUpdate = penalty / 2;
-    uint commitBonusPoolUpdate = penalty - holdBonusPoolUpdate;
-    pool.holdBonusesSum = pool.holdBonusesSum + holdBonusPoolUpdate - holdBonus;
-    // update commitBonus pool
-    pool.commitBonusesSum = pool.commitBonusesSum + commitBonusPoolUpdate - commitBonus;  
-
-    // deposit update: remove deposit
-    // WARNING: note that removing the deposit before this line will 
-    // change "dep" because it's used by reference and will affect the other
-    // computations for pool state updates (e.g. hold points)    
-    delete deposits[tokenId];    
-    // burn token
-    _burn(tokenId);
-
-    return amountOut;
-  }
-
-  /// @dev emits the Withdrawed event
-  function _emitWithdrawalEvent(
-    address asset, 
-    address account, 
-    Deposit storage dep,
-    uint penalty,
-    uint holdBonus,
-    uint commitBonus,
-    uint amountOut
-  ) internal {  
-    emit Withdrawed(
-      asset,
-      account,
-      amountOut, 
-      dep.amount, 
-      _sharesToAmount(asset, penalty), 
-      _sharesToAmount(asset, holdBonus), 
-      _sharesToAmount(asset, commitBonus), 
-      _timeHeld(dep.time));
+        
+    if (penalty == 0 && (holdBonus > 0 || commitBonus > 0)) {
+      pool.holdBonusesSum -= holdBonus;
+      // update commitBonus pool
+      pool.commitBonusesSum -= commitBonus;  
+    } else {
+      // update hold-bonus pool: split the penalty into two parts
+      // half for hold bonuses, half for commit bonuses
+      pool.holdBonusesSum += penalty / 2;
+      // update commitBonus pool
+      pool.commitBonusesSum += (penalty - (penalty / 2));
+    }
   }
 
   /* * * * * * * * *
@@ -431,7 +430,7 @@ contract HodlPoolV3 is ERC721Enumerable {
 
   function _timeLeft(Deposit storage dep) internal view returns (uint) {
     uint timeHeld = _timeHeld(dep.time);
-    return (timeHeld < dep.commitPeriod) ? (dep.commitPeriod - timeHeld) : 0;
+    return (timeHeld >= dep.commitPeriod) ? 0 : (dep.commitPeriod - timeHeld);
   }
 
   function _holdPoints(Deposit storage dep) internal view returns (uint) {

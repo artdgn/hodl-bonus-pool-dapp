@@ -3,7 +3,7 @@ pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./IWETH.sol";
+import "./extensions/IWETH.sol";
 
 /*
  * @title Token pools that allow different ERC20 tokens and ETH deposits and withdrawals
