@@ -328,7 +328,7 @@ contract HodlPoolV3 is ERC721Enumerable {
   function _withdrawETH(uint tokenId) internal {
     address account = ownerOf(tokenId);
     require(account == _msgSender(), "not deposit owner");
-    require(deposits[tokenId].asset == WETH, "not an ETH / WETH deposit"); // testcase withdraw wrong deposit as ETH
+    require(deposits[tokenId].asset == WETH, "not an ETH / WETH deposit");
     
     uint amountOut = _amountOutAndBurn(tokenId);
 

@@ -109,7 +109,7 @@ describe(`${contractName} tokens: advanced logic`, function () {
       period1 = 10000;
       penalty1 = 50;
       await addr1Caller.deposit(deployedToken.address, 1000, penalty1, period1);
-      dep0 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
     });
 
     it("can reduce commitment time on next", async function () {
@@ -119,6 +119,20 @@ describe(`${contractName} tokens: advanced logic`, function () {
     it("can reduce penalty on next", async function () {
       // should work
       await addr1Caller.deposit(deployedToken.address, 1000, penalty1 / 2, period1);
+    });
+
+    it("first deposit commitment not affected", async function () {
+      await addr1Caller.deposit(
+        deployedToken.address, 1000, minInitialPenaltyPercent, minCommitPeriod);
+      const dep2 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      // wait some time
+      await Utils.evmIncreaseTime(minCommitPeriod);  // half of commit period
+      state2 = await Utils.getState(deployed, deployedToken, dep2);
+      // can withdraw second one
+      await addr1Caller.withdrawWithBonus(dep2);
+      // but can't withdraw first
+      expect(addr1Caller.withdrawWithBonus(dep1))
+        .to.revertedWith("penalty");
     });
 
     it("new penalty cannot be less than minInitialPenaltyPercent", async function () {

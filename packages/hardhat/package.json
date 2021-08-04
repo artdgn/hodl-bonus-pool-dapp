@@ -39,7 +39,7 @@
     "send": "hardhat send",
     "generate": "hardhat generate",
     "account": "hardhat account",
-    "gas-report": "yarn compile && REPORT_GAS=True yarn test test/test*.js",
+    "gas-report": "yarn compile && REPORT_GAS=True yarn test test/*.js",
     "install-slither": "python3 -m venv .venv && . .venv/bin/activate && pip install slither-analyzer",
     "slither": ".venv/bin/python -m slither . --exclude incorrect-equality,timestamp,solc-version --filter-paths 'openzeppelin|tokens' --disable-color --print human-summary 2>&1 | tee slitherReport.txt "
   }
