@@ -115,6 +115,46 @@ describe(`${contractName} deposits: access control`, function () {
 
   });
 
+  describe("deposit for other account", function () {
+    let addr1Caller;
+    let addr2Caller;
+    let addr1TokenCaller;
+    let state1;
+    let dep1;
+
+    beforeEach(async () => {
+      addr1Caller = deployed.connect(addr1);      
+      addr1TokenCaller = deployedToken.connect(addr1);
+      await addr1TokenCaller.approve(deployed.address, parseUnits("1", 18));
+      addr2Caller = deployed.connect(addr2);
+    });
+
+    it("depositFor withdrawals", async function () {
+      await addr1Caller.depositFor(addr2.address, deployedToken.address, 1000, 50, 20);
+      dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      // depositor can't withdraw
+      expect(
+        addr1Caller.withdrawWithPenalty(dep1)).to.revertedWith("not deposit owner");      
+      state1 = await Utils.getState(deployed, deployedToken, dep1);
+      expect(state1.account).to.eq(addr2.address);      
+      // new owner can withdraw
+      await addr2Caller.withdrawWithPenalty(dep1);
+    });
+
+    it("depositETHFor withdrawals", async function () {
+      await addr1Caller.depositETHFor(addr2.address, 50, 20, { value: 1000 });
+      dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      // depositor can't withdraw
+      expect(
+        addr1Caller.withdrawWithPenaltyETH(dep1)).to.revertedWith("not deposit owner");      
+      state1 = await Utils.getState(deployed, deployedWETH, dep1);
+      expect(state1.account).to.eq(addr2.address);      
+      // new owner can withdraw
+      await addr2Caller.withdrawWithPenaltyETH(dep1);
+    });
+
+  });
+
   describe("mixing ETH and token methods", function () {
     let addr1Caller;
     let addr1TokenCaller;

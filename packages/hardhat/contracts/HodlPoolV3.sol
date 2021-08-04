@@ -10,6 +10,7 @@ import "./extensions/IWETH.sol";
 contract HodlPoolV3 is ERC721EnumerableForOwner {
 
   using SafeERC20 for IERC20;
+  using Strings for uint;
 
   struct Deposit {
     address asset;
@@ -109,7 +110,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint amount, 
     uint initialPenaltyPercent,
     uint commitPeriod
-  ) external
+  ) public
     validCommitment(initialPenaltyPercent, commitPeriod) 
     returns (uint tokenId)
   {
@@ -152,7 +153,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
   function depositETH(
     uint initialPenaltyPercent,
     uint commitPeriod
-  ) external
+  ) public
     validCommitment(initialPenaltyPercent, commitPeriod) 
     payable
     returns (uint tokenId)
@@ -182,6 +183,30 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     // note: no share vs. balance accounting for WETH because it's assumed to
     // exactly correspond to actual deposits and withdrawals (no fee-on-transfer etc)
     IWETH(WETH).deposit{value: msg.value}();
+  }
+
+  function depositFor(
+    address account,
+    address asset, 
+    uint amount, 
+    uint initialPenaltyPercent,
+    uint commitPeriod
+  ) external
+    validCommitment(initialPenaltyPercent, commitPeriod) 
+    returns (uint tokenId) {
+    tokenId = deposit(asset, amount, initialPenaltyPercent, commitPeriod);
+    transferFrom(msg.sender, account, tokenId);
+  }
+
+  function depositETHFor(
+    address account,
+    uint initialPenaltyPercent,
+    uint commitPeriod
+  ) external payable
+    validCommitment(initialPenaltyPercent, commitPeriod) 
+    returns (uint tokenId) {
+    tokenId = depositETH(initialPenaltyPercent, commitPeriod);
+    transferFrom(msg.sender, account, tokenId);
   }
   
   function withdrawWithBonus(uint tokenId) external {
@@ -262,6 +287,11 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
       tokenIds[i] = tokenOfOwnerByIndex(account, i);
       accountDeposits[i] = deposits[tokenIds[i]];
     }
+  }
+
+  function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+      require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+      return tokenId.toString();
   }
 
   /* * * * * * * * * * * *
@@ -516,6 +546,9 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
       uint actualBalance = IERC20(asset).balanceOf(address(this));      
       return actualBalance * share / totalShares;
     }
-  }  
+  }
+
+  // remove super implementation
+  function _baseURI() internal view virtual override returns (string memory) {}  
     
 }
