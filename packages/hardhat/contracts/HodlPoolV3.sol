@@ -195,7 +195,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     validCommitment(initialPenaltyPercent, commitPeriod) 
     returns (uint tokenId) {
     tokenId = deposit(asset, amount, initialPenaltyPercent, commitPeriod);
-    transferFrom(msg.sender, account, tokenId);
+    _transfer(msg.sender, account, tokenId);
   }
 
   function depositETHFor(
@@ -206,7 +206,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     validCommitment(initialPenaltyPercent, commitPeriod) 
     returns (uint tokenId) {
     tokenId = depositETH(initialPenaltyPercent, commitPeriod);
-    transferFrom(msg.sender, account, tokenId);
+    _transfer(msg.sender, account, tokenId);
   }
   
   function withdrawWithBonus(uint tokenId) external {
@@ -290,9 +290,24 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
   }
 
   function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-      require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-      return tokenId.toString();
-  }
+      require(_exists(tokenId), "ERC721: nonexistent token");
+      Deposit storage dep = deposits[tokenId];
+      return string(abi.encodePacked(
+        '{"name":"Hodl-bonus-pool deposit, tokenId: ', 
+        tokenId.toString(),
+        '", "description":"ERC20 asset address: ',
+        (uint(uint160(dep.asset))).toHexString(20),
+        '\\nDeposited amount: ',
+        dep.amount.toString(),
+        ' wei (of token)\\nDeposited at: ',
+        uint(dep.time).toString(),
+        ' seconds unix epoch\\nInitial penalty percent: ',
+        uint(dep.initialPenaltyPercent).toString(),
+        '%\\nCommitment period: ',
+        uint(dep.commitPeriod).toString(),
+        ' seconds"}'
+      ));
+    }
 
   /* * * * * * * * * * * *
    * 
