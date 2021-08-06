@@ -23,31 +23,43 @@ class HodlPoolV3StateHooks {
       contract, "minInitialPenaltyPercent", [], 86400 * 1000);
     this.minCommitPeriod = useContractReader(
         contract, "minCommitPeriod", [], 86400 * 1000);
-    this.depositDetails = useContractReader(tokenAddress && contract, "depositDetails", [tokenAddress, address]);
-    this.poolDetails = useContractReader(tokenAddress && contract, "poolDetails", [tokenAddress]);
-
-    // unpack deposit details
-    this.balance = this.depositDetails && this.depositDetails[0]; 
-    this.timeLeft = this.depositDetails && this.depositDetails[1]; 
-    this.penalty = this.depositDetails && this.depositDetails[2]; 
-    this.holdBonus = this.depositDetails && this.depositDetails[3]; 
-    this.commitBonus = this.depositDetails && this.depositDetails[4]; 
-    this.holdPoints = this.depositDetails && this.depositDetails[5]; 
-    this.commitPoints = this.depositDetails && this.depositDetails[6]; 
-    this.initialPenaltyPercent = this.depositDetails && this.depositDetails[7]; 
-    this.currentPenaltyPercent = this.depositDetails && this.depositDetails[8]; 
-    this.commitPeriod = this.depositDetails && this.depositDetails[9]; 
-
-    // unpack pool details
+    
+    // all deposits view
+    this.depositsOfOwner = useContractReader(
+      address && contract, "depositsOfOwner", [address]);
+    this.tokenIds = this.depositsOfOwner?.tokenIds;
+    this.depositParams = this.depositsOfOwner?.accountDeposits;
+    
+    // filter only chosen asset
+    this.tokenIdsInPool = this.tokenIds && this.tokenIds.filter(
+      (id, ind) => this.depositParams[ind]?.asset == tokenAddress);
+    // TODO: use all ids
+    this.tokenId = this.tokenIdsInPool && this.tokenIdsInPool[0];
+    
+    // pool details view
+    this.poolDetails = useContractReader(
+      tokenAddress && contract, "poolDetails", [tokenAddress]);
     this.depositsSum = this.poolDetails && this.poolDetails[0]; 
     this.holdBonusesSum = this.poolDetails && this.poolDetails[1]; 
     this.commitBonusesSum = this.poolDetails && this.poolDetails[2]; 
     this.totalHoldPoints = this.poolDetails && this.poolDetails[3]; 
     this.totalCommitPoints = this.poolDetails && this.poolDetails[4]; 
-
-    // sum values (TODO: add UI for breakdow)
-    this.bonus = this.holdBonus?.add(this.commitBonus);
     this.bonusesPool = this.holdBonusesSum?.add(this.commitBonusesSum);
+
+    // deposit details view
+    this.depositDetails = useContractReader(
+      this.tokenId && contract, "depositDetails", [this.tokenId]);
+    this.balance = this.depositDetails && this.depositDetails[2]; 
+    this.timeLeft = this.depositDetails && this.depositDetails[3]; 
+    this.penalty = this.depositDetails && this.depositDetails[4]; 
+    this.holdBonus = this.depositDetails && this.depositDetails[5]; 
+    this.commitBonus = this.depositDetails && this.depositDetails[6]; 
+    this.holdPoints = this.depositDetails && this.depositDetails[7]; 
+    this.commitPoints = this.depositDetails && this.depositDetails[8]; 
+    this.initialPenaltyPercent = this.depositDetails && this.depositDetails[9]; 
+    this.currentPenaltyPercent = this.depositDetails && this.depositDetails[10]; 
+    this.commitPeriod = this.depositDetails && this.depositDetails[11];
+    this.bonus = this.holdBonus?.add(this.commitBonus);
 
     // time convenience variables
     this.commitString = this.secondsToCommitTimeString(this.commitPeriod);
@@ -71,7 +83,6 @@ class HodlPoolV3StateHooks {
     return `${(sec || "").toString()}s or ${this.bigNumberSecondsToDays(sec)} days`;
   }
 }
-
 
 
 class TokenStateHooks {
@@ -347,7 +358,7 @@ function TokenSelection({ provider, addessUpdateFn }) {
 
   // select initial value
   useEffect(() => {
-    const defaultChoice = "";
+    const defaultChoice = "ETH";
     addessUpdateFn(defaultChoice);
     selectedValueSet(defaultChoice);
   }, []);
@@ -555,7 +566,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx, p
             style={{ width: "100%", textAlign: "center" }}
           >
             {contractState?.balance?.gt(0) ?
-              "Add to deposit" : "Make a deposit"}
+              "Add another deposit" : "Make a deposit"}
           </Button>
         </Col>
       </Row>
@@ -787,10 +798,11 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode })
         okButtonProps={{ danger: true }}
         onOk={() => {
           setPenaltyModalVisible(false);
+          console.log(contractState.tokenId);
           if (ethMode) {
-            txFn("withdrawWithPenaltyETH");
+            txFn("withdrawWithPenaltyETH", [contractState.tokenId]);
           } else {
-            txFn("withdrawWithPenalty", [tokenState.address]);
+            txFn("withdrawWithPenalty", [contractState.tokenId]);
           }
         }}
         onCancel={() => setPenaltyModalVisible(false)}>
@@ -839,9 +851,9 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode }) {
         onOk={() => {
           setBonusModalVisible(false);
           if (ethMode) {
-            txFn("withdrawWithBonusETH");
+            txFn("withdrawWithBonusETH", [contractState.tokenId]);
           } else {
-            txFn("withdrawWithBonus", [tokenState.address]);
+            txFn("withdrawWithBonus", [contractState.tokenId]);
           }
         }}
         onCancel={() => setBonusModalVisible(false)}>
@@ -913,6 +925,7 @@ function EventsList({ contractState, contract, address }) {
     contract, "Deposited", contract?.provider, 0, [null, address]);
   const withdrawedEvents = useEventListener(
     contract, "Withdrawed", contract?.provider, 0, [null, address]);
+  // TODO: add transfers
   const allEvents = depositedEvents.concat(withdrawedEvents)
     .sort((a, b) => b.blockNumber - a.blockNumber);
 
@@ -947,7 +960,7 @@ function EventsList({ contractState, contract, address }) {
             <List.Item key={item.blockNumber + item.eventName + item.account}>
               block {item.blockNumber}:
               user <Address address={item.account} fontSize={16} />&nbsp;
-              {eventText}. Token <Address address={item.token} fontSize={16} />.
+              {eventText}. Token <Address address={item.asset} fontSize={16} />.
             </List.Item>
           )
         }}

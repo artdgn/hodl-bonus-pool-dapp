@@ -98,11 +98,15 @@ holding time relative to other deposits in the pool.
   and is instead "slashed" with a penalty (that is split between the bonuses pools).
 - The **penalty percent is decreasing with time** from the chosen
   initialPenaltyPercent to 0 at the end of the commitPeriod. 
+#### Deposit is an NFT (transferrable but immutable):
+- Each deposit has a separate ERC721 (NFT) tokenId with the usual transfer mechanics. So
+  multiple deposits for same owner and asset but with different commitment
+  parameters can co-exist independently.
+- Deposits can be deposited for another account as beneficiary,
+  so e.g. a team / DAO can deposit its tokens for its members to withdraw.
+- Only the deposit "owner" can use the withdrawal functionality, so ERC721 approvals 
+  allow transfers, but not the withdrawals.
 #### Additional notes:
-- Any **additional deposit is added to the current deposit**, carries over commit-points
-  and hold-points that already actrued, and "resets" the commitment period and penalty
-  according to the new user choice (but not in a way that will reduce the outstanding 
-  commitment for the initial deposit).
 - Some ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
   kinds of tokens this pool tracks everything as "shares of initial deposits".
 - **Each token** has **one independent pool**. i.e. all accounting is separate for each token.
