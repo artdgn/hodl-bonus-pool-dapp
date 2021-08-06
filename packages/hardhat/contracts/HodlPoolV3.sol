@@ -6,12 +6,78 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./extensions/ERC721EnumerableForOwner.sol";
 import "./extensions/IWETH.sol";
 
-
+/*
+ * @title Token pools that allow different ERC20 tokens (assets) and ETH deposits 
+ * and withdrawals with penalty and bonus mechanisms that incentivise long term holding. 
+ * The initial penalty and commitment time are chosen at the time of the deposit by
+ * the user.
+ * The deposits into this contract are transferrable and immutable ERC721 tokens.
+ * There are two bonus types for each pool - holding bonus (to incetivise holding), 
+ * and commitment bonus (to incetivise commiting to penalties & time).
+ * Each ERC20 asset has one independent pool. i.e. all accounting is separate.
+ * ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
+ * kinds of tokens this contract tracks everything as "shares of initial deposits". 
+ * @notice The mechanism rules:
+ * - A depositor is committing for "commitment period" and an "initial penalty percent" 
+ *   of his choice (within allowed ranges). After the commitment period the
+ *   deposit can be withdrawn with its share of both of the bonus pools.
+ * - The two bonus pools are populated from the penalties for early withdrawals,
+ *   which are withdrawals done before a deposit's commitment period is elapsed.
+ * - The penalties are split in half and added to both bonus pools (isolated per asset): 
+ *   Hold bonus pool and Commit bonus pool.
+ * - The share of the bonus pools is equal to the share of the bonus points (hold-points 
+ *   and commit-points) for the deposit at the time of withdrawal relative to the other
+ *   deposits in the pool.
+ * - Hold points are calculated as amount of asset x seconds held. So more tokens
+ *   held for longer add more points - and increase the bonus share. This bonus is
+ *   independent of commitment or penalties. The points keep increasing after commitment period
+ *   is over.
+ * - Commit points are calculated as amount of asset x seconds committed to penalty.
+ *   These points depend only on commitment time and commitment penalty 
+ *   at the time of the deposit.
+ * - Withdrawal before commitment period is not entitled to any part of the bonus
+ *   and is instead "slashed" with a penalty (that is split between the bonuses pools).
+ * - The penalty percent is decreasing with time from the chosen
+ *   initialPenaltyPercent to 0 at the end of the commitPeriod. 
+ * - Each deposit is a separate ERC721 tokenId with the usual trasnfer mechanics. So
+ *   multiple different deposits for same owner and asset, but with different commitment
+ *   parameters can co-exist independently.
+ * - Deposits can be deposited for another account as beneficiary,
+ *   so e.g. a team / DAO can peridically deposit its tokens for its members to withdraw.
+ * - Only the deposit "owner" can use the withdrawal functionality, so ERC721 approvals 
+ *   allow transfers, but not the withdrawals.
+ *
+ * @dev 
+ * 1. For safety and clarity, the withdrawal functionality is split into 
+ * two methods, one for withdrawing with penalty, and the other one for withdrawing
+ * with bonus.
+ * 2. The ERC20 token and ETH functionality is split into separate methods.
+ * The total deposits shares are tracked per token contract in 
+ * depositSums, bonuses in bonusSums.
+ * 3. Deposit for self depositFor are split into separate methods
+ * for clarity.
+ * 4. For tokens with dynamic supply mechanisms and fee on transfer all internal
+ * calculations are done using the "initial desposit amounts" as fair shares, and
+ * upon withdrawal are translated to actual amounts of the contract's token balance.
+ * This means that for these tokens the actual amounts received are depends on their
+ * mechanisms (because the amount is unknown before actual transfers).
+ * 5. To reduce RPC calls and simplify interface, all the deposit and pool views are
+ * batched in depositDetails and poolDetails which return arrays of values.
+ * 6. To prevent relying on tracking deposit, withdrawal, and transfer events
+ * depositsOfOwner view shows all deposits owned by a particular owner.
+ * 7. The total of a pool's hold points are updated incrementally on each interaction
+ * with a pool using the depositsSum in that pool for that period. If can only happen
+ * once per block because it depends on the time since last update.
+ * 8. TokenURI returns a JSON string with just name and description metadata.
+ *
+ * @author artdgn (@github)
+ */
 contract HodlPoolV3 is ERC721EnumerableForOwner {
 
   using SafeERC20 for IERC20;
   using Strings for uint;
 
+  /// @dev state variables for a deposit in a pool
   struct Deposit {
     address asset;
     uint40 time;
@@ -20,25 +86,46 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint amount;
   }
 
+  /// @dev state variables for a token pool
   struct Pool {
-    uint depositsSum;  
-    uint holdBonusesSum;  
-    uint commitBonusesSum; 
-    uint totalHoldPoints;  
-    uint totalHoldPointsUpdateTime;  
-    uint totalCommitPoints;  
+    uint depositsSum;  // sum of all current deposits
+    uint holdBonusesSum;  // sum of hold bonus pool
+    uint commitBonusesSum;  // sum of commit bonus pool
+    uint totalHoldPoints;  // sum of hold-points 
+    uint totalHoldPointsUpdateTime;  //  time of the latest hold-points update
+    uint totalCommitPoints;  // sum of commit-points
   }
   
+  /// @notice minimum initial percent of penalty
   uint public immutable minInitialPenaltyPercent;  
+
+  /// @notice minimum commitment period for a deposit
   uint public immutable minCommitPeriod;
+
+  /// @notice WETH token contract this pool is using for handling ETH
   // slither-disable-next-line naming-convention
   address public immutable WETH;
 
+  /// @dev tokenId incremted counter
   uint internal nextTokenId = 1;
 
+  /// @dev deposit data for each tokenId
   mapping(uint => Deposit) deposits;
+
+  /// @dev pool state for each token contract address
   mapping(address => Pool) pools;
 
+  /*
+   * @param asset ERC20 token address for the deposited asset
+   * @param account address that has made the deposit
+   * @param amount size of new deposit, or deposit increase
+   * @param amountReceived received balance after transfer (actual deposit)
+   *  which may be different due to transfer-fees and other token shenanigans
+   * @param time timestamp from which the commitment period will be counted
+   * @param initialPenaltyPercent initial penalty percent for the deposit
+   * @param commitPeriod commitment period in seconds for the deposit
+   * @param tokenId deposit ERC721 tokenId
+   */
   event Deposited(
     address indexed asset, 
     address indexed account, 
@@ -50,6 +137,16 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint tokenId
   );
 
+  /*
+   * @param asset ERC20 token address for the withdrawed asset
+   * @param account address that has made the withdrawal
+   * @param amount amount sent out to account as withdrawal
+   * @param depositAmount the original amount deposited
+   * @param penalty the penalty incurred for this withdrawal
+   * @param holdBonus the hold-bonus included in this withdrawal
+   * @param commitBonus the commit-bonus included in this withdrawal
+   * @param timeHeld the time in seconds the deposit was held
+   */
   event Withdrawed(
     address indexed asset,
     address indexed account, 
@@ -61,6 +158,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint timeHeld
   );
 
+  /// @dev checks commitment params are within allowed ranges
   modifier validCommitment(uint initialPenaltyPercent, uint commitPeriod) {
     require(initialPenaltyPercent >= minInitialPenaltyPercent, "penalty too small"); 
     require(initialPenaltyPercent <= 100, "initial penalty > 100%"); 
@@ -105,6 +203,14 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
    * * * * * * * * * * *
   */
 
+  /*
+   * @notice adds a deposit into its asset pool and mints an ERC721 token
+   * @param asset address of ERC20 token contract
+   * @param amount of token to deposit
+   * @param initialPenaltyPercent initial penalty percent for deposit
+   * @param commitPeriod period during which a withdrawal results in penalty and no bonus
+   * @return ERC721 tokenId of this deposit   
+   */
   function deposit(
     address asset, 
     uint amount, 
@@ -150,6 +256,13 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     );
   }
 
+  /*
+   * @notice payable method for depositing ETH with same logic as deposit(), 
+   * adds a deposit into WETH asset pool and mints an ERC721 token
+   * @param initialPenaltyPercent initial penalty percent for deposit
+   * @param commitPeriod period during which a withdrawal results in penalty and no bonus
+   * @return ERC721 tokenId of this deposit
+   */
   function depositETH(
     uint initialPenaltyPercent,
     uint commitPeriod
@@ -185,6 +298,16 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     IWETH(WETH).deposit{value: msg.value}();
   }
 
+  /*
+   * @notice adds a deposit, mints an ERC721 token, and transfers
+   * its ownership to another account
+   * @param account that will be the owner of this deposit (can withdraw)
+   * @param asset address of ERC20 token contract
+   * @param amount of token to deposit
+   * @param initialPenaltyPercent initial penalty percent for deposit
+   * @param commitPeriod period during which a withdrawal results in penalty and no bonus
+   * @return ERC721 tokenId of this deposit   
+   */
   function depositFor(
     address account,
     address asset, 
@@ -198,6 +321,14 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     _transfer(msg.sender, account, tokenId);
   }
 
+  /*
+   * @notice adds an ETH deposit, mints an ERC721 token, and transfers
+   * its ownership to another account
+   * @param account that will be the owner of this deposit (can withdraw)
+   * @param initialPenaltyPercent initial penalty percent for deposit
+   * @param commitPeriod period during which a withdrawal results in penalty and no bonus
+   * @return ERC721 tokenId of this deposit
+   */
   function depositETHFor(
     address account,
     uint initialPenaltyPercent,
@@ -209,15 +340,21 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     _transfer(msg.sender, account, tokenId);
   }
   
+  /*
+   * @param tokenId ERC721 tokenId of the deposit to withdraw
+   * @notice withdraw the full deposit with the proportional shares of bonus pools.
+   *   will fail for early withdawals (for which there is another method)
+   * @dev checks that the deposit is non-zero
+   */
   function withdrawWithBonus(uint tokenId) external {
     require(
       _timeLeft(deposits[tokenId]) == 0, 
       "cannot withdraw without penalty yet, use withdrawWithPenalty()"
     );
-    _withdraw(tokenId);
+    _withdrawERC20(tokenId);
   }
 
-  /// @notice withdraw ETH with penalty with same logic as withdrawWithPenalty()
+  /// @notice withdraw ETH with bonus with same logic as withdrawWithBonus()
   function withdrawWithBonusETH(uint tokenId) external {
     require(
       _timeLeft(deposits[tokenId]) == 0, 
@@ -226,8 +363,13 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     _withdrawETH(tokenId);
   }
 
+  /*
+   * @param tokenId ERC721 tokenId of the deposit to withdraw
+   * @notice withdraw the deposit with any applicable penalty. Will withdraw 
+   * with any available bonus if penalty is 0 (commitment period elapsed).
+   */
   function withdrawWithPenalty(uint tokenId) external {
-    _withdraw(tokenId);
+    _withdrawERC20(tokenId);
   }
 
   /// @notice withdraw ETH with penalty with same logic as withdrawWithPenalty()
@@ -242,19 +384,36 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
    * * * * * * * *
   */
 
+  /*
+   * @param tokenId ERC721 tokenId of a deposit
+   * @return array of 12 values corresponding to the details of the deposit:
+   *  0. asset - asset address converted to uint
+   *  1. owner - deposit owner
+   *  2. balance - original deposit(s) value
+   *  3. timeLeftToHold - time in seconds until deposit can be withdrawed 
+   *     with bonus and no penalty
+   *  4. penalty - penalty if withdrawed now
+   *  5. holdBonus - hold-bonus if withdrawed now (if possible to withdraw with bonus)
+   *  6. commitBonus - commit-bonus if withdrawed now (if possible to withdraw with bonus)
+   *  7. holdPoints - current amount of hold-point
+   *  8. commitPoints - current amount of commit-point
+   *  9. initialPenaltyPercent - initial penalty percent (set at time od deposit)
+   *  10. currentPenaltyPercent - current penalty percent (penalty percent if withdrawed now)
+   *  11. commitPeriod - commitment period set at the time of deposit
+   */
   function depositDetails(
     uint tokenId
   ) external view returns (uint[12] memory) {
-    address account = ownerOf(tokenId);
     Deposit storage dep = deposits[tokenId];
+    Pool storage pool = pools[dep.asset];
     return [
       uint(uint160(dep.asset)),  // asset
-      uint(uint160(account)),  // account owner
+      uint(uint160(ownerOf(tokenId))),  // account owner
       _sharesToAmount(dep.asset, dep.amount),  // balance
       _timeLeft(dep),  // timeLeftToHold
       _sharesToAmount(dep.asset, _depositPenalty(dep)),  // penalty
-      _sharesToAmount(dep.asset, _holdBonus(dep)),  // holdBonus
-      _sharesToAmount(dep.asset, _commitBonus(dep)),  // commitBonus
+      _sharesToAmount(dep.asset, _holdBonus(pool, dep)),  // holdBonus
+      _sharesToAmount(dep.asset, _commitBonus(pool, dep)),  // commitBonus
       _holdPoints(dep),  // holdPoints
       _commitPoints(dep),  // commitPoints
       dep.initialPenaltyPercent,  // initialPenaltyPercent
@@ -263,6 +422,15 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     ];
   }
 
+  /*
+   * @param asset address of ERC20 token contract
+   * @return array of 5 values corresponding to the details of the pool:
+   *  0. depositsSum - sum of current deposits
+   *  1. holdBonusesSum - sum of tokens to be distributed as hold bonuses
+   *  2. commitBonusesSum - sum of tokens to be distributed as commitment bonuses
+   *  3. totalHoldPoints - sum of hold-points of all current deposits
+   *  4. totalCommitPoints - sum of commit-points of all current deposits
+   */
   function poolDetails(address asset) external view returns (uint[5] memory) {
     Pool storage pool = pools[asset];
     return [
@@ -274,6 +442,12 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     ];
   }
 
+  /*
+   * @param account address of an owner account
+   * @return two arrays of the deposits owned by this account:
+   *  0. array of deposits' tokenIds
+   *  1. array of deposits' data (Deposit struct)
+   */
   function depositsOfOwner(
     address account
   ) external view returns (
@@ -289,6 +463,10 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     }
   }
 
+  /*
+   * @param tokenId ERC721 tokenId of a deposit
+   * @return string with metadata JSON containing the NFT's name and description
+   */
   function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
       require(_exists(tokenId), "ERC721: nonexistent token");
       Deposit storage dep = deposits[tokenId];
@@ -343,6 +521,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     _addDepositToPool(asset, deposits[tokenId]);
   }
 
+  /// @dev pool state update for new deposit
   function _addDepositToPool(address asset, Deposit storage dep) internal {
     Pool storage pool = pools[asset];
     // update pool's total hold time due to passage of time
@@ -361,7 +540,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     pool.totalHoldPointsUpdateTime = block.timestamp;
   }  
   
-  function _withdraw(uint tokenId) internal {
+  function _withdrawERC20(uint tokenId) internal {
     address asset = deposits[tokenId].asset;
     address account = ownerOf(tokenId);
     require(account == msg.sender, "not deposit owner");
@@ -403,8 +582,8 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint withdrawShare = dep.amount - penalty;
     if (penalty == 0) {
       // only get any bonuses if no penalty
-      holdBonus =  _holdBonus(dep);
-      commitBonus =  _commitBonus(dep);
+      holdBonus =  _holdBonus(pool, dep);
+      commitBonus =  _commitBonus(pool, dep);
       withdrawShare += holdBonus + commitBonus;
     }
     
@@ -439,6 +618,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     _burn(tokenId);
   }
 
+  /// @dev pool state update for removing a deposit
   function _removeDepositFromPool(
     Pool storage pool, Deposit storage dep, uint penalty, uint holdBonus, uint commitBonus
   ) internal {
@@ -517,8 +697,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     }
   }
 
-  function _holdBonus(Deposit storage dep) internal view returns (uint) {
-    Pool storage pool = pools[dep.asset];
+  function _holdBonus(Pool storage pool, Deposit storage dep) internal view returns (uint) {
     // share of bonus is proportional to hold-points of this deposit relative
     // to total hold-points in the pool
     // order important to prevent rounding to 0
@@ -527,8 +706,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     return denom > 0 ? ((pool.holdBonusesSum * holdPoints) / denom) : 0;
   }
 
-  function _commitBonus(Deposit storage dep) internal view returns (uint) {
-    Pool storage pool = pools[dep.asset];
+  function _commitBonus(Pool storage pool, Deposit storage dep) internal view returns (uint) {
     // share of bonus is proportional to commit-points of this deposit relative
     // to all other commit-points in the pool
     // order important to prevent rounding to 0
@@ -565,5 +743,5 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
 
   // remove super implementation
   function _baseURI() internal view virtual override returns (string memory) {}  
-    
+      
 }
