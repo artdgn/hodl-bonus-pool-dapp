@@ -39,11 +39,11 @@ import "./extensions/IWETH.sol";
  *   and is instead "slashed" with a penalty (that is split between the bonuses pools).
  * - The penalty percent is decreasing with time from the chosen
  *   initialPenaltyPercent to 0 at the end of the commitPeriod. 
- * - Each deposit is a separate ERC721 tokenId with the usual trasnfer mechanics. So
- *   multiple different deposits for same owner and asset, but with different commitment
+ * - Each deposit has a separate ERC721 tokenId with the usual tranfer mechanics. So
+ *   multiple deposits for same owner and asset but with different commitment
  *   parameters can co-exist independently.
  * - Deposits can be deposited for another account as beneficiary,
- *   so e.g. a team / DAO can peridically deposit its tokens for its members to withdraw.
+ *   so e.g. a team / DAO can deposit its tokens for its members to withdraw.
  * - Only the deposit "owner" can use the withdrawal functionality, so ERC721 approvals 
  *   allow transfers, but not the withdrawals.
  *
@@ -101,6 +101,9 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
 
   /// @notice minimum commitment period for a deposit
   uint public immutable minCommitPeriod;
+
+  /// @notice compatibility with ERC20 for e.g. viewing in metamask
+  uint public constant decimals = 0;
 
   /// @notice WETH token contract this pool is using for handling ETH
   // slither-disable-next-line naming-convention
@@ -177,7 +180,7 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint _minCommitPeriod, 
     address _WETH
   ) 
-    ERC721("HodlPool deposit", "Hodl-pool-deposit") 
+    ERC721("HodlBonusPool V3", "HodlPoolV3") 
   {
     require(_minInitialPenaltyPercent > 0, "no min penalty"); 
     require(_minInitialPenaltyPercent <= 100, "minimum initial penalty > 100%"); 
@@ -406,9 +409,10 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
   ) external view returns (uint[12] memory) {
     Deposit storage dep = deposits[tokenId];
     Pool storage pool = pools[dep.asset];
+    address owner = _exists(tokenId) ? ownerOf(tokenId) : address(0);
     return [
       uint(uint160(dep.asset)),  // asset
-      uint(uint160(ownerOf(tokenId))),  // account owner
+      uint(uint160(owner)),  // account owner
       _sharesToAmount(dep.asset, dep.amount),  // balance
       _timeLeft(dep),  // timeLeftToHold
       _sharesToAmount(dep.asset, _depositPenalty(dep)),  // penalty

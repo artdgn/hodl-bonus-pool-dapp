@@ -47,7 +47,7 @@ class TestUtils {
         const res = await contract.depositsOfOwner(signer.address);
         return {
             ids: res.tokenIds,
-            assets: res.tokenIds,
+            params: res.accountDeposits,
         }       
     }
 

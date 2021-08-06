@@ -11,10 +11,10 @@ const wethContractName = "WETH";
 
 use(solidity);
 
-describe(`${contractName} ERC721: metadata`, function () {
+describe(`${contractName} views and metadata`, function () {
 
   this.timeout(4000);  // some tests are slow in isolation (several interactions)
-  
+
   let contract;
   let tokenContract;
   let WETHContract;
@@ -32,7 +32,7 @@ describe(`${contractName} ERC721: metadata`, function () {
 
   beforeEach(async () => {
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
-    
+
     // deploy a token
     tokenContract = await ethers.getContractFactory(tokenContractName);
     deployedToken = await tokenContract.deploy(
@@ -47,15 +47,15 @@ describe(`${contractName} ERC721: metadata`, function () {
     deployed = await contract.deploy(...deployArgs, deployedWETH.address);
   });
 
-  describe("tokenURI", function () {
+  describe("ERC721 tokenURI", function () {
     let addr1Caller;
     let addr1TokenCaller;
     let dep1;
 
     beforeEach(async () => {
-      addr1Caller = deployed.connect(addr1);      
+      addr1Caller = deployed.connect(addr1);
       addr1TokenCaller = deployedToken.connect(addr1);
-      await addr1TokenCaller.approve(deployed.address, parseUnits("1", 18));        
+      await addr1TokenCaller.approve(deployed.address, parseUnits("1", 18));
       await addr1Caller.deposit(deployedToken.address, 1000, 50, 20);
       dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
     });
@@ -74,7 +74,33 @@ describe(`${contractName} ERC721: metadata`, function () {
           deployedToken.address.toLowerCase());
       // console.log(metadata);
     });
-
+  
   });
+
+  describe("poolDetails", function () {
+    it("poolDetails works for any address", async function () {
+      // no sush asset
+      const res = await deployed.poolDetails(addr2.address);
+      res.forEach((v) => expect(v).to.eq(0));
+    });
+  });
+
+  describe("depositDetails", function () {
+    it("depositDetails works for any tokenId", async function () {
+      // no such tokenId
+      const res = await deployed.depositDetails(42);
+      res.forEach((v) => expect(v).to.eq(0));
+    });
+  });
+
+  describe("depositsOfOwner", function () {
+    it("depositsOfOwner works for any account", async function () {
+      // no deposits
+      const res = await deployed.depositsOfOwner(addr2.address);
+      expect(res.tokenIds.length).to.eq(0);
+      expect(res.accountDeposits.length).to.eq(0);
+    });
+  });
+  
 });
 
