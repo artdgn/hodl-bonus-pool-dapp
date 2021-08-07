@@ -42,3 +42,4 @@ yarn-error.log*
 
 # python
 .venv
+packages/hardhat/gas_watch.py
