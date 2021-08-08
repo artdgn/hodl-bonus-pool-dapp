@@ -78,7 +78,7 @@
 # Basic V2 demo ([Try it out](https://hodl-pool-dapp-v2-kovan.surge.sh/)):
 
 ![](https://artdgn.github.io/images/hodl-pool-v2.gif)
-    
+
 ---
 
 # Local development

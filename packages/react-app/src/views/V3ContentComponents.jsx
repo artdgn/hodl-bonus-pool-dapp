@@ -63,7 +63,7 @@ export function DepositModalContent({contractState, period, penalty}) {
       <Divider />      
       <h2>
         <WarningTwoTone twoToneColor="red" />&nbsp;
-        Withdrawing without penalty before end of commitment period won't be possible!!
+        Withdrawing before end of commitment period will be possible only with a penalty!!
       </h2>
     </div>
   );
@@ -183,6 +183,7 @@ function MarkdownModalButton({ title, markdown }) {
       <Button
         onClick={() => setDrawerVisible(true)}
         size="small"
+        shape="round"
         style={{ fontSize: 12 }}
       >{title}</Button>
 

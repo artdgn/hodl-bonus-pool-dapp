@@ -225,7 +225,9 @@ export function HodlPoolV3UI(
   return (
     <div>
       <Card
-        style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
+        style={{ 
+          border: "1px solid #cccccc", padding: 16, width: 600, 
+          margin: "auto", marginTop: 64, borderRadius: "20px" }}
         title={
           <div>
             <h1>HODL pool V3</h1>
@@ -236,7 +238,7 @@ export function HodlPoolV3UI(
         size="large"
         loading={!contractIsDeployed}
       >
-        <Space size="large" direction="horizontal" size={65}>
+        <Space direction="horizontal" size={30}>
             <MotivationButton />
             <MechanismButton />
             <IncentivesButton />
@@ -248,7 +250,7 @@ export function HodlPoolV3UI(
             </a>
         </Space>
 
-        <Divider dashed> <h3>👇 Pick or import token 👇</h3></Divider>
+        <Divider dashed> <h3>👇 Pick or paste token 👇</h3></Divider>
 
         <Space direction="vertical" size="large">
           <TokenSelection provider={provider} addessUpdateFn={setTokenChoice} />
@@ -325,7 +327,7 @@ export function HodlPoolV3UI(
 function TokenBalance({ tokenState, blockExplorer, ethMode, address, provider }) {
   if (ethMode) {
     return (
-      <h3>Wallet balance: <Balance address={address} provider={provider} size="20" /></h3>
+      <h3>Available balance: <Balance address={address} provider={provider} size="20" /></h3>
     );
   } else {
     if (!tokenState.address) return "";
@@ -412,38 +414,45 @@ function TokenSelection({ provider, addessUpdateFn }) {
       }}
       type="primary"
       size="large"
+      shape="round"
       style={{ width: "100%", textAlign: "center" }}
     >
       Import token {shortenString(rawInput)} ?
     </Button>
   )
 
+  const style = { minWidth: "14rem", textAlign: "center", borderRadius: "20px"};
   return (
-    <Tooltip title="Paste address to add a token to the list" 
+    <Tooltip 
+      title="Paste address to add a token to the list" 
       placement="left" 
       autoAdjustOverflow="false"
       color="blue">
-      <Select
-        showSearch
-        value={selectedValue}
-        onChange={(val) => {
-          addessUpdateFn(val);
-          selectedValueSet(val);
-        }}
-        optionFilterProp="children"
-        size="large"
-        dropdownMatchSelectWidth={false}
-        style={{ minWidth: "14rem", textAlign: "center" }}
-        autoFocus={true}
-        onSearch={rawInputSet}
-        notFoundContent={importTokenButton}
-      >
-        {[{ address: "" }, ...extraTokens, ...externalTokensList].map((token, i) =>
-          <Select.Option key={i} value={token.address}>
-            {token.symbol && tokenLogo(token)} {token.symbol}
-          </Select.Option>
-        )}
-      </Select>
+      <div style={{borderRadius: "20px", border: "2px solid #cccccc"}}>
+        <Select
+          showSearch
+          value={selectedValue}
+          onChange={(val) => {
+            addessUpdateFn(val);
+            selectedValueSet(val);
+          }}
+          optionFilterProp="children"
+          size="large"
+          dropdownMatchSelectWidth={false}
+          style={style}
+          bordered={false}
+          dropdownStyle={style}
+          autoFocus={true}
+          onSearch={rawInputSet}
+          notFoundContent={importTokenButton}
+        >
+          {[{ address: "" }, ...extraTokens, ...externalTokensList].map((token, i) =>
+            <Select.Option key={i} value={token.address}>
+              {token.symbol && tokenLogo(token)} {token.symbol}
+            </Select.Option>
+          )}
+        </Select>
+      </div>
     </Tooltip>
   );
 }
@@ -474,7 +483,7 @@ function CommitmentInput(
     <h3>
       Deposit for:&nbsp;
       <InputNumber
-        style={{ margin: 8, width: "8rem" }}
+        style={{ margin: 8, width: "8rem", borderRadius: "20px"}}
         size="large"
         min={minPeriodDays}
         max={4 * 365}
@@ -490,7 +499,7 @@ function CommitmentInput(
         step={5}
         min={minInitialPenaltyPercent}
         max={100}
-        style={{ margin: 8 }}
+        style={{ margin: 8, borderRadius: "20px" }}
         value={penalty}
         formatter={value => `${value}%`}
         parser={value => value.replace('%', '')}
@@ -539,7 +548,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx, p
             }}
             size="large"
             suffix={tokenState.symbol}
-            style={{ width: "100%", textAlign: "center" }}
+            style={{ width: "100%", textAlign: "center", borderRadius: "20px"}}
           />
         </Col>
 
@@ -561,6 +570,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx, p
               }}
               type="primary"
               size="large"
+              shape="round"
               disabled={!approveButtonEnabled || approving}
               style={{ width: "100%", textAlign: "center" }}
             >
@@ -574,6 +584,7 @@ function DepositElementToken({ contractState, contractTx, tokenState, tokenTx, p
             onClick={() => setDepositModalVisible(true)}
             type="primary"
             size="large"
+            shape="round"
             disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
@@ -640,7 +651,7 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
             }}
             size="large"
             suffix="ETH"
-            style={{ width: "100%", textAlign: "center" }}
+            style={{ width: "100%", textAlign: "center", borderRadius: "20px" }}
           />
         </Col>
 
@@ -649,6 +660,7 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
             onClick={() => setDepositModalVisible(true)}
             type="primary"
             size="large"
+            shape="round"
             disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
@@ -686,13 +698,15 @@ function WithdrawList({contractState, tokenState, contractTx, ethMode }) {
   
   return (
     <Card
-      style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64 }}
+      style={{ border: "1px solid #cccccc", padding: 16, width: 600, margin: "auto", marginTop: 64, borderRadius: "20px"}}
       title={`Withdraw from ${symbol} pool`}
       size="small"
     >
       <Collapse 
         destroyInactivePanel={true} 
         defaultActiveKey={tokenIds?.length > 0 ? tokenIds[0].toNumber() : ""}
+        bordered={false}
+        style={{ borderRadius: "20px"}}
       >
         {tokenIds?.map(
           (tokenId) => 
@@ -703,6 +717,7 @@ function WithdrawList({contractState, tokenState, contractTx, ethMode }) {
                 ethMode={ethMode}
                 tokenId={tokenId}
               />}
+              style={{ border: "1px solid #cccccc", borderRadius: "20px", marginBottom: "10px"}}
               key={tokenId.toNumber()}
             >
               <DepositInfo
@@ -723,7 +738,7 @@ function DepositHeader({ contractState, tokenState, ethMode, tokenId }) {
   const symbol = ethMode ? "ETH" : tokenState.symbol;
   const deposit = contractState.getDepositDetails(tokenId);
   const withText = deposit?.penalty?.gt(0) ? "with penalty ⛔" : 
-      ( deposit?.bonus?.gt(0) ? "with bonus 🤑" : "" )
+      ( deposit?.bonus?.gt(0) ? "with bonus 🤑" : "✅" )
 
   return <Space size="small" direction="horizontal">
     <h3>#<b>{deposit.tokenId.toNumber()}</b>:
@@ -792,21 +807,20 @@ function DepositInfo({ contractState, tokenState, ethMode, contractTx, tokenId }
         size="20" />
     </h3>
 
-    {deposit?.bonus?.gt(0) ?
-      <h3>Current bonus:
-        <Balance balance={deposit.bonus} symbol={symbol} size="20" />
-        {bonusTooltip()}
-      </h3>
-      : ""}
-
     {deposit.withdrawWithBonus > 0 ?
-      <WithdrawWithBonusButton
-        contractState={contractState}
-        txFn={contractTx}
-        tokenState={tokenState}
-        ethMode={ethMode}
-        deposit={deposit}
-      />
+      <div>
+        <h3>Current bonus:
+          <Balance balance={deposit.bonus} symbol={symbol} size="20" />
+          {bonusTooltip()}
+        </h3>
+        <WithdrawWithBonusButton
+          contractState={contractState}
+          txFn={contractTx}
+          tokenState={tokenState}
+          ethMode={ethMode}
+          deposit={deposit}
+        />
+      </div>
       : ""}
 
     {deposit.withdrawWithPenalty > 0 ?
@@ -847,6 +861,7 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode, d
       <Button
         onClick={() => setPenaltyModalVisible(true)}
         type="primary"
+        shape="round"
         danger
         size="large"
         disabled={!(deposit.withdrawWithPenalty > 0)}
@@ -901,6 +916,7 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode, dep
       <Button
         onClick={() => setBonusModalVisible(true)}
         type="primary"
+        shape="round"
         size="large"
         disabled={!(deposit.withdrawWithBonus > 0)}
       > Withdraw
@@ -988,7 +1004,7 @@ function EventsList({ contractState, contract, address }) {
 
   return (
       <List
-        style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32 }}
+        style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32, borderRadius: "20px"}}
         bordered
         dataSource={allEvents}
         header="Your past contract events"
