@@ -1,74 +1,7 @@
 import React, { useState } from "react";
-import {
-  Button, Modal, Typography, Tooltip, Divider
-} from "antd";
+import { Button, Modal, Typography } from "antd";
 import ReactMarkdown from "react-markdown";
-import { QuestionCircleTwoTone, InfoCircleTwoTone, 
-  WarningTwoTone, DollarTwoTone } from "@ant-design/icons";
-
-
-export function CommitTimeTooltip({ contractState }) {
-  const minPeriodSec = contractState?.minCommitPeriod?.toNumber();
-  return (
-    <Tooltip title={
-      <div>
-        <b>Length of time before which withdrawing will only be possible with a penalty.</b>
-        <ul>
-          <li><b>Commit for longer to receive higher share of the bonus!</b></li>
-          <li>Withdrawing with bonus will only be possible after this time.</li>
-          <li>The minimum value allowed: {minPeriodSec} seconds (roughly {
-            (minPeriodSec / 86400).toPrecision(2)
-          } days).</li>
-          <li>The maximum value allowed: four years.</li>
-        </ul>
-      </div>
-    }>
-      <InfoCircleTwoTone />
-    </Tooltip>
-  );
-}
-
-export function PenaltyTooltip({ contractState }) {
-  return (
-    <Tooltip title={
-      <div>
-        <b>Starting value of the penalty percent</b>.
-        <ul>
-          <li><b>Commit to higher penalty to receive higher share of the bonus!</b></li>
-          <li><b>The penalty decreases with time from the initial value to 0. </b>
-            So immediately after deposit it's roughly this initial percent,
-            and just before the end of the commitment period it's roughly 0.
-          </li>
-          <li>The minimum value allowed: {contractState?.minInitialPenaltyPercent?.toNumber()}%.</li>
-          <li>The maximum value allowed: 100%.</li>
-        </ul>
-      </div>
-    }>
-      <InfoCircleTwoTone />
-    </Tooltip>);
-}
-
-export function DepositModalContent({contractState, period, penalty}) {
-  return (
-    <div>
-      <h2>
-        <DollarTwoTone twoToneColor="#52c41a" />&nbsp;
-        Tip: Increasing commitment period and/or penalty percent will result higher share of bonus!
-      </h2>
-      <Divider />
-      <h2>Chosen commitment period <CommitTimeTooltip contractState={contractState}/> : {
-        contractState.secondsToCommitTimeString(period)
-        }</h2>
-      <h2>Chosen initial penalty <PenaltyTooltip contractState={contractState}/> : {penalty}%</h2>
-      <Divider />      
-      <h2>
-        <WarningTwoTone twoToneColor="red" />&nbsp;
-        Withdrawing before end of commitment period will be possible only with a penalty!!
-      </h2>
-    </div>
-  );
-}
-
+import { QuestionCircleTwoTone, InfoCircleTwoTone } from "@ant-design/icons";
 
 export function MechanismButton() {
   const markdown = `
