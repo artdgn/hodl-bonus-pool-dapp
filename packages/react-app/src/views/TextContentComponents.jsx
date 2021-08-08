@@ -115,9 +115,9 @@ function MarkdownModalButton({ title, markdown }) {
     <div>
       <Button
         onClick={() => setDrawerVisible(true)}
-        size="small"
+        size="large"
         shape="round"
-        style={{ fontSize: 12 }}
+        style={{ fontSize: 20, width: "100%" }}
       >{title}</Button>
 
       <Modal

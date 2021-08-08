@@ -1,8 +1,8 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect } from "react";
-import { Divider, Card, Space, Result, Tooltip } from "antd";
-import { Address, Balance, TokenSelection } from "../components";
+import { Divider, Card, Space, Result, Tooltip, Menu, Typography} from "antd";
+import { Address, Balance, TokenSelection, Contract } from "../components";
 import { useContractExistsAtAddress } from "../hooks";
 import { InfoCircleTwoTone, LoadingOutlined } from "@ant-design/icons";
 import { MotivationButton, MechanismButton, IncentivesButton } from "./TextContentComponents";
@@ -10,6 +10,8 @@ import { HodlPoolV3StateHooks, ERC20StateHooks } from "./ContractsStateHooks";
 import { NewDepositCard } from "./DepositComponents";
 import { WithdrawalsCard } from "./WithdrawalComponents";
 import { EventsList } from "./EventsList";
+import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
+
 
 
 export function HodlPoolV3UI(
@@ -43,52 +45,111 @@ export function HodlPoolV3UI(
   const tokenTx = (method, args, callback) =>
     tx(tokenContract.connect(provider.getSigner())[method](...(args ?? [])).finally(callback));
 
+  // navigation
+  const [route, setRoute] = useState();
+  useEffect(() => setRoute(window.location.pathname), [setRoute]);
+
   const symbol = ethMode ? "ETH" : tokenState.symbol;
 
   return (
-    <div>      
-      <HeaderCard
-        provider={provider}
-        blockExplorer={blockExplorer}
-        contractState={contractState}
-        tokenState={tokenState}
-        loading={loading}
-        ethMode={ethMode}
-        error={error}
-        setTokenChoice={setTokenChoice}
-      />
+    <BrowserRouter>
 
-      <NewDepositCard
-        contractState={contractState}
-        tokenState={tokenState}
-        loading={loading}
-        ethMode={ethMode}
-        contractTx={contractTx}
-        tokenTx={tokenTx}
-      />
+      <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
+        <Menu.Item key="/">
+          <Link onClick={() => { setRoute("/") }} to="/">Main UI</Link>
+        </Menu.Item>
+        <Menu.Item key="/rules">
+          <Link onClick={() => { setRoute("/rules") }} to="/rules">Rules & Motivation</Link>
+        </Menu.Item>
+        <Menu.Item key="/contract">
+          <Link onClick={() => { setRoute("/contract") }} to="/contract">
+            <Typography.Text type="secondary">Raw contract UI</Typography.Text>
+          </Link>
+        </Menu.Item>
+        <Menu.Item key="/token">
+          <Link onClick={() => { setRoute("/token") }} to="/token">
+            <Typography.Text type="secondary">Raw {tokenState?.symbol || "token"} UI</Typography.Text>
+          </Link>
+        </Menu.Item>
+      </Menu>
 
-      {loading || !tokenState.address ? "" : 
-          <WithdrawalsCard
+      <Switch>
+        <Route exact path="/">
+
+          <HeaderCard
+            provider={provider}
+            blockExplorer={blockExplorer}
+            address={address}
             contractState={contractState}
-            contractTx={contractTx}
             tokenState={tokenState}
+            loading={loading}
             ethMode={ethMode}
-          />}
+            error={error}
+            setTokenChoice={setTokenChoice}
+          />
 
-      {loading || !tokenState.address ? "" : 
-          <PoolInfo
+          <NewDepositCard
             contractState={contractState}
-            symbol={symbol}
             tokenState={tokenState}
-          />}
+            loading={loading}
+            ethMode={ethMode}
+            contractTx={contractTx}
+            tokenTx={tokenTx}
+          />
 
-      <EventsList 
-        contractState={contractState} 
-        contract={contract} 
-        address={address} 
-      />
+          {loading || !tokenState.address ? "" :
+            <WithdrawalsCard
+              contractState={contractState}
+              contractTx={contractTx}
+              tokenState={tokenState}
+              ethMode={ethMode}
+            />}
 
-    </div>
+          {loading || !tokenState.address ? "" :
+            <PoolInfo
+              contractState={contractState}
+              symbol={symbol}
+              tokenState={tokenState}
+            />}
+
+          <EventsList
+            contractState={contractState}
+            contract={contract}
+            address={address}
+          />
+
+        </Route>
+
+        <Route exact path="/rules">
+          <RulesCard
+            contractState={contractState}
+            blockExplorer={blockExplorer}
+          />
+        </Route>
+
+        <Route exact path="/contract">
+          <Contract
+            name={contractName}
+            signer={provider.getSigner()}
+            provider={provider}
+            address={address}
+            blockExplorer={blockExplorer}
+          />
+        </Route>
+
+        <Route exact path="/token">
+          <Contract
+            customContract={tokenContract}
+            signer={provider.getSigner()}
+            provider={provider}
+            address={address}
+            blockExplorer={blockExplorer}
+          />
+        </Route>
+
+      </Switch>
+
+    </BrowserRouter>
   );
 }
 
@@ -101,8 +162,8 @@ function HeaderCard({
   return (
     <Card
       style={{
-        border: "1px solid #cccccc", padding: 16, width: 600,
-        margin: "auto", marginTop: 64, borderRadius: "20px"
+        border: "1px solid #cccccc", width: 600,
+        margin: "auto", marginTop: 10, borderRadius: "20px"
       }}
       title={
         <div>
@@ -114,21 +175,10 @@ function HeaderCard({
       size="large"
       loading={!contractIsDeployed}
     >
-      <Space direction="horizontal" size={30}>
-        <MotivationButton />
-        <MechanismButton />
-        <IncentivesButton />
-        <a
-          target="_blank"
-          href={`${blockExplorer || "https://etherscan.io/"}${"address/"}${contractState?.address}`}
-          rel="noopener noreferrer"
-        >Contract
-        </a>
-      </Space>
+      <Space direction="vertical" size={20}>
 
-      <Divider dashed> <h3>👇 Pick or paste token 👇</h3></Divider>
+        <h3>👇 Pick or paste token 👇</h3>
 
-      <Space direction="vertical" size="large">
         <TokenSelection
           provider={provider}
           addessUpdateFn={setTokenChoice}
@@ -151,6 +201,30 @@ function HeaderCard({
       </Space>
     </Card>
   );
+}
+
+function RulesCard({ contractState, blockExplorer }) {
+ return (
+   <Card
+     style={{
+       border: "1px solid #cccccc", padding: 16, width: 600,
+       margin: "auto", marginTop: 10, borderRadius: "20px"
+     }}
+     size="large"
+   >
+     <Space direction="vertical" size="large">      
+       <MotivationButton />
+       <MechanismButton />
+       <IncentivesButton />       
+       <a
+         target="_blank"
+         href={`${blockExplorer || "https://etherscan.io/"}${"address/"}${contractState?.address}`}
+         rel="noopener noreferrer">
+           Deployed contract link
+       </a>
+     </Space>
+   </Card>
+ );
 }
 
 function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provider }) {

@@ -126,7 +126,7 @@ export default function Contract({
           </div>
         }
         size="large"
-        style={{ marginTop: 25, width: "100%" }}
+        style={{ marginTop: 10, width: "100%" }}
         loading={contractDisplay && contractDisplay.length <= 0}
       >
         {contractIsDeployed ? contractDisplay : noContractDisplay}

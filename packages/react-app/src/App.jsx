@@ -156,16 +156,13 @@ function App(props) {
 
         //   <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
         //     <Menu.Item key="/">
-        //       <Link onClick={()=>{setRoute("/")}} to="/">UI</Link>
+        //       <Link onClick={()=>{setRoute("/")}} to="/">Main UI</Link>
         //     </Menu.Item>
         //     <Menu.Item key="/contract">
-        //       <Link onClick={()=>{setRoute("/contract")}} to="/contract">Contract</Link>
+        //       <Link onClick={()=>{setRoute("/contract")}} to="/contract">Raw contract UI</Link>
         //     </Menu.Item>
         //     <Menu.Item key="/token">
         //       <Link onClick={()=>{setRoute("/token")}} to="/token">Token</Link>
-        //     </Menu.Item>
-        //     <Menu.Item key="/fee-token">
-        //       <Link onClick={()=>{setRoute("/fee-token")}} to="/fee-token">Fee-Token</Link>
         //     </Menu.Item>
         //   </Menu>
 
@@ -182,10 +179,10 @@ function App(props) {
                 blockExplorer={blockExplorer}
               />
 
-        //     </Route>
+        //      </Route>
 
-        //     <Route exact path="/contract">
-        //       <Contract
+        //      <Route exact path="/contract">
+        //        <Contract
         //         name={contractName}
         //         signer={userProvider.getSigner()}
         //         provider={localProvider}
@@ -197,16 +194,6 @@ function App(props) {
         //     <Route exact path="/token">
         //       <Contract
         //         name={tokenContractName}
-        //         signer={userProvider.getSigner()}
-        //         provider={localProvider}
-        //         address={address}
-        //         blockExplorer={blockExplorer}
-        //       />
-        //     </Route>
-
-        //     <Route exact path="/fee-token">
-        //       <Contract
-        //         name={feeTokenContractName}
         //         signer={userProvider.getSigner()}
         //         provider={localProvider}
         //         address={address}

@@ -19,7 +19,7 @@ export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode 
       size="small"
     >
       <Collapse 
-        destroyInactivePanel={true} 
+        destroyInactivePanel={false} 
         defaultActiveKey={tokenIds?.length > 0 ? tokenIds[0].toNumber() : ""}
         bordered={false}
         style={{ borderRadius: "20px"}}
