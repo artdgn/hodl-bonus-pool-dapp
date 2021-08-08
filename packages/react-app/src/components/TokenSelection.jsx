@@ -14,7 +14,7 @@ import { QuestionOutlined } from "@ant-design/icons";
   Can import tokens by pasting an address.
 */
 
-export default function TokenSelection({ provider, addessUpdateFn, prependedTokens, tokenListURI }) {
+export default function TokenSelection({ provider, addessUpdateFn, prependedTokens, tokenListURI, defaultChoice }) {
 
     // external token list
     const activeChainId = provider?.network?.chainId;
@@ -28,10 +28,9 @@ export default function TokenSelection({ provider, addessUpdateFn, prependedToke
   
     // select initial value
     useEffect(() => {
-      const defaultChoice = "";
-      addessUpdateFn(defaultChoice);
-      selectedValueSet(defaultChoice);
-    }, []);
+      addessUpdateFn(defaultChoice || "");
+      selectedValueSet(defaultChoice || "");
+    }, [defaultChoice]);
 
     // set active chainId for prependeded tokens
     prependedTokens = (prependedTokens || []).map(

@@ -29,11 +29,12 @@ class HodlPoolV3StateHooks {
     this.depositsOfOwner = useContractReader(
       address && contract, "depositsOfOwner", [address]);
     this.allTokenIds = this.depositsOfOwner?.tokenIds;
-    this.depositParams = this.depositsOfOwner?.accountDeposits;
+    this.depositParams = this.allTokenIds && Object.fromEntries(this.allTokenIds?.map(
+      (v, ind) => [this.allTokenIds[ind], this.depositsOfOwner?.accountDeposits[ind]]));
     
     // filter only chosen asset
     this.poolTokenIds = this.allTokenIds && this.allTokenIds.filter(
-      (id, ind) => this.depositParams[ind]?.asset == tokenAddress);
+      (tokenId) => this.depositParams[tokenId]?.asset == tokenAddress);
     
     // pool details view
     this.poolDetails = useContractReader(
@@ -248,6 +249,7 @@ export function HodlPoolV3UI(
             provider={provider} 
             addessUpdateFn={setTokenChoice} 
             prependedTokens={[{"address": "ETH", "symbol": "ETH"}]}
+            defaultChoice="ETH"
           />
 
           {error ? <Result status="warning" subTitle={error} /> : ""}
@@ -721,6 +723,8 @@ function DepositInfo({ contractState, tokenState, ethMode, contractTx, tokenId }
     </Tooltip>
   }
 
+  const depositTime = contractState?.depositParams && contractState?.depositParams[tokenId]?.time ?
+    (new Date(contractState?.depositParams[tokenId]?.time * 1000)).toISOString().split('.')[0] : "";
   return (
     <div>
       <h3>Initial deposit:
@@ -729,6 +733,8 @@ function DepositInfo({ contractState, tokenState, ethMode, contractTx, tokenId }
           symbol={symbol}
           size="20" />
       </h3>
+
+      <h3>Deposit time: {depositTime}</h3>
 
       {deposit.withdrawWithBonus > 0 ?
         <div>
