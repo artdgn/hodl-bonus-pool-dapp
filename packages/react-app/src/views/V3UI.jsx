@@ -1,17 +1,17 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState, useEffect } from "react";
-import { Divider, Card, Space, Result, Tooltip, Menu, Typography} from "antd";
+import { Card, Space, Result, Tooltip, Menu, Typography} from "antd";
 import { Address, Balance, TokenSelection, Contract } from "../components";
 import { useContractExistsAtAddress } from "../hooks";
 import { InfoCircleTwoTone, LoadingOutlined } from "@ant-design/icons";
 import { MotivationButton, MechanismButton, IncentivesButton } from "./TextContentComponents";
-import { HodlPoolV3StateHooks, ERC20StateHooks } from "./ContractsStateHooks";
+import { HodlPoolV3StateHooks, ERC20StateHooks, useERC20ContractAtAddress } from "./ContractsStateHooks";
 import { NewDepositCard } from "./DepositComponents";
 import { WithdrawalsCard } from "./WithdrawalComponents";
+import { OtherPoolsDeposits} from "./OtherPoolsDeposits";
 import { EventsList } from "./EventsList";
 import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
-
 
 
 export function HodlPoolV3UI(
@@ -28,7 +28,7 @@ export function HodlPoolV3UI(
   const [error, setError] = useState("");
 
   // contract state hooks
-  const tokenContract = ERC20StateHooks.useERC20ContractAtAddress(tokenAddress, provider);
+  const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
   const tokenState = new ERC20StateHooks(
     tokenContract, address, contract?.address, setLoading, setError);
   const contractState = new HodlPoolV3StateHooks(contract, address, tokenAddress);
@@ -45,11 +45,81 @@ export function HodlPoolV3UI(
   const tokenTx = (method, args, callback) =>
     tx(tokenContract.connect(provider.getSigner())[method](...(args ?? [])).finally(callback));
 
-  // navigation
+  const symbol = ethMode ? "ETH" : tokenState.symbol;
+
+  const mainView = (
+    <div>
+      <HeaderCard
+        provider={provider}
+        blockExplorer={blockExplorer}
+        address={address}
+        contractState={contractState}
+        tokenState={tokenState}
+        loading={loading}
+        ethMode={ethMode}
+        error={error}
+        tokenChoice={tokenChoice}
+        setTokenChoice={setTokenChoice}
+      />
+
+      <NewDepositCard
+        contractState={contractState}
+        tokenState={tokenState}
+        loading={loading}
+        ethMode={ethMode}
+        contractTx={contractTx}
+        tokenTx={tokenTx}
+      />
+
+      {loading || !tokenState.address ? "" :
+        <WithdrawalsCard
+          contractState={contractState}
+          contractTx={contractTx}
+          tokenState={tokenState}
+          ethMode={ethMode}
+        />}
+
+      {loading || !tokenState.address ? "" :
+        <PoolInfoCard
+          contractState={contractState}
+          symbol={symbol}
+          tokenState={tokenState}
+        />}
+
+      <OtherPoolsDeposits
+        provider={provider}
+        tokenState={tokenState}
+        contractState={contractState}
+        setTokenChoice={setTokenChoice}
+        tokenChoice={tokenChoice}
+      />
+
+      <EventsList
+        contractState={contractState}
+        contract={contract}
+        address={address}
+      />
+    </div>
+  );
+
+  // inject main view into navigation component
+  return <NavigationRouter
+    provider={provider}
+    blockExplorer={blockExplorer}
+    address={address}
+    contractState={contractState}
+    tokenState={tokenState}
+    mainView={mainView}
+  />
+}
+
+
+function NavigationRouter({ 
+  address, provider, blockExplorer, contractName, contractState, tokenState, mainView 
+}) {
+
   const [route, setRoute] = useState();
   useEffect(() => setRoute(window.location.pathname), [setRoute]);
-
-  const symbol = ethMode ? "ETH" : tokenState.symbol;
 
   return (
     <BrowserRouter>
@@ -76,47 +146,7 @@ export function HodlPoolV3UI(
       <Switch>
         <Route exact path="/">
 
-          <HeaderCard
-            provider={provider}
-            blockExplorer={blockExplorer}
-            address={address}
-            contractState={contractState}
-            tokenState={tokenState}
-            loading={loading}
-            ethMode={ethMode}
-            error={error}
-            setTokenChoice={setTokenChoice}
-          />
-
-          <NewDepositCard
-            contractState={contractState}
-            tokenState={tokenState}
-            loading={loading}
-            ethMode={ethMode}
-            contractTx={contractTx}
-            tokenTx={tokenTx}
-          />
-
-          {loading || !tokenState.address ? "" :
-            <WithdrawalsCard
-              contractState={contractState}
-              contractTx={contractTx}
-              tokenState={tokenState}
-              ethMode={ethMode}
-            />}
-
-          {loading || !tokenState.address ? "" :
-            <PoolInfo
-              contractState={contractState}
-              symbol={symbol}
-              tokenState={tokenState}
-            />}
-
-          <EventsList
-            contractState={contractState}
-            contract={contract}
-            address={address}
-          />
+          {mainView}
 
         </Route>
 
@@ -139,7 +169,7 @@ export function HodlPoolV3UI(
 
         <Route exact path="/token">
           <Contract
-            customContract={tokenContract}
+            customContract={tokenState.contract}
             signer={provider.getSigner()}
             provider={provider}
             address={address}
@@ -153,8 +183,10 @@ export function HodlPoolV3UI(
   );
 }
 
+
 function HeaderCard({
-   provider, contractState, blockExplorer, tokenState, setTokenChoice, 
+   provider, contractState, blockExplorer, tokenState, 
+   tokenChoice, setTokenChoice, 
    address, loading, ethMode, error
 }) {
   const contractIsDeployed = useContractExistsAtAddress(provider, contractState?.address);
@@ -183,7 +215,7 @@ function HeaderCard({
           provider={provider}
           addessUpdateFn={setTokenChoice}
           prependedTokens={[{ "address": "ETH", "symbol": "ETH" }]}
-          defaultChoice="ETH"
+          defaultChoice={tokenChoice}
         />
 
         {error ? <Result status="warning" subTitle={error} /> : ""}
@@ -216,12 +248,12 @@ function RulesCard({ contractState, blockExplorer }) {
        <MotivationButton />
        <MechanismButton />
        <IncentivesButton />       
-       <a
+       <h2><a
          target="_blank"
          href={`${blockExplorer || "https://etherscan.io/"}${"address/"}${contractState?.address}`}
          rel="noopener noreferrer">
-           Deployed contract link
-       </a>
+           Contract on etherscan
+       </a></h2>
      </Space>
    </Card>
  );
@@ -261,7 +293,7 @@ function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provid
   }
 }
 
-function PoolInfo({ contractState, tokenState, symbol }) {
+function PoolInfoCard({ contractState, tokenState, symbol }) {
 
   const pointsToTokenDays = (val) => {
     return contractState?.pointsToTokenDays(val, tokenState?.decimals);
@@ -294,7 +326,7 @@ function PoolInfo({ contractState, tokenState, symbol }) {
     <Card
       style={{ 
         border: "1px solid #cccccc", margin: "auto",marginTop: 32, width: 600, borderRadius: "20px"}}
-      title={<h2>{symbol} pool info</h2>}
+      title={<h2>{symbol} pool <b>info</b></h2>}
       size="small">
       <Space size="large" direction="horizontal">
         <div>All deposits:<Balance balance={contractState.depositsSum} symbol={symbol} size="20" /></div>

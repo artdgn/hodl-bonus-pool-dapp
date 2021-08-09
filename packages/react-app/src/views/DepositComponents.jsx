@@ -28,7 +28,9 @@ export function NewDepositCard(
         border: "1px solid #cccccc", width: 600,
         margin: "auto", marginTop: 32, borderRadius: "20px"
       }}
-      title={<h2>{notReady ? `☝️ Choose token to deposit ☝️` : `Deposit to ${symbol} pool`}</h2>}
+      title={<h2>{notReady ? 
+        <span>☝️ Choose token to deposit ☝️</span> : 
+        <span><b>Deposit</b> to {symbol} pool</span>}</h2>}
       size="small"
     >
 

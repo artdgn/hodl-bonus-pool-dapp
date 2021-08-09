@@ -6,6 +6,7 @@ import { Balance } from "../components";
 import { formatUnits } from "@ethersproject/units";
 import { InfoCircleTwoTone, WarningTwoTone } from "@ant-design/icons";
 
+
 export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode }) {
   const symbol = ethMode ? "ETH" : tokenState.symbol;
   const tokenIds = contractState?.poolTokenIds;
@@ -15,7 +16,7 @@ export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode 
       style={{ 
         border: "1px solid #cccccc", width: 600, 
         margin: "auto", marginTop: 32, borderRadius: "20px"}}
-      title={<h2>Withdraw from {symbol} pool</h2>}
+      title={<h2><b>Withdraw</b> from {symbol} pool</h2>}
       size="small"
     >
       <Collapse 
@@ -29,8 +30,7 @@ export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode 
             <Collapse.Panel
               header={<WithdrawalHeader
                 contractState={contractState}
-                tokenState={tokenState}
-                ethMode={ethMode}
+                symbol={symbol}
                 tokenId={tokenId}
               />}
               style={{ border: "1px solid #cccccc", borderRadius: "20px", marginBottom: "10px"}}
@@ -50,8 +50,7 @@ export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode 
   )
 }
 
-function WithdrawalHeader({ contractState, tokenState, ethMode, tokenId }) {
-  const symbol = ethMode ? "ETH" : tokenState.symbol;
+function WithdrawalHeader({ contractState, symbol, tokenId}) {
   const deposit = contractState.getDepositDetails(tokenId);
   const withText = deposit?.penalty?.gt(0) ? "with penalty ⛔" : 
       ( deposit?.bonus?.gt(0) ? "with bonus 🤑" : "✅" )

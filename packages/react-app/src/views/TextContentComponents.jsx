@@ -6,43 +6,36 @@ import { QuestionCircleTwoTone, InfoCircleTwoTone } from "@ant-design/icons";
 export function MechanismButton() {
   const markdown = `
 ## Pool Mechanism
-A depositor is committing for "commitment period" and an "initial penalty percent" 
-of his choice (within allowed ranges). **After the commitment period the
-deposit can be withdrawn with its share of both of the bonus pools**. 
-#### Bonus mechanics: "Hold bonus" & "Commit bonus":
-The bonus share is determined from the deposit's size, initial commitment, and actual 
-holding time relative to other deposits in the pool.
-- The two **bonus pools are populated from the penalties for early withdrawals**,
-  which are withdrawals before a deposit's commitment period is elapsed. 
-  The penalties are split in half and added to both bonus pools (isolated per token): 
-  **Hold bonus** pool and **Commit bonus** pool.
-- The share of the bonus pools is equal to the share of the bonus points (**hold-points** 
-  and **commit-points**) for the deposit at the time of withdrawal relative to the other
-  deposits in the pool.
-- **Hold points** are calculated as amount of token (or ETH) x seconds held. So **more tokens
-  held for longer add more points** - and increase the bonus share. **This bonus is
-  independent of commitment or penalties**. The points keep increasing after commitment period
-  is over.
-- **Commit points** are calculated as amount of token (or ETH) x seconds committed to penalty.
-  These points **depend only on commitment time and commitment penalty** 
-  at the time of the deposit.
-#### Penalty mechanics:
-- **Withdrawal before commitment period is not entitled to any part of the bonus**
-  and is instead "slashed" with a penalty (that is split between the bonuses pools).
-- The **penalty percent is decreasing with time** from the chosen
-  initialPenaltyPercent to 0 at the end of the commitPeriod. 
-#### Deposit is an NFT (transferrable but immutable):
-- Each deposit has a separate ERC721 (NFT) tokenId with the usual transfer mechanics. So
-  multiple deposits for same owner and asset but with different commitment
-  parameters can co-exist independently.
-- Deposits can be deposited for another account as beneficiary,
-  so e.g. a team / DAO can deposit its tokens for its members to withdraw.
-- Only the deposit "owner" can use the withdrawal functionality, so ERC721 approvals 
-  allow transfers, but not the withdrawals.
+A depositor is committing for "commitment period" and an "initial penalty percent". **The
+deposit can be withdrawn with its share of the bonuses after the commitment period**. 
+#### 💰 Bonus mechanics: "Hold bonus" ⏳ & "Commit bonus" 🔏:
+**Hold bonus** pool and **Commit bonus** pool for each asset 
+**are populated from the penalties 🔨 for early withdrawals**. 
+The penalties are split in half and added to each bonus pool.
+- The share of the bonus pools is calculated from from the bonus points (**hold-points** 
+  and **commit-points**) for the deposit at the time of withdrawal.
+- **Hold points** are \`amount of asset\` x \`seconds held\` **at the time of withdrawal 📤**. 
+  So **more tokens held for longer add more points**. **This bonus is
+  not dependent on commitment or penalties**.
+- **Commit points** are \`amount of asset committed to penalty\` x \`seconds committed to 
+  penalty\` **at time of deposit 📥**. These points **depend only on commitment 
+  time and commitment penalty**.
+#### 🔨 Penalty mechanics:
+- The **penalty percent is decreasing with time ⏳** from the chosen
+  \`initialPenaltyPercent\` to 0 at the end of the \`commitPeriod\`. 
+- **Withdrawal before commitment period is "slashed"🔪 with the penalty percent, 
+  and gets NO bonus regardless of points**.
+#### ✨ ERC721 NFT ✨ deposits - transferrable but immutable:
+- Each deposit has a separate ERC721 tokenId with the usual transfer mechanics. So
+  multiple deposits can co-exist independently for same owner and asset.
+- Deposits can be on behalf of another account as beneficiary,
+  so e.g. a team / DAO can deposit its tokens for its members to withdraw later.
+- Only the deposit "owner"🔑 can use the withdrawal functionality, so ERC721 approvals 
+  allow transfers, but not withdrawals.
 #### Additional notes:
 - Some ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
   kinds of tokens this pool tracks everything as "shares of initial deposits".
-- **Each token** has **one independent pool**. i.e. all accounting is separate for each token.
+- **Each asset** has **one independent pool**. i.e. all accounting is separate for each asset.
 - There is no pool creation process - one contract holds all pools.
 `;
 
@@ -53,8 +46,7 @@ holding time relative to other deposits in the pool.
 
 export function IncentivesButton() {
   const markdown = `
-## Incentives considerations:
-All incentives are aligned for longer holding.
+## Incentives allignment for longer holding 💎✊⏳.
 - **Commit bonus** (future focused) - rewards committing for higher penalties and longer periods:
   - **Rewards proportionally to their risk (skin in the game)**.
   - Increases the potential bonus - making the pool more attractive.

@@ -95,7 +95,7 @@ export class ERC20StateHooks {
     const [prevAddress, setPrevAddress] = useState()
     const [failed, setFailed] = useState(false);
 
-    this.tokenContract = contract;
+    this.contract = contract;
     this.address = contract?.address;
 
     const onFail = () => {
@@ -142,32 +142,32 @@ export class ERC20StateHooks {
       }
     }, [this.address, prevAddress])
   }
+}
 
-  static useERC20ContractAtAddress(address, provider) {
-    const [contract, setContract] = useState();
-  
-    useEffect(() => {
-      const erc20Abi = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function symbol() view returns (string)",
-        "function name() view returns (string)",
-        "function decimals() view returns (uint8)",
-        "function approve(address _spender, uint256 _value) public returns (bool success)",
-        "function allowance(address _owner, address _spender) public view returns (uint256 remaining)"
-      ];
-  
-      const readContract = async () => {
-        if (address && provider) {
-          const contract = new ethers.Contract(address, erc20Abi, provider, provider.getSigner());
-          setContract(contract);
-        } else {
-          setContract(null);
-        }
+export function useERC20ContractAtAddress(address, provider) {
+  const [contract, setContract] = useState();
+
+  useEffect(() => {
+    const erc20Abi = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function symbol() view returns (string)",
+      "function name() view returns (string)",
+      "function decimals() view returns (uint8)",
+      "function approve(address _spender, uint256 _value) public returns (bool success)",
+      "function allowance(address _owner, address _spender) public view returns (uint256 remaining)"
+    ];
+
+    const readContract = async () => {
+      if (address && provider) {
+        const contract = new ethers.Contract(address, erc20Abi, provider, provider.getSigner());
+        setContract(contract);
+      } else {
+        setContract(null);
       }
-  
-      readContract();
-    }, [address, provider]);
-  
-    return contract;
-  }
+    }
+
+    readContract();
+  }, [address, provider]);
+
+  return contract;
 }

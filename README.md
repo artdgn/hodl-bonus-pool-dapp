@@ -5,7 +5,7 @@
 > A project for learning smart-contract-full-stack-whizz-bang-dApp-buidling using the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth)**.
 
 ## 💡 The idea: "Strong 💎✊ hands" get a bonus from "weak 🧁 hands"'s penalties for early withdrawals.
-
+  
 ### Why would anyone use it, why is it a good idea ❔
 
 1. <details><summary> Price effect: like "staking", but without the inflation </summary>
