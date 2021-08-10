@@ -23,32 +23,34 @@ const useTokenList = (tokenListUri, chainId) => {
   let _tokenListUri = tokenListUri || "https://gateway.ipfs.io/ipns/tokens.uniswap.org";
 
   useEffect(() => {
+    let isMounted = true;
 
     const getTokenList = async () => {
       try {
-        let _tokenList;
+        if (chainId && isMounted) {
+          let _tokenList;
 
-        if (_tokenListUri.startsWith("local")) {
-          _tokenList = require('../contracts/localTokens.js');
-        } else {
-          const tokenList = await fetch(_tokenListUri);
-          _tokenList = await tokenList.json();
-        }
+          if (_tokenListUri.startsWith("local")) {
+            _tokenList = require('../contracts/localTokens.js');
+          } else {
+            const tokenList = await fetch(_tokenListUri);
+            _tokenList = await tokenList.json();
+          }
 
-        if (chainId) {
           _tokenList = _tokenList.tokens
             .filter(t => t.chainId === chainId);
-        } else {
-          _tokenList = _tokenList.tokens;
+
+          setTokenList(_tokenList);
         }
-
-        setTokenList(_tokenList);
-
       } catch (e) {
         console.log(e)
       }
     }
+    
     getTokenList();
+
+    return () => { isMounted = false };
+
   }, [_tokenListUri, chainId]);
 
   return tokenList;

@@ -34,7 +34,7 @@ export function NewDepositCard(
       size="small"
     >
 
-      {notReady ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} /> :
+      {notReady ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No token chosen"/> :
         <div>
           <CommitmentInput
             contractState={contractState}

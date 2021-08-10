@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useEffect, useState } from "react";
-import { Button,  Card,  Space, Collapse } from "antd";
+import { Button,  Card,  Space, Collapse, Empty} from "antd";
 import { Balance } from "../components";
 import { useERC20ContractAtAddress } from "./ContractsStateHooks";
 
@@ -17,42 +17,48 @@ export function OtherPoolsDeposits({ provider, contractState, tokenState, tokenC
       border: "1px solid #cccccc", width: 600,
       margin: "auto", marginTop: 32, borderRadius: "20px"
     }}
-    title={<h2>Your deposits in <b>{tokenChoice ? "other" : "all"} pools</b></h2>}
+    title={<h2>Your deposits in <b>{tokenChoice ? "Other" : "All"} Pools</b></h2>}
     size="small"
   >
-    <Collapse
-      destroyInactivePanel={false}
-      bordered={false}
-      style={{ borderRadius: "20px" }}
-    >
-      {tokenIds?.map(
-        (tokenId) =>
-          <Collapse.Panel
-            header={<AnyTokenDepositHeader
-              contractState={contractState}
-              provider={provider}
-              erc20Address={contractState?.depositParams[tokenId].asset}
-              tokenId={tokenId}
-            />}
-            style={{ border: "1px solid #cccccc", borderRadius: "20px", marginBottom: "10px" }}
-            key={tokenId.toNumber()}
-          >
-            <Button
-              onClick={() => {
-                if (contractState?.depositParams[tokenId].asset === contractState?.WETHAddress) {
-                  setTokenChoice('ETH');
-                } else {
-                  setTokenChoice(contractState?.depositParams[tokenId].asset);
-                }
-              }}
-              type="secondary"
-              shape="round"
-              size="large"
-            > Switch view to this pool
-            </Button>
-          </Collapse.Panel>
-      )}
-    </Collapse>
+    {tokenIds?.length > 0 ?
+      <Collapse
+        destroyInactivePanel={false}
+        bordered={false}
+        style={{ borderRadius: "20px" }}
+      >
+        {tokenIds?.map(
+          (tokenId) =>
+            <Collapse.Panel
+              header={<AnyTokenDepositHeader
+                contractState={contractState}
+                provider={provider}
+                erc20Address={contractState?.depositParams[tokenId].asset}
+                tokenId={tokenId}
+              />}
+              style={{ border: "1px solid #cccccc", borderRadius: "20px", marginBottom: "10px" }}
+              key={tokenId.toNumber()}
+            >
+              <Button
+                onClick={() => {
+                  if (contractState?.depositParams[tokenId].asset === contractState?.WETHAddress) {
+                    setTokenChoice('ETH');
+                  } else {
+                    setTokenChoice(contractState?.depositParams[tokenId].asset);
+                  }
+                }}
+                type="secondary"
+                shape="round"
+                size="large"
+              > Switch view to this pool
+              </Button>
+            </Collapse.Panel>
+        )}
+      </Collapse> :
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={`You have no deposits in ${tokenChoice ? "other pools" : "any pool"}`} 
+      />
+    }
   </Card>
 }
 
@@ -63,14 +69,21 @@ function AnyTokenDepositHeader({ provider, contractState, erc20Address, tokenId}
   const [symbol, setSymbol] = useState("");
   
   useEffect(() => {
+    // https://stackoverflow.com/questions/53949393/cant-perform-a-react-state-update-on-an-unmounted-component
+    let isMounted = true;
+
     const getSymbol = async () => {
-      if (erc20Address === contractState?.WETHAddress) {
-        setSymbol('ETH');
-      } else if (tokenContract) {
-        setSymbol(await tokenContract.symbol())
-      }
-    }
+      if (isMounted) {
+        if (erc20Address === contractState?.WETHAddress) {
+          setSymbol('ETH');
+        } else if (tokenContract) {
+          setSymbol(await tokenContract.symbol())
+        }
+      };
+    }    
     getSymbol();
+
+    // return () =>  { isMounted = false };
   }, [contractState, tokenContract, erc20Address]);
 
   const deposit = contractState.getDepositDetails(tokenId);

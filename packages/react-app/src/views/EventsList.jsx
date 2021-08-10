@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React from "react";
-import { List } from "antd";
+import { List, Empty } from "antd";
 import { Address } from "../components";
 import { ethers } from "ethers";
 import { useEventListener } from "../hooks";
@@ -27,11 +27,11 @@ export function EventsList({ contractState, contract, address }) {
         style={{ width: 600, margin: "auto", marginTop: 32, paddingBottom: 32, borderRadius: "20px"}}
         bordered
         dataSource={allEvents}
-        header={<h2>Your past contract events</h2>}
+        header={<h2>Your past contract <b>events</b></h2>}
         renderItem={(item) => {
           let eventText = "";
           if (item.eventName === "Transfer") {
-            if (item.from == ethers.constants.AddressZero || item.to == ethers.constants.AddressZero)
+            if (item.from === ethers.constants.AddressZero || item.to === ethers.constants.AddressZero)
               return;
             eventText = (
               <span>
@@ -65,6 +65,10 @@ export function EventsList({ contractState, contract, address }) {
             </List.Item>
           )
         }}
-      />);
+      > 
+      { allEvents?.length > 0 ? "" : 
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="You have no past events"/>
+      }
+      </List>);
 }
 

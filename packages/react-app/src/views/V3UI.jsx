@@ -159,7 +159,7 @@ function NavigationRouter({
 
         <Route exact path="/contract">
           <Contract
-            name={contractName}
+            customContract={contractState.contract}
             signer={provider.getSigner()}
             provider={provider}
             address={address}
@@ -168,13 +168,16 @@ function NavigationRouter({
         </Route>
 
         <Route exact path="/token">
-          <Contract
+          {tokenState.contract ? 
+            <Contract
             customContract={tokenState.contract}
             signer={provider.getSigner()}
             provider={provider}
             address={address}
             blockExplorer={blockExplorer}
-          />
+          /> : <h2 style={{marginTop: 20}}>No token chosen in Main UI</h2>
+          }
+          
         </Route>
 
       </Switch>
@@ -269,7 +272,7 @@ function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provid
     return (
       <Space size="large" align="start">
         <Space align="center" direction="vertical">
-          <h3>Wallet balance</h3>
+          <h3>Available balance</h3>
           <Balance
             balance={tokenState.balance}
             symbol={tokenState.symbol}
@@ -326,7 +329,7 @@ function PoolInfoCard({ contractState, tokenState, symbol }) {
     <Card
       style={{ 
         border: "1px solid #cccccc", margin: "auto",marginTop: 32, width: 600, borderRadius: "20px"}}
-      title={<h2>{symbol} pool <b>info</b></h2>}
+      title={<h2>{symbol} <b>pool info</b></h2>}
       size="small">
       <Space size="large" direction="horizontal">
         <div>All deposits:<Balance balance={contractState.depositsSum} symbol={symbol} size="20" /></div>

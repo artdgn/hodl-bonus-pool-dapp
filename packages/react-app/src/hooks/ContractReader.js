@@ -32,6 +32,8 @@ export default function useContractReader(contract, functionName, args, pollTime
 
   const [value, setValue] = useState();
 
+  let isMounted = true;
+
   const updateValue = async () => {
     try {
       let newValue;
@@ -45,7 +47,7 @@ export default function useContractReader(contract, functionName, args, pollTime
       }
       // console.log("GOT VALUE",newValue)
       if (newValue !== value) {
-        setValue(newValue);
+        if (isMounted) setValue(newValue);
         if (typeof onChange === "function") onChange();
       }
     } catch (e) {
@@ -56,20 +58,23 @@ export default function useContractReader(contract, functionName, args, pollTime
 
   // do once always on mount if not polling
   useEffect(() => {
-    if (contract && adjustPollTime === 0) updateValue()
+    if (contract && adjustPollTime === 0) updateValue();
+    return () => { isMounted = false }
     // eslint-disable-next-line
   }, [contract, functionName, ...args]);
 
   // Only pass a provider to watch on a block if we have a contract and no PollTime
-  useOnBlock(contract && adjustPollTime === 0 && contract.provider, () => {
-    if (contract && adjustPollTime === 0) {
-      updateValue();
-    }
-  });
+  useOnBlock(
+    contract && adjustPollTime === 0 && contract.provider, 
+    () => {
+      if (contract && adjustPollTime === 0) {
+        updateValue();
+      }}
+  );
 
   // Use a poller if a pollTime is provided
   usePoller(
-    async () => {
+    () => {
       if (contract && adjustPollTime > 0) {
         if (DEBUG) console.log("polling!", functionName);
         updateValue();

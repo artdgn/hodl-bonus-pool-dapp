@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState } from "react";
-import { Button,  Card,  Modal, Space, Tooltip, Collapse } from "antd";
+import { Button,  Card,  Modal, Space, Tooltip, Collapse, Empty } from "antd";
 import { Balance } from "../components";
 import { formatUnits } from "@ethersproject/units";
 import { InfoCircleTwoTone, WarningTwoTone } from "@ant-design/icons";
@@ -19,21 +19,21 @@ export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode 
       title={<h2><b>Withdraw</b> from {symbol} pool</h2>}
       size="small"
     >
-      <Collapse 
-        destroyInactivePanel={false} 
+      {tokenIds.length > 0 ? <Collapse
+        destroyInactivePanel={false}
         defaultActiveKey={tokenIds?.length > 0 ? tokenIds[0].toNumber() : ""}
         bordered={false}
-        style={{ borderRadius: "20px"}}
+        style={{ borderRadius: "20px" }}
       >
         {tokenIds?.map(
-          (tokenId) => 
+          (tokenId) =>
             <Collapse.Panel
               header={<WithdrawalHeader
                 contractState={contractState}
                 symbol={symbol}
                 tokenId={tokenId}
               />}
-              style={{ border: "1px solid #cccccc", borderRadius: "20px", marginBottom: "10px"}}
+              style={{ border: "1px solid #cccccc", borderRadius: "20px", marginBottom: "10px" }}
               key={tokenId.toNumber()}
             >
               <WithdrawalInfo
@@ -45,7 +45,7 @@ export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode 
               />
             </Collapse.Panel>
         )}
-      </Collapse>
+      </Collapse> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="You have no deposits in this pool"/>}
     </Card>
   )
 }

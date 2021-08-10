@@ -23,6 +23,9 @@ export default function useEventListener(contract, eventName, provider, startBlo
   filterArgs = filterArgs || [];
 
   useEffect(() => {
+    // https://stackoverflow.com/questions/53949393/cant-perform-a-react-state-update-on-an-unmounted-component
+    let isMounted = true;
+
     if (typeof provider !== "undefined" && typeof startBlock !== "undefined") {
       // if you want to read _all_ events from your contracts, set this to the block number it is deployed
       provider.resetEventsBlock(startBlock);
@@ -33,14 +36,17 @@ export default function useEventListener(contract, eventName, provider, startBlo
         contract.on(eventFilter, (...args) => {
           let blockNumber = args[args.length - 1].blockNumber
           let newMessage = Object.assign({ blockNumber, eventName }, args.pop().args)
-          setUpdates(messages => [...new Set([newMessage, ...messages])]);
+          if (isMounted) setUpdates(messages => [...new Set([newMessage, ...messages])]);
         });
         return () => {
+          isMounted = false;
           contract.removeListener(eventName);
         };
       } catch (e) {
         console.log(e);
       }
+      
+      return () => { isMounted = false };
     }
   // eslint-disable-next-line
   }, [provider, startBlock, contract, eventName, ...filterArgs]);

@@ -148,6 +148,8 @@ export function useERC20ContractAtAddress(address, provider) {
   const [contract, setContract] = useState();
 
   useEffect(() => {
+    let isMounted = true;
+
     const erc20Abi = [
       "function balanceOf(address owner) view returns (uint256)",
       "function symbol() view returns (string)",
@@ -158,15 +160,19 @@ export function useERC20ContractAtAddress(address, provider) {
     ];
 
     const readContract = async () => {
-      if (address && provider) {
-        const contract = new ethers.Contract(address, erc20Abi, provider, provider.getSigner());
-        setContract(contract);
-      } else {
-        setContract(null);
-      }
+      if (isMounted) {
+        if (address && provider) {
+          const contract = new ethers.Contract(address, erc20Abi, provider, provider.getSigner());
+          setContract(contract);
+        } else {
+          setContract(null);
+        }
+      };
     }
 
     readContract();
+    
+    return () => { isMounted = false };
   }, [address, provider]);
 
   return contract;
