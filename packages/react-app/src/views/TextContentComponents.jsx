@@ -108,11 +108,11 @@ function MarkdownModalButton({ title, markdown }) {
       <Button
         onClick={() => setDrawerVisible(true)}
         size="large"
-        shape="round"
         style={{ fontSize: 20, width: "100%" }}
       >{title}</Button>
 
       <Modal
+        className="modal-container"
         onOk={() => setDrawerVisible(false)}
         onCancel={() => setDrawerVisible(false)}
         centered

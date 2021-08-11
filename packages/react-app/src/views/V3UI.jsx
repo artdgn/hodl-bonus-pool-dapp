@@ -196,10 +196,6 @@ function HeaderCard({
 
   return (
     <Card
-      style={{
-        border: "1px solid #cccccc", width: 600,
-        margin: "auto", marginTop: 10, borderRadius: "20px"
-      }}
       title={
         <div>
           <h1>HODL Bonus Pool</h1>
@@ -241,10 +237,6 @@ function HeaderCard({
 function RulesCard({ contractState, blockExplorer }) {
  return (
    <Card
-     style={{
-       border: "1px solid #cccccc", padding: 16, width: 600,
-       margin: "auto", marginTop: 10, borderRadius: "20px"
-     }}
      size="large"
    >
      <Space direction="vertical" size="large">      
@@ -265,13 +257,15 @@ function RulesCard({ contractState, blockExplorer }) {
 function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provider }) {
   if (ethMode) {
     return (
-      <h3>Available balance: <Balance address={address} provider={provider} size="20" /></h3>
+        <h3 class="seconary-text">
+          Available balance: <Balance address={address} provider={provider} size="20" />
+        </h3>
     );
   } else {
     if (!tokenState.address) return "";
     return (
       <Space size="large" align="start">
-        <Space align="center" direction="vertical">
+        <Space align="center" direction="vertical" class="seconary-text">
           <h3>Available balance</h3>
           <Balance
             balance={tokenState.balance}
@@ -279,7 +273,7 @@ function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provid
             size="20" />
         </Space>
 
-        <Space align="center" direction="vertical">
+        <Space align="center" direction="vertical" class="seconary-text">
           <h3>Allowance</h3>
           <Balance
             balance={tokenState.allowance}
@@ -287,7 +281,7 @@ function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provid
             size="20" />
         </Space>
 
-        <Space align="center" direction="vertical">
+        <Space align="center" direction="vertical"  class="seconary-text">
           <h3>Token address</h3>
           <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
         </Space>
@@ -327,8 +321,6 @@ function PoolInfoCard({ contractState, tokenState, symbol }) {
 
   return (
     <Card
-      style={{ 
-        border: "1px solid #cccccc", margin: "auto",marginTop: 32, width: 600, borderRadius: "20px"}}
       title={<h2>{symbol} <b>pool info</b></h2>}
       size="small">
       <Space size="large" direction="horizontal">

@@ -1,3 +1,27 @@
 .App {
   text-align: center;
 }
+
+.modal-container > * {
+  border-radius: 20px;
+}
+
+.ant-btn, .ant-input-number, .ant-input {
+  border-radius: 20px;
+}
+
+.seconary-text {
+  opacity: 0.55;
+}
+
+.ant-input {
+  text-align: center;
+}
+
+.ant-card {
+  border: 1px solid #cccccc;
+  margin: auto;
+  margin-top: 20px;
+  width: 600px;
+  border-radius: 20px;
+}

@@ -24,10 +24,6 @@ export function NewDepositCard(
   const notReady = loading || !tokenState.address;
   return (
     <Card
-      style={{
-        border: "1px solid #cccccc", width: 600,
-        margin: "auto", marginTop: 32, borderRadius: "20px"
-      }}
       title={<h2>{notReady ? 
         <span>☝️ Choose token to deposit ☝️</span> : 
         <span><b>Deposit</b> to {symbol} pool</span>}</h2>}
@@ -93,7 +89,7 @@ function CommitmentInput(
     <h3>
       Deposit for:&nbsp;
       <InputNumber
-        style={{ margin: 8, width: "8rem", borderRadius: "20px"}}
+        style={{ margin: 8, width: "8rem" }}
         size="large"
         min={minPeriodDays}
         max={4 * 365}
@@ -109,7 +105,7 @@ function CommitmentInput(
         step={5}
         min={minInitialPenaltyPercent}
         max={100}
-        style={{ margin: 8, borderRadius: "20px" }}
+        style={{ margin: 8 }}
         value={penalty}
         formatter={value => `${value}%`}
         parser={value => value.replace('%', '')}
@@ -158,7 +154,7 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
             }}
             size="large"
             suffix={tokenState.symbol}
-            style={{ width: "100%", textAlign: "center", borderRadius: "20px"}}
+            style={{ width: "100%", textAlign: "center", borderRadius: "20px" }}
           />
         </Col>
 
@@ -180,7 +176,6 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
               }}
               type="primary"
               size="large"
-              shape="round"
               disabled={!approveButtonEnabled || approving}
               style={{ width: "100%", textAlign: "center" }}
             >
@@ -194,7 +189,6 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
             onClick={() => setDepositModalVisible(true)}
             type="primary"
             size="large"
-            shape="round"
             disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
@@ -205,10 +199,9 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
       </Row>
 
       <Modal
-        title={<h3 style={{textAlign: "center"}}>
-          Confirm deposit of {amountToSend} {tokenState.symbol}</h3>}
         okText="Confirm and commit"
         visible={depositModalVisible}
+        className="modal-container"
         onOk={() => {
           setDepositModalVisible(false);
           deposittingSet(true);
@@ -226,7 +219,13 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
           }
         }}
         onCancel={() => setDepositModalVisible(false)}>
-          <DepositModalContent contractState={contractState} period={period} penalty={penalty}/>
+          <DepositModalContent 
+            contractState={contractState} 
+            period={period} 
+            penalty={penalty}
+            title={<h1 style={{textAlign: "center"}}>
+              Confirm deposit of {amountToSend} {tokenState.symbol}</h1>}
+            />
       </Modal>     
     </div>)
 }
@@ -270,7 +269,6 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
             onClick={() => setDepositModalVisible(true)}
             type="primary"
             size="large"
-            shape="round"
             disabled={!depositButtonEnabled || depositting}
             style={{ width: "100%", textAlign: "center" }}
           >
@@ -282,9 +280,9 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
       </Row>
 
       <Modal
-        title={<h3 style={{ textAlign: "center" }}>Confirm deposit of {amountToSend} ETH</h3>}
         okText="Confirm and commit"
         visible={depositModalVisible}
+        className="modal-container"
         onOk={() => {
           setDepositModalVisible(false);
           deposittingSet(true);
@@ -296,7 +294,11 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
           }
         }}
         onCancel={() => setDepositModalVisible(false)}>
-        <DepositModalContent contractState={contractState} period={period} penalty={penalty} />
+        <DepositModalContent 
+          contractState={contractState} 
+          period={period} 
+          penalty={penalty} 
+          title={<h1 style={{ textAlign: "center" }}>Confirm deposit of {amountToSend} ETH</h1>}/>
       </Modal>
 
     </div>)
@@ -344,9 +346,10 @@ function PenaltyTooltip({ contractState }) {
     </Tooltip>);
 }
 
-function DepositModalContent({contractState, period, penalty}) {
+function DepositModalContent({contractState, period, penalty, title}) {
   return (
     <div>
+      { title }
       <h2>
         <DollarTwoTone twoToneColor="#52c41a" />&nbsp;
         Tip: Increasing commitment period and/or penalty percent will result higher share of bonus!

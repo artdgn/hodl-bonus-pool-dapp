@@ -13,13 +13,10 @@ export function WithdrawalsCard({contractState, tokenState, contractTx, ethMode 
   
   return (
     <Card
-      style={{ 
-        border: "1px solid #cccccc", width: 600, 
-        margin: "auto", marginTop: 32, borderRadius: "20px"}}
       title={<h2><b>Withdraw</b> from {symbol} pool</h2>}
       size="small"
     >
-      {tokenIds.length > 0 ? <Collapse
+      {tokenIds?.length > 0 ? <Collapse
         destroyInactivePanel={false}
         defaultActiveKey={tokenIds?.length > 0 ? tokenIds[0].toNumber() : ""}
         bordered={false}
@@ -174,7 +171,6 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode, d
       <Button
         onClick={() => setPenaltyModalVisible(true)}
         type="primary"
-        shape="round"
         danger
         size="large"
         disabled={!(deposit.withdrawWithPenalty > 0)}
@@ -182,12 +178,7 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode, d
       </Button>
 
       <Modal
-        title={<h3 style={{ textAlign: "center" }}>
-          Confirm withdrawal of {
-            tokenState.decimals && 
-            formatUnits("" + deposit.withdrawWithPenalty, tokenState.decimals)
-          } {symbol} with penalty
-        </h3>}
+        className="modal-container"        
         okText="Withdraw with penalty"
         visible={penaltyModalVisible}
         okButtonProps={{ danger: true }}
@@ -200,6 +191,12 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode, d
           }
         }}
         onCancel={() => setPenaltyModalVisible(false)}>
+        <h1 style={{ textAlign: "center" }}>
+          Confirm withdrawal of {
+            tokenState.decimals && 
+            formatUnits("" + deposit.withdrawWithPenalty, tokenState.decimals)
+          } {symbol} with penalty
+        </h1>
         <h2>Withdraw&nbsp;
           {formatUnits("" + deposit.withdrawWithPenalty, tokenState.decimals)}&nbsp;
           {symbol} out of deposited&nbsp;
@@ -229,7 +226,6 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode, dep
       <Button
         onClick={() => setBonusModalVisible(true)}
         type="primary"
-        shape="round"
         size="large"
         disabled={!(deposit.withdrawWithBonus > 0)}
       > Withdraw
@@ -237,10 +233,7 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode, dep
       </Button>
 
       <Modal
-        title={<h3 style={{ textAlign: "center" }}>
-          Confirm withdrawal of {
-            formatUnits("" + deposit.withdrawWithBonus, tokenState.decimals)
-          } {symbol}</h3>}
+        className="modal-container"
         okText="Withdraw"
         visible={bonusModalVisible}
         onOk={() => {
@@ -252,6 +245,10 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode, dep
           }
         }}
         onCancel={() => setBonusModalVisible(false)}>
+        <h1 style={{ textAlign: "center" }}>
+          Confirm withdrawal of {
+            formatUnits("" + deposit.withdrawWithBonus, tokenState.decimals)
+          } {symbol}</h1>
         <h2>
           Withdraw&nbsp;
           {formatUnits("" + deposit.withdrawWithBonus, tokenState.decimals)}&nbsp;

@@ -71,7 +71,6 @@ export default function TokenSelection({
         }}
         type="primary"
         size="large"
-        shape="round"
         style={{ width: "100%", textAlign: "center" }}
       >
         Import token {shortenString(rawInput)} ?

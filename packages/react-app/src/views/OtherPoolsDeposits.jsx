@@ -13,10 +13,6 @@ export function OtherPoolsDeposits({ provider, contractState, tokenState, tokenC
     (tokenId) => contractState?.depositParams[tokenId].asset != tokenState.address);
 
   return <Card
-    style={{
-      border: "1px solid #cccccc", width: 600,
-      margin: "auto", marginTop: 32, borderRadius: "20px"
-    }}
     title={<h2>Your deposits in <b>{tokenChoice ? "Other" : "All"} Pools</b></h2>}
     size="small"
   >
@@ -47,7 +43,6 @@ export function OtherPoolsDeposits({ provider, contractState, tokenState, tokenC
                   }
                 }}
                 type="secondary"
-                shape="round"
                 size="large"
               > Switch view to this pool
               </Button>
