@@ -4,12 +4,12 @@ import React, { useState, useEffect } from "react";
 import { notification} from "antd";
 import { formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { useContractReader } from "../hooks";
+import { useContractReader, useBlockTimestamp } from "../hooks";
 
 
 export class HodlPoolV3StateHooks {
 
-  constructor(contract, address, tokenAddress) {
+  constructor(contract, address, tokenAddress, provider) {
     this.contract = contract;
     this.address = contract?.address;
     this.tokenAddress = tokenAddress;
@@ -18,6 +18,7 @@ export class HodlPoolV3StateHooks {
       contract, "minInitialPenaltyPercent", [], 86400 * 1000);
     this.minCommitPeriod = useContractReader(
         contract, "minCommitPeriod", [], 86400 * 1000);
+    this.blockTimestamp = useBlockTimestamp(provider);
     
     // all deposits view
     this.depositsOfOwner = useContractReader(
@@ -73,6 +74,11 @@ export class HodlPoolV3StateHooks {
     details.withdrawWithBonus = details.bonus && details.balance && details.penalty?.eq(0) ?
       parseFloat(details.balance.add(details.bonus).toString()) : 0;
     return details;
+  }
+
+  depositDatetime(tokenId) {
+    return this?.depositParams && this?.depositParams[tokenId]?.time ?
+      (new Date(this?.depositParams[tokenId]?.time * 1000)) : null;
   }
 
   pointsToTokenDays(val, decimals) {

@@ -1,27 +1,38 @@
 .App {
   text-align: center;
+  margin: auto !important;
 }
 
-.modal-container > * {
+.App .modal-container > * {
   border-radius: 20px;
 }
 
-.ant-btn, .ant-input-number, .ant-input {
+.App .ant-btn, .App .ant-input-number, .App .ant-input {
   border-radius: 20px;
 }
 
-.seconary-text {
+.App .seconary-text {
   opacity: 0.55;
 }
 
-.ant-input {
+.App .ant-input {
   text-align: center;
 }
 
-.ant-card {
+.App .ant-card {
   border: 1px solid #cccccc;
   margin: auto;
   margin-top: 20px;
   width: 600px;
+  border-radius: 20px;
+}
+
+.App .ant-badge-count {
+  background-color: rgba(37, 245, 0, 0.63);
+  margin: 10px;
+  font-size: 20px;
+  padding: 5px;
+  height: 30px;
+  width: 120%;
   border-radius: 20px;
 }

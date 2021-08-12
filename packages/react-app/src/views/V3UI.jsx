@@ -31,7 +31,8 @@ export function HodlPoolV3UI(
   const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
   const tokenState = new ERC20StateHooks(
     tokenContract, address, contract?.address, setLoading, setError);
-  const contractState = new HodlPoolV3StateHooks(contract, address, tokenAddress);
+  const contractState = new HodlPoolV3StateHooks(
+    contract, address, tokenAddress, provider);
   
   // switch token address and eth-mode depending on token choice
   useEffect(() => {
@@ -257,15 +258,17 @@ function RulesCard({ contractState, blockExplorer }) {
 function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provider }) {
   if (ethMode) {
     return (
-        <h3 class="seconary-text">
+      <div className="seconary-text">
+        <h3>
           Available balance: <Balance address={address} provider={provider} size="20" />
         </h3>
+      </div>
     );
   } else {
     if (!tokenState.address) return "";
     return (
       <Space size="large" align="start">
-        <Space align="center" direction="vertical" class="seconary-text">
+        <Space align="center" direction="vertical" className="seconary-text">
           <h3>Available balance</h3>
           <Balance
             balance={tokenState.balance}
@@ -273,7 +276,7 @@ function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provid
             size="20" />
         </Space>
 
-        <Space align="center" direction="vertical" class="seconary-text">
+        <Space align="center" direction="vertical" className="seconary-text">
           <h3>Allowance</h3>
           <Balance
             balance={tokenState.allowance}
@@ -281,7 +284,7 @@ function TokenOrETHBalance({ tokenState, blockExplorer, ethMode, address, provid
             size="20" />
         </Space>
 
-        <Space align="center" direction="vertical"  class="seconary-text">
+        <Space align="center" direction="vertical"  className="seconary-text">
           <h3>Token address</h3>
           <Address address={tokenState.address} blockExplorer={blockExplorer} fontSize="20" />
         </Space>

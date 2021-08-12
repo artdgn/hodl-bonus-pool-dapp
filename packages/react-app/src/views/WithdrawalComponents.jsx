@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
 import React, { useState } from "react";
-import { Button,  Card,  Modal, Space, Tooltip, Collapse, Empty } from "antd";
+import { Button,  Card,  Modal, Space, Tooltip, Collapse, Empty, Badge } from "antd";
 import { Balance } from "../components";
 import { formatUnits } from "@ethersproject/units";
 import { InfoCircleTwoTone, WarningTwoTone } from "@ant-design/icons";
@@ -103,25 +103,46 @@ function WithdrawalInfo({ contractState, tokenState, ethMode, contractTx, tokenI
     </Tooltip>
   }
 
-  const depositTime = contractState?.depositParams && contractState?.depositParams[tokenId]?.time ?
-    (new Date(contractState?.depositParams[tokenId]?.time * 1000)).toISOString().split('.')[0] : "";
+  const depositTime = contractState?.depositDatetime(tokenId);
+
+  const bonusSection = contractState?.bonusesPool?.gt(0) ? (
+    <div>
+      { deposit?.penalty?.gt(0) ?
+          <APYTextPenalty
+            contractState={contractState}
+            tokenId={tokenId}
+            deposit={deposit}
+            />
+          : 
+          <APYText
+            contractState={contractState}
+            tokenId={tokenId}
+            deposit={deposit}
+            />
+      }
+      <h3>Current bonus:
+        <Balance balance={deposit.bonus} symbol={symbol} size="20" />
+        {bonusTooltip()}
+      </h3>
+    </div>
+  ) : <h3> Bonus & Bonus APY: no bonus in pool yet 😢 </h3>
+
   return (
     <div>
-      <h3>Initial deposit:
-        <Balance
-          balance={deposit.balance}
-          symbol={symbol}
-          size="20" />
-      </h3>
+      <Space direction="horizontal" size="small">
+        <h3>Initial deposit:
+          <Balance
+            balance={deposit.balance}
+            symbol={symbol}
+            size="20" />
+        </h3>
 
-      <h3>Deposit time: {depositTime}</h3>
+        <h3>Deposit time: {depositTime ? depositTime.toISOString().split('.')[0] : ""}</h3>
+      </Space>
+
+      { bonusSection }
 
       {deposit.withdrawWithBonus > 0 ?
-        <div>
-          <h3>Current bonus:
-            <Balance balance={deposit.bonus} symbol={symbol} size="20" />
-            {bonusTooltip()}
-          </h3>
           <WithdrawWithBonusButton
             contractState={contractState}
             txFn={contractTx}
@@ -129,7 +150,6 @@ function WithdrawalInfo({ contractState, tokenState, ethMode, contractTx, tokenI
             ethMode={ethMode}
             deposit={deposit}
           />
-        </div>
         : ""}
 
       {deposit.withdrawWithPenalty > 0 ?
@@ -203,13 +223,15 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode, d
           {formatUnits(deposit.balance, tokenState.decimals)} due to&nbsp;
           {formatUnits(deposit.penalty, tokenState.decimals)} penalty.</h2>
         <h2>
+          <WarningTwoTone twoToneColor="red" /> No bonus will be withdrawed!
+          {deposit?.bonus?.gt(0) ?
+            ` (Current bonus share is ${formatUnits(deposit.bonus, tokenState.decimals)} 
+            ${symbol})` : ""}
+        </h2>
+        <h2>
           <WarningTwoTone twoToneColor="red" /> Wait until end of commitment period
           ({deposit.timeLeftString})
           to withdraw full deposit + any bonus share!
-          <br/>
-          {deposit?.bonus?.gt(0) ?
-            `Current bonus share is ${formatUnits(deposit.bonus, tokenState.decimals)} 
-            ${symbol}.` : ""}
         </h2>
       </Modal>
 
@@ -263,4 +285,95 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode, dep
 
     </div>
   );
+}
+
+function APYText({contractState, tokenId, deposit}) {
+  const commitAPY = calcAPYPercent(
+    contractState, tokenId, deposit?.balance, deposit?.commitBonus);
+  const holdAPY = calcAPYPercent(
+    contractState, tokenId, deposit?.balance, deposit?.holdBonus);
+  const totalAPY = calcAPYPercent(
+    contractState, tokenId, deposit?.balance, deposit?.bonus);
+
+  function tooltip() {
+    return <Tooltip
+      placement="top"
+      title={
+        <div>
+          <p>Commit bonus APY: { commitAPY }</p>
+          <p>Hold bonus APY so far: { holdAPY }</p>
+        </div>
+      }>
+      <InfoCircleTwoTone></InfoCircleTwoTone>
+    </Tooltip>
+  }
+
+  return <div>    
+    <h3> Bonus APY&nbsp;{ tooltip() } : 
+      <Badge
+        count={totalAPY}
+        showZero={true}
+      /> 
+      </h3>
+  </div>
+}
+
+function APYTextPenalty({contractState, tokenId, deposit}) {
+  const secondsLeft = deposit?.timeLeft?.toNumber();
+  const commitAPY = calcAPYPercent(
+    contractState, tokenId, deposit?.balance, deposit?.commitBonus, secondsLeft);
+  const holdAPY = calcAPYPercent(
+    contractState, tokenId, deposit?.balance, deposit?.holdBonus, secondsLeft);
+  const totalAPY = calcAPYPercent(
+    contractState, tokenId, deposit?.balance, deposit?.bonus, secondsLeft);
+
+  function tooltip() {
+    return <Tooltip
+      placement="top"
+      title={
+        <div>
+          <p><b>Bonus will only be available after commitment period</b></p>
+          <p>Calualations are assuming current bonus as available at commitment end time</p>
+          <p>Possible commit bonus APY: { commitAPY }</p>
+          <p>Possible hold bonus APY so far: { holdAPY }</p>
+        </div>
+      }>
+      <InfoCircleTwoTone></InfoCircleTwoTone>
+    </Tooltip>
+  }
+
+  return <div>    
+    <h3> Possible bonus APY&nbsp;{ tooltip() } : 
+      <Badge  count={totalAPY} showZero={true} />
+    </h3>
+  </div>
+}
+
+
+
+function calcAPYPercent(contractState, tokenId, principal, bonus, futureOffset) {
+  const depositTime = contractState?.depositDatetime(tokenId);
+  const withdrawalTime = new Date((contractState?.blockTimestamp + (futureOffset || 0)) * 1000);
+  // const withdrawalTime = new Date(contractState?.blockTimestamp * 1000);
+  const timeHeldSeconds = (withdrawalTime.getTime() - depositTime?.getTime()) / 1000;
+
+  if (timeHeldSeconds === 0) return 'not available yet'; // same block as deposit
+
+  // calc (bonus + deposit) / deposit in and avoid rounding to zero
+  const precision = (Number.MAX_SAFE_INTEGER / 10000).toFixed(0);
+  const bonuseRate = principal?.add(bonus).mul(precision)?.div(principal) / precision;
+
+  // compound to yearly rate and remove 100%
+  const apyPercent = 100 * (bonuseRate ** ( 86400 * 365 / timeHeldSeconds ) - 1); 
+
+  // console.log(depositTime, timeHeldSeconds, bonuseRate, apyPercent )
+  if (apyPercent > 10000) {
+    return "10000+%";  // do not show astronomical percentages for short deposits
+  } else if (apyPercent > 100) {
+    return apyPercent.toFixed(1) + '%';
+  } else if (apyPercent > 0) {
+    return apyPercent.toFixed(2) + '%';
+  } else {
+    return "0%"
+  }
 }
