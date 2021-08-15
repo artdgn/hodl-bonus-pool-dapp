@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import "antd/dist/antd.css";
 import { StaticJsonRpcProvider, Web3Provider } from "@ethersproject/providers";
 import "./App.css";
-import { Button, Menu, Alert, Space } from "antd";
+import { Button, Menu, Alert, Space, Empty } from "antd";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import { useUserAddress } from "eth-hooks";
@@ -13,9 +13,9 @@ import { Transactor } from "./helpers";
 import { parseEther } from "@ethersproject/units";
 import { HodlPoolV3UI } from "./views"
 // import {  Subgraph } from "./views"
-import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork, feeTokenContractName, tokenContractName } from "./constants";
+import { INFURA_ID, NETWORK, NETWORKS, contractName, defaultNetwork } from "./constants";
 // eslint-disable-next-line
-import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
+// import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
 
 
 /// 📡 What chain are your contracts deployed to?
@@ -54,7 +54,7 @@ function App(props) {
   /* 🔥 This hook will get the price of Gas from ⛽️ EtherGasStation */
   const gasPrice = useGasPrice(targetNetwork, "fast");
   // Use your injected provider from 🦊 Metamask or if you don't have it then instantly generate a 🔥 burner wallet.
-  const userProvider = useUserProvider(injectedProvider, localProvider);
+  const userProvider = useUserProvider(injectedProvider, (defaultNetwork === 'localhost') && localProvider);
   const address = useUserAddress(userProvider);
 
   // You can warn the user if you would like them to be on a specific network
@@ -99,7 +99,7 @@ function App(props) {
     </div>
     :
     <h4 style={{ zIndex: -1, position: 'absolute', right: 12, top: 40, padding: 16, color: targetNetwork.color }}>
-      {targetNetwork.name}
+      { targetNetwork.name }
     </h4>
   )
 
@@ -151,7 +151,10 @@ function App(props) {
 
       {networkDisplay}
 
-      {wrongNetwork ? "" :
+      { !wrongNetwork && !userProvider ? 
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Please connect Web3 wallet"/> : ""}
+
+      { !wrongNetwork && userProvider ?
         // <BrowserRouter>
 
         //   <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
@@ -204,7 +207,7 @@ function App(props) {
         //   </Switch>
 
         // </BrowserRouter>
-      }
+      : ""}
 
       <ThemeSwitch />
 
@@ -222,7 +225,7 @@ function App(props) {
           blockExplorer={blockExplorer}
         />
       </div>
-
+      
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
 
       <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>

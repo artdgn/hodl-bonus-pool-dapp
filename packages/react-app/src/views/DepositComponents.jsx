@@ -18,7 +18,7 @@ export function NewDepositCard(
     // set defaults when available
     penaltySet(contractState?.minInitialPenaltyPercent?.toNumber());
     periodSet(contractState?.minCommitPeriod?.toNumber());
-  }, [contractState?.minInitialPenaltyPercent, contractState?.minCommitPeriod])
+  }, [contractState.minInitialPenaltyPercent, contractState.minCommitPeriod])
 
   const symbol = ethMode ? "ETH" : tokenState.symbol;
   const notReady = loading || !tokenState.address;

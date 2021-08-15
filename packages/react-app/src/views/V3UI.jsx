@@ -38,7 +38,7 @@ export function HodlPoolV3UI(
   useEffect(() => {
     setTokenAddress(tokenChoice === "ETH" ? contractState.WETHAddress : tokenChoice);
     ethModeSet(tokenChoice === "ETH");
-  }, [tokenChoice, contractState?.WETHAddress])
+  }, [tokenChoice, contractState.WETHAddress])
 
   // transaction wrappers
   const contractTx = (method, args, callback) =>
@@ -161,7 +161,7 @@ function NavigationRouter({
         <Route exact path="/contract">
           <Contract
             customContract={contractState.contract}
-            signer={provider.getSigner()}
+            signer={provider?.getSigner()}
             provider={provider}
             address={address}
             blockExplorer={blockExplorer}
@@ -172,7 +172,7 @@ function NavigationRouter({
           {tokenState.contract ? 
             <Contract
             customContract={tokenState.contract}
-            signer={provider.getSigner()}
+            signer={provider?.getSigner()}
             provider={provider}
             address={address}
             blockExplorer={blockExplorer}
@@ -186,7 +186,6 @@ function NavigationRouter({
     </BrowserRouter>
   );
 }
-
 
 function HeaderCard({
    provider, contractState, blockExplorer, tokenState, 
@@ -205,7 +204,7 @@ function HeaderCard({
         </div>
       }
       size="large"
-      loading={!contractIsDeployed}
+      loading={provider && !contractIsDeployed}
     >
       <Space direction="vertical" size={20}>
 

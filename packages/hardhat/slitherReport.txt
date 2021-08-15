@@ -1,5 +1,5 @@
 'npx hardhat compile --force' running
-Compiling 21 files with 0.8.6
+Compiling 19 files with 0.8.6
 Compilation finished successfully
 
 Solidity 0.8.6 is not fully supported yet. You can still use Hardhat, but some features, like stack traces, might not work correctly.
@@ -7,42 +7,29 @@ Solidity 0.8.6 is not fully supported yet. You can still use Hardhat, but some f
 Learn more at https://hardhat.org/reference/solidity-support"
 
 
-INFO:Printers:
-Compiled with Builder
-Number of lines: 1331 (+ 1558 in dependencies, + 0 in tests)
-Number of assembly lines: 0
-Number of contracts: 6 (+ 15 in dependencies, + 0 tests) 
-
-Number of optimization issues: 0
-Number of informational issues: 0
-Number of low issues: 0
-Number of medium issues: 0
-Number of high issues: 0
-
-
-Use: Openzeppelin-ERC20, Openzeppelin-ERC721
-ERCs: ERC20, ERC721, ERC165
-
-+------------+-------------+---------------+--------------------+--------------+--------------------+
-|    Name    | # functions |      ERCS     |     ERC20 info     | Complex code |      Features      |
-+------------+-------------+---------------+--------------------+--------------+--------------------+
-| HodlPoolV2 |      28     |               |                    |      No      |    Receive ETH     |
-|            |             |               |                    |              |      Send ETH      |
-|            |             |               |                    |              | Tokens interaction |
-| HodlPoolV3 |      82     | ERC165,ERC721 |                    |      No      |    Receive ETH     |
-|            |             |               |                    |              |      Send ETH      |
-|            |             |               |                    |              | Tokens interaction |
-|            |             |               |                    |              |      Assembly      |
-|   IWETH    |      3      |               |                    |      No      |    Receive ETH     |
-|  FeeToken  |      30     |     ERC20     |     No Minting     |      No      |                    |
-|            |             |               | Approve Race Cond. |              |                    |
-|            |             |               |                    |              |                    |
-| SomeToken  |      29     |     ERC20     |     No Minting     |      No      |                    |
-|            |             |               | Approve Race Cond. |              |                    |
-|            |             |               |                    |              |                    |
-|    WETH    |      9      |     ERC20     |     No Minting     |      No      |    Receive ETH     |
-|            |             |               | Approve Race Cond. |              |      Send ETH      |
-|            |             |               |                    |              |                    |
-+------------+-------------+---------------+--------------------+--------------+--------------------+
-INFO:Slither:. analyzed (21 contracts)
+ERROR:ContractSolcParsing:Missing function 'name'
+INFO:Detectors:
+ERC721EnumerableForOwner._addTokenToOwnerEnumeration(address,uint256) (contracts/extensions/ERC721EnumerableForOwner.sol#54-58) is never used and should be removed
+ERC721EnumerableForOwner._beforeTokenTransfer(address,address,uint256) (contracts/extensions/ERC721EnumerableForOwner.sol#38-47) is never used and should be removed
+ERC721EnumerableForOwner._removeTokenFromOwnerEnumeration(address,uint256) (contracts/extensions/ERC721EnumerableForOwner.sol#68-86) is never used and should be removed
+HodlPoolV3._addDepositToPool(address,HodlPoolV3.Deposit) (contracts/HodlPoolV3.sol#531-540) is never used and should be removed
+HodlPoolV3._amountOutAndBurn(uint256) (contracts/HodlPoolV3.sol#574-625) is never used and should be removed
+HodlPoolV3._baseURI() (contracts/HodlPoolV3.sol#751) is never used and should be removed
+HodlPoolV3._removeDepositFromPool(HodlPoolV3.Pool,HodlPoolV3.Deposit,uint256,uint256,uint256) (contracts/HodlPoolV3.sol#628-649) is never used and should be removed
+HodlPoolV3._timeHeld(uint256) (contracts/HodlPoolV3.sol#658-660) is never used and should be removed
+HodlPoolV3._updatePoolHoldPoints(HodlPoolV3.Pool) (contracts/HodlPoolV3.sol#543-547) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+INFO:Detectors:
+ERC721EnumerableForOwner._ownedTokens (contracts/extensions/ERC721EnumerableForOwner.sol#10) is never used in HodlPoolV3 (contracts/HodlPoolV3.sol#75-753)
+ERC721EnumerableForOwner._ownedTokensIndex (contracts/extensions/ERC721EnumerableForOwner.sol#13) is never used in HodlPoolV3 (contracts/HodlPoolV3.sol#75-753)
+HodlPoolV3.nextTokenId (contracts/HodlPoolV3.sol#113) is never used in HodlPoolV3 (contracts/HodlPoolV3.sol#75-753)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-state-variables
+INFO:Detectors:
+HodlPoolV3.nextTokenId (contracts/HodlPoolV3.sol#113) should be constant
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+INFO:Detectors:
+tokenOfOwnerByIndex(address,uint256) should be declared external:
+	- ERC721EnumerableForOwner.tokenOfOwnerByIndex(address,uint256) (contracts/extensions/ERC721EnumerableForOwner.sol#18-21)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
+INFO:Slither:. analyzed (19 contracts with 72 detectors), 14 result(s) found
 INFO:Slither:Use https://crytic.io/ to get access to additional detectors and Github integration

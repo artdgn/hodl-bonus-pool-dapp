@@ -3,12 +3,12 @@
   margin: auto !important;
 }
 
-.App .modal-container > * {
-  border-radius: 20px;
+.ant-modal-content, .modal-container > * {
+  border-radius: 20px !important;
 }
 
-.App .ant-btn, .App .ant-input-number, .App .ant-input {
-  border-radius: 20px;
+.ant-btn, .App .ant-input-number, .App .ant-input {
+  border-radius: 20px !important;
 }
 
 .App .seconary-text {

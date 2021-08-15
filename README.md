@@ -66,12 +66,19 @@
     - deliver: UI ✔️ [frontend (ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v1-kovan.surge.sh/), explanations ✔️, [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0xf15E3349B9CB5452638130cd958E3f1be2f934Eb#code) ✔️, some feedback ✔️   
     </details>
 
-1. v2 ✔️:
+1. <details><summary> v2 ✔️ (alpha+) </summary>
+
     - goal & scope: bonus depends on time held ✔️, flexible commitment params when depositting ✔️
-    - deliver: UI ✔️, [frontend new(ERC20 tokens / eth) ✔️](https://hodl-pool-dapp-v2-kovan.surge.sh/), [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x42dF7571ae24135E892128B7C70400d8C02c757f#code) ✔️
+    - deliver: UI ✔️, [frontend ✔️](https://hodl-pool-dapp-v2-kovan.surge.sh/), [kovan testnet deployed & verified contract](https://kovan.etherscan.io/address/0x42dF7571ae24135E892128B7C70400d8C02c757f#code) ✔️
+    </details>
     
-1. v3 (planned):
-    - goal & scope: deposit on behalf someone else, multiple deposits for same account
+1. v3 ✔️ :
+    - Goal & added scope: deposit is ✨ERC721 NFT✨ (transferable, view on supporting platforms) ✔️, multiple deposits for same account ✔️, `depositFor` on behalf someone else ✔️, all-deposits view ✔️.
+    - UI:
+      - [Kovan ✔️](https://hodl-pool-kovan.surge.sh/)
+    - Contract:
+      - [Kovan](https://kovan.etherscan.io/address/0xcE0e6d89604EEF6652aaBc187814C44e987A2DB8#code) ✔️
+      - Mainnet(s): ⏳
 
 ---
 

@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { notification} from "antd";
 import { formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
@@ -29,7 +29,7 @@ export class HodlPoolV3StateHooks {
     
     // filter only chosen asset
     this.poolTokenIds = this.allTokenIds && this.allTokenIds.filter(
-      (tokenId) => this.depositParams[tokenId]?.asset == tokenAddress);
+      (tokenId) => this.depositParams[tokenId]?.asset === tokenAddress);
     
     // pool details view
     this.poolDetails = useContractReader(

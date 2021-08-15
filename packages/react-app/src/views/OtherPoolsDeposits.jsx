@@ -10,7 +10,7 @@ export function OtherPoolsDeposits({ provider, contractState, tokenState, tokenC
 
   // filter deposits from the selected asset
   const tokenIds = contractState?.allTokenIds?.filter(
-    (tokenId) => contractState?.depositParams[tokenId].asset != tokenState.address);
+    (tokenId) => contractState?.depositParams[tokenId].asset !== tokenState.address);
 
   return <Card
     title={<h2>Your deposits in <b>{tokenChoice ? "Other" : "All"} Pools</b></h2>}

@@ -116,6 +116,8 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
   mapping(uint => Deposit) deposits;
 
   /// @dev pool state for each token contract address
+  ///   default values are all zeros, no need to init
+  // slither-disable-next-line uninitialized-state
   mapping(address => Pool) pools;
 
   /*
