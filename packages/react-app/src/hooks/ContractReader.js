@@ -20,35 +20,34 @@ import usePoller from "./Poller";
   - Pass pollTime - if no pollTime is specified, the function will update on every new block
 */
 
-const DEBUG = false;
-
-export default function useContractReader(contract, functionName, args, pollTime, onChange, onError) {
+export default function useContractReader(contracts, functionName, args, pollTime, onChange, onError) {
   let adjustPollTime = 0;
   if (pollTime) {
     adjustPollTime = pollTime;
-  } 
-
-  args = args || [];
+  }
 
   const [value, setValue] = useState();
+  const [tried, setTried] = useState(false);
 
-  let isMounted = true;
+  useEffect(() => {
+    if (typeof onChange === "function") {
+      setTimeout(onChange.bind(this, value), 1);
+    }
+  }, [value, onChange]);
 
   const updateValue = async () => {
     try {
       let newValue;
-      if (DEBUG) console.log("CALLING ", functionName, "with args", args);
       if (args && args.length > 0) {
         newValue = await contract[functionName](...args);
-        if (DEBUG)
-          console.log("functionName", functionName, "args", args, "RESULT:", newValue);
+        setTried(true);
       } else {
         newValue = await contract[functionName]();
+        setTried(true);
       }
       // console.log("GOT VALUE",newValue)
       if (newValue !== value) {
-        if (isMounted) setValue(newValue);
-        if (typeof onChange === "function") onChange();
+        setValue(newValue);
       }
     } catch (e) {
       console.log(e);
@@ -56,33 +55,28 @@ export default function useContractReader(contract, functionName, args, pollTime
     }
   };
 
-  // do once always on mount if not polling
-  useEffect(() => {
-    if (contract && adjustPollTime === 0) updateValue();
-    return () => { isMounted = false }
-    // eslint-disable-next-line
-  }, [contract, functionName, ...args]);
-
   // Only pass a provider to watch on a block if we have a contract and no PollTime
-  useOnBlock(
-    contract && adjustPollTime === 0 && contract.provider, 
-    () => {
-      if (contract && adjustPollTime === 0) {
-        updateValue();
-      }}
-  );
+  useOnBlock(contract && adjustPollTime === 0 && contract.provider, () => {
+    if (contract && adjustPollTime === 0) {
+      updateValue();
+    };
+  });
 
   // Use a poller if a pollTime is provided
   usePoller(
-    () => {
-      if (contract && adjustPollTime > 0) {
-        if (DEBUG) console.log("polling!", functionName);
+    async () => {
+      if (contracts && contracts[contractName] && adjustPollTime > 0) {
+        if (DEBUG) console.log("polling!", contractName, functionName);
         updateValue();
       }
     },
     adjustPollTime,
-    contract,
+    contracts && contracts[contractName],
   );
+
+  if (tried === false && contract) {
+    updateValue();
+  }
 
   return value;
 }

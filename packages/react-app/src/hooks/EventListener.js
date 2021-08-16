@@ -45,7 +45,7 @@ export default function useEventListener(contract, eventName, provider, startBlo
       } catch (e) {
         console.log(e);
       }
-      
+
       return () => { isMounted = false };
     }
   // eslint-disable-next-line

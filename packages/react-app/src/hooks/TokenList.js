@@ -1,5 +1,3 @@
-/* eslint-disable import/no-dynamic-require */
-/* eslint-disable global-require */
 import { useEffect, useState } from "react";
 
 /*
@@ -46,7 +44,7 @@ const useTokenList = (tokenListUri, chainId) => {
         console.log(e)
       }
     }
-    
+
     getTokenList();
 
     return () => { isMounted = false };

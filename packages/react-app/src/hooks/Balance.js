@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import useOnBlock from "./OnBlock";
 import usePoller from "./Poller";
 
@@ -32,17 +32,8 @@ export default function useBalance(provider, address, pollTime = 0) {
         }
       }
     },
-    // eslint-disable-next-line
-    [provider, address, balance],
+    [provider, address],
   );
-
-  // do once always on mount
-  useEffect(() => {
-    if (provider && address && pollTime === 0) {
-      pollBalance(provider, address);
-    }
-  // eslint-disable-next-line
-  }, [provider, address]);
 
   // Only pass a provider to watch on a block if there is no pollTime
   useOnBlock(pollTime === 0 && provider, () => {
@@ -50,6 +41,11 @@ export default function useBalance(provider, address, pollTime = 0) {
       pollBalance(provider, address);
     }
   });
+
+  // Update balance when the address or provider changes
+  useEffect(() => {
+    if (address && provider) pollBalance(provider, address);
+  }, [address, provider, pollBalance]);
 
   // Use a poller if a pollTime is provided
   usePoller(
