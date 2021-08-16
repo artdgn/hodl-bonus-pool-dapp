@@ -1,5 +1,3 @@
-/* eslint-disable jsx-a11y/accessible-emoji */
-
 import React, { useEffect, useState } from "react";
 import { Button,  Card,  Space, Collapse, Empty} from "antd";
 import { Balance } from "../components";

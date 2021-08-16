@@ -4,7 +4,6 @@ const chalk = require("chalk");
 const { config, ethers, tenderly, run } = require("hardhat");
 const { utils } = require("ethers");
 const R = require("ramda");
-const { parseUnits } = require("@ethersproject/units");
 
 const main = async () => {
 
@@ -17,13 +16,13 @@ const main = async () => {
     const address = "0x555cFBB56A31325de28054AC506898a5539C835f";
 
     const token1 = await deploy(config.tokenContractName,
-      ["TokenA", "AAA", address, parseUnits("1", 18)]);
+      ["TokenA", "AAA", address, utils.parseUnits("1", 18)]);
     // const token2 = await deploy(config.tokenContractName,
-    //   ["TokenB", "BBB", address, parseUnits("2", 18)]);
+    //   ["TokenB", "BBB", address, utils.arseUnits("2", 18)]);
     // const token3 = await deploy(config.tokenContractName,
-    //   ["TokenC", "LongSymbol", address, parseUnits("3", 18)]);
+    //   ["TokenC", "LongSymbol", address, utils.parseUnits("3", 18)]);
     // const token4 = await deploy(config.feeTokenContractName,
-    //   ["FeeToken", "FeeTKN", address, parseUnits("4", 18), 10]);
+    //   ["FeeToken", "FeeTKN", address, utils.parseUnits("4", 18), 10]);
     const wethContract = await deploy(config.wethContractName)
 
     // save the local tokens list

@@ -1,6 +1,6 @@
-import { formatEther } from "@ethersproject/units";
 import React, { useState } from "react";
 import { useBalance } from "../hooks";
+import { utils } from "ethers";
 
 /*
   ~ What it does? ~
@@ -46,7 +46,7 @@ export default function Balance({
   }
 
   if (usingBalance) {
-    const etherBalance = formatEther(usingBalance);
+    const etherBalance = utils.formatEther(usingBalance);
     floatBalance = parseFloat(etherBalance);
   }
 

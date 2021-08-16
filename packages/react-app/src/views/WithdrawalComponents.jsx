@@ -1,9 +1,7 @@
-/* eslint-disable jsx-a11y/accessible-emoji */
-
 import React, { useState } from "react";
 import { Button,  Card,  Modal, Space, Tooltip, Collapse, Empty, Badge } from "antd";
 import { Balance } from "../components";
-import { formatUnits } from "@ethersproject/units";
+import { utils } from "ethers";
 import { InfoCircleTwoTone, WarningTwoTone } from "@ant-design/icons";
 
 
@@ -214,18 +212,18 @@ function WithdrawWithPenaltyButton({ contractState, txFn, tokenState, ethMode, d
         <h1 style={{ textAlign: "center" }}>
           Confirm withdrawal of {
             tokenState.decimals && 
-            formatUnits("" + deposit.withdrawWithPenalty, tokenState.decimals)
+            utils.formatUnits("" + deposit.withdrawWithPenalty, tokenState.decimals)
           } {symbol} with penalty
         </h1>
         <h2>Withdraw&nbsp;
-          {formatUnits("" + deposit.withdrawWithPenalty, tokenState.decimals)}&nbsp;
+          {utils.formatUnits("" + deposit.withdrawWithPenalty, tokenState.decimals)}&nbsp;
           {symbol} out of deposited&nbsp;
-          {formatUnits(deposit.balance, tokenState.decimals)} due to&nbsp;
-          {formatUnits(deposit.penalty, tokenState.decimals)} penalty.</h2>
+          {utils.formatUnits(deposit.balance, tokenState.decimals)} due to&nbsp;
+          {utils.formatUnits(deposit.penalty, tokenState.decimals)} penalty.</h2>
         <h2>
           <WarningTwoTone twoToneColor="red" /> No bonus will be withdrawed!
           {deposit?.bonus?.gt(0) ?
-            ` (Current bonus share is ${formatUnits(deposit.bonus, tokenState.decimals)} 
+            ` (Current bonus share is ${utils.formatUnits(deposit.bonus, tokenState.decimals)} 
             ${symbol})` : ""}
         </h2>
         <h2>
@@ -269,15 +267,15 @@ function WithdrawWithBonusButton({ contractState, txFn, tokenState, ethMode, dep
         onCancel={() => setBonusModalVisible(false)}>
         <h1 style={{ textAlign: "center" }}>
           Confirm withdrawal of {
-            formatUnits("" + deposit.withdrawWithBonus, tokenState.decimals)
+            utils.formatUnits("" + deposit.withdrawWithBonus, tokenState.decimals)
           } {symbol}</h1>
         <h2>
           Withdraw&nbsp;
-          {formatUnits("" + deposit.withdrawWithBonus, tokenState.decimals)}&nbsp;
+          {utils.formatUnits("" + deposit.withdrawWithBonus, tokenState.decimals)}&nbsp;
           {symbol} out of deposited&nbsp;
-          {formatUnits(deposit.balance, tokenState.decimals)} {symbol}
+          {utils.formatUnits(deposit.balance, tokenState.decimals)} {symbol}
           {deposit?.bonus?.gt(0) ?
-            ` with ${formatUnits(deposit.bonus, tokenState.decimals)} 
+            ` with ${utils.formatUnits(deposit.bonus, tokenState.decimals)} 
             ${symbol} bonus!` : "."}
         </h2>
         <h2>⚠️ Waiting for longer may increase available bonus.</h2>

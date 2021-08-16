@@ -1,6 +1,7 @@
 packages/subgraph/subgraph.yaml
 packages/subgraph/generated
 packages/subgraph/abis/*
+packages/hardhat/extra/*
 packages/hardhat/*.txt
 **/aws.json
 
@@ -45,3 +46,4 @@ packages/hardhat/gas_watch.py
 
 # Local Netlify folder
 .netlify
+

@@ -1,9 +1,7 @@
-/* eslint-disable jsx-a11y/accessible-emoji */
-
 import React, { useState, useEffect } from "react";
 import { Button, Input, Card, Row, Col, Modal, Tooltip, Divider,
   Steps, Empty, InputNumber} from "antd";
-import { parseEther, parseUnits } from "@ethersproject/units";
+import { ethers } from "ethers";
 import { LoadingOutlined, WarningTwoTone, DollarTwoTone, InfoCircleTwoTone } from "@ant-design/icons";
 
 
@@ -125,7 +123,7 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
   const [depositting, deposittingSet] = useState(false);
 
   useEffect(() => {
-    const sendAmountBig = tokenState.decimals && parseUnits(amountToSend, tokenState.decimals);
+    const sendAmountBig = tokenState.decimals && ethers.utils.parseUnits(amountToSend, tokenState.decimals);
     setApproveButtonEnabled(
       sendAmountBig?.gt(0) && tokenState?.allowance?.lt(sendAmountBig));
     setDepositButtonEnabled(
@@ -169,7 +167,7 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
                 if (amountToSend > 0 && tokenState.decimals) {
                   tokenTx(
                     "approve",
-                    [contractState.address, parseUnits(amountToSend, tokenState.decimals)],
+                    [contractState.address, ethers.utils.parseUnits(amountToSend, tokenState.decimals)],
                     () => approvingSet(false)
                   );
                 }
@@ -210,7 +208,7 @@ function DepositElementERC20({ contractState, contractTx, tokenState, tokenTx, p
               "deposit",
               [
                 tokenState.address,
-                parseUnits(amountToSend, tokenState.decimals),
+                ethers.utils.parseUnits(amountToSend, tokenState.decimals),
                 penalty,
                 period,
               ],
@@ -237,7 +235,7 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
   const [depositting, deposittingSet] = useState(false);
 
   useEffect(() => {
-    const sendAmountBig = parseEther(amountToSend);
+    const sendAmountBig = ethers.utils.parseEther(amountToSend);
     setDepositButtonEnabled(sendAmountBig > 0);
   }, [amountToSend])
 
@@ -289,7 +287,7 @@ function DepositElementETH({ contractState, contractTx, penalty, period }) {
           if (amountToSend && amountToSend > 0) {
             contractTx(
               "depositETH",
-              [penalty, period, { value: parseEther(amountToSend) }],
+              [penalty, period, { value: ethers.utils.parseEther(amountToSend) }],
               () => deposittingSet(false));
           }
         }}

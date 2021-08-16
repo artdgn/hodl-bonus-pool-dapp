@@ -1,13 +1,13 @@
 const { ethers, network, config } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
-const { parseUnits } = require("@ethersproject/units");
 
-const { TestUtils: Utils } = require("./utils.js")
+const { TestUtils } = require("./utils.js")
 
 const contractName = "HodlPoolV3";
 const tokenContractName = "SomeToken";
 const wethContractName = "WETH";
+const utils = ethers.utils;
 
 use(solidity);
 
@@ -36,7 +36,7 @@ describe(`${contractName} views and metadata`, function () {
     // deploy a token
     tokenContract = await ethers.getContractFactory(tokenContractName);
     deployedToken = await tokenContract.deploy(
-      "Token1", "TK1", addr1.address, parseUnits("1", 18));
+      "Token1", "TK1", addr1.address, utils.parseUnits("1", 18));
 
     // deploy WETH
     WETHContract = await ethers.getContractFactory(wethContractName);
@@ -55,9 +55,9 @@ describe(`${contractName} views and metadata`, function () {
     beforeEach(async () => {
       addr1Caller = deployed.connect(addr1);
       addr1TokenCaller = deployedToken.connect(addr1);
-      await addr1TokenCaller.approve(deployed.address, parseUnits("1", 18));
+      await addr1TokenCaller.approve(deployed.address, utils.parseUnits("1", 18));
       await addr1Caller.deposit(deployedToken.address, 1000, 50, 20);
-      dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      dep1 = (await TestUtils.lastDepositEvent(deployed)).tokenId;
     });
 
     it("nonexitent deposit", async function () {

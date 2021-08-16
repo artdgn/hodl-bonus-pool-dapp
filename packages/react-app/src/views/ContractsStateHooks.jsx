@@ -1,8 +1,5 @@
-/* eslint-disable jsx-a11y/accessible-emoji */
-
 import { useState, useEffect } from "react";
 import { notification} from "antd";
-import { formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
 import { useContractReader, useBlockTimestamp } from "../hooks";
 
@@ -82,7 +79,7 @@ export class HodlPoolV3StateHooks {
   }
 
   pointsToTokenDays(val, decimals) {
-    return val && decimals && parseFloat(formatUnits(val.div(86400), decimals));
+    return val && decimals && parseFloat(ethers.utils.formatUnits(val.div(86400), decimals));
   }
 
   bigNumberSecondsToDays(sec, precision = 2) {

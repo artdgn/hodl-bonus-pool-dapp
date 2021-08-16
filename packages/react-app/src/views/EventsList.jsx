@@ -1,5 +1,3 @@
-/* eslint-disable jsx-a11y/accessible-emoji */
-
 import React from "react";
 import { List, Empty } from "antd";
 import { Address } from "../components";

@@ -1,13 +1,13 @@
 const { ethers, network, config } = require("hardhat");
 const { use, expect } = require("chai");
 const { solidity } = require("ethereum-waffle");
-const { parseUnits } = require("@ethersproject/units");
 
-const { TestUtils: Utils } = require("./utils.js")
+const { TestUtils } = require("./utils.js")
 
 const contractName = "HodlPoolV3";
 const feeTokenContractName = "FeeToken";
 const wethContractName = "WETH";
+const utils = ethers.utils;
 
 use(solidity);
 
@@ -38,7 +38,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
     // deploy a token with fees on transfer
     feeTokenContract = await ethers.getContractFactory(feeTokenContractName);
     deployedFeeToken = await feeTokenContract.deploy(
-      "FeeToken", "FeeTK", addr1.address, parseUnits("1", 18), tokenFeePercent);
+      "FeeToken", "FeeTK", addr1.address, utils.parseUnits("1", 18), tokenFeePercent);
 
     // deploy WETH
     WETHContract = await ethers.getContractFactory(wethContractName);
@@ -66,8 +66,8 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       // make deposits
       await addr1Caller.deposit(
         deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
-      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
-      const state = await Utils.getState(deployed, deployedFeeToken, dep1);
+      const dep1 = (await TestUtils.lastDepositEvent(deployed)).tokenId;
+      const state = await TestUtils.getState(deployed, deployedFeeToken, dep1);
 
       // check balanceOf()
       expect(state.balance).to.equal(tx * transferRatio);
@@ -80,9 +80,9 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
         .to.equal(tx * transferRatio);
 
       // move time to be able to withdraw fully
-      await Utils.evmIncreaseTime(minCommitPeriod);
+      await TestUtils.evmIncreaseTime(minCommitPeriod);
       
-      const withdrawal = await Utils.callCaptureEventAndBalanceToken(
+      const withdrawal = await TestUtils.callCaptureEventAndBalanceToken(
         addr1.address, 
         () => deployed.queryFilter(deployed.filters.Withdrawed()),
         deployedFeeToken,
@@ -104,12 +104,12 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       await addr1FeeTokenCaller.approve(deployed.address, tx);
       await addr1Caller.deposit(
         deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
-      const dep1 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      const dep1 = (await TestUtils.lastDepositEvent(deployed)).tokenId;
 
       // move time
-      await Utils.evmIncreaseTime((minCommitPeriod / 2) - 1);
+      await TestUtils.evmIncreaseTime((minCommitPeriod / 2) - 1);
       
-      const withdrawal1 = await Utils.callCaptureEventAndBalanceToken(
+      const withdrawal1 = await TestUtils.callCaptureEventAndBalanceToken(
         addr1.address, 
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
         deployedFeeToken,
@@ -123,7 +123,7 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       expect(withdrawal1.lastEvent.amount).to.equal(tx * transferRatio / 2);
       expect(withdrawal1.delta).to.equal(tx * transferRatio * transferRatio / 2);  // due to second transfer
 
-      const state = await Utils.poolDetails(deployed, deployedFeeToken);
+      const state = await TestUtils.poolDetails(deployed, deployedFeeToken);
       // check bonus pool
       expect(state.holdBonusesSum.add(state.commitBonusesSum))
         .to.equal(tx * transferRatio / 2)
@@ -132,12 +132,12 @@ describe(`${contractName} fee-on-transfer tokens`, function () {
       await addr1FeeTokenCaller.approve(deployed.address, tx);
       await addr1Caller.deposit(
         deployedFeeToken.address, tx, minInitialPenaltyPercent, minCommitPeriod);
-      const dep2 = (await Utils.lastDepositEvent(deployed)).tokenId;
+      const dep2 = (await TestUtils.lastDepositEvent(deployed)).tokenId;
 
       // move time
-      await Utils.evmIncreaseTime(minCommitPeriod);
+      await TestUtils.evmIncreaseTime(minCommitPeriod);
 
-      const withdrawal2 = await Utils.callCaptureEventAndBalanceToken(
+      const withdrawal2 = await TestUtils.callCaptureEventAndBalanceToken(
         addr1.address, 
         () => deployed.queryFilter(deployed.filters.Withdrawed()), 
         deployedFeeToken,

@@ -7,14 +7,15 @@ import "./extensions/ERC721EnumerableForOwner.sol";
 import "./extensions/IWETH.sol";
 
 /*
- * @title Token pools that allow different ERC20 tokens (assets) and ETH deposits 
- * and withdrawals with penalty and bonus mechanisms that incentivise long term holding. 
+ * @title Pools that incentivise long term holding with bonus and penalty mechanisms 
+ * for any ERC20 token (or ETH) deposit.
+ * Each asset has one independent pool within the contract.
+ * Bonuses are funded from the penalties for early withdrawals. 
+ * There are two bonus types for each pool - holding bonus (to incentivise holding), 
+ * and commitment bonus (to incentivise commiting to penalties & time).
  * The initial penalty and commitment time are chosen at the time of the deposit by
  * the user.
  * The deposits into this contract are transferrable and immutable ERC721 tokens.
- * There are two bonus types for each pool - holding bonus (to incetivise holding), 
- * and commitment bonus (to incetivise commiting to penalties & time).
- * Each ERC20 asset has one independent pool. i.e. all accounting is separate.
  * ERC20 tokens may have fee-on-transfer or dynamic supply mechanisms, and for these
  * kinds of tokens this contract tracks everything as "shares of initial deposits". 
  * @notice The mechanism rules:
@@ -45,30 +46,27 @@ import "./extensions/IWETH.sol";
  * - Deposits can be deposited for another account as beneficiary,
  *   so e.g. a team / DAO can deposit its tokens for its members to withdraw.
  * - Only the deposit "owner" can use the withdrawal functionality, so ERC721 approvals 
- *   allow transfers, but not the withdrawals.
+ *   allow transfers, but not withdrawals.
  *
  * @dev 
- * 1. For safety and clarity, the withdrawal functionality is split into 
+ * 1. For safety and clarity, withdrawal functionality is split into 
  * two methods, one for withdrawing with penalty, and the other one for withdrawing
  * with bonus.
- * 2. The ERC20 token and ETH functionality is split into separate methods.
- * The total deposits shares are tracked per token contract in 
- * depositSums, bonuses in bonusSums.
- * 3. Deposit for self depositFor are split into separate methods
+ * 2. ERC20 token and ETH functionality is split into separate methods.
+ * 3. Deposit for msg.sender and depositFor are split into separate methods
  * for clarity.
  * 4. For tokens with dynamic supply mechanisms and fee on transfer all internal
  * calculations are done using the "initial desposit amounts" as fair shares, and
  * upon withdrawal are translated to actual amounts of the contract's token balance.
  * This means that for these tokens the actual amounts received are depends on their
- * mechanisms (because the amount is unknown before actual transfers).
+ * mechanisms (because the amount is unknowable before actual transfers).
  * 5. To reduce RPC calls and simplify interface, all the deposit and pool views are
  * batched in depositDetails and poolDetails which return arrays of values.
- * 6. To prevent relying on tracking deposit, withdrawal, and transfer events
- * depositsOfOwner view shows all deposits owned by a particular owner.
- * 7. The total of a pool's hold points are updated incrementally on each interaction
- * with a pool using the depositsSum in that pool for that period. If can only happen
- * once per block because it depends on the time since last update.
- * 8. TokenURI returns a JSON string with just name and description metadata.
+ * 6. To prevent relying on events tracking depositsOfOwner view shows all 
+ * deposits owned by a particular owner.
+ * 7. The total of a pool's hold points are updated incrementally on each transaction
+ * with a pool using the depositsSum in that pool for that period.
+ * 8. TokenURI returns a JSON string with basic name and description for the deposit.
  *
  * @author artdgn (@github)
  */
@@ -321,7 +319,8 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint commitPeriod
   ) external
     validCommitment(initialPenaltyPercent, commitPeriod) 
-    returns (uint tokenId) {
+    returns (uint tokenId) 
+  {
     tokenId = deposit(asset, amount, initialPenaltyPercent, commitPeriod);
     _transfer(msg.sender, account, tokenId);
   }
@@ -340,7 +339,8 @@ contract HodlPoolV3 is ERC721EnumerableForOwner {
     uint commitPeriod
   ) external payable
     validCommitment(initialPenaltyPercent, commitPeriod) 
-    returns (uint tokenId) {
+    returns (uint tokenId) 
+  {
     tokenId = depositETH(initialPenaltyPercent, commitPeriod);
     _transfer(msg.sender, account, tokenId);
   }

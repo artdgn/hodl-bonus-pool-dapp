@@ -1,5 +1,3 @@
-/* eslint-disable jsx-a11y/accessible-emoji */
-
 import React, { useState, useEffect } from "react";
 import { Button, Select, Tooltip } from "antd";
 import { useTokenList } from "../hooks";
