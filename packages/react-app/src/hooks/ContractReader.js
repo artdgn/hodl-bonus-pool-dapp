@@ -20,7 +20,7 @@ import usePoller from "./Poller";
   - Pass pollTime - if no pollTime is specified, the function will update on every new block
 */
 
-export default function useContractReader(contracts, functionName, args, pollTime, onChange, onError) {
+export default function useContractReader(contract, functionName, args, pollTime, onChange, onError) {
   let adjustPollTime = 0;
   if (pollTime) {
     adjustPollTime = pollTime;
@@ -65,13 +65,12 @@ export default function useContractReader(contracts, functionName, args, pollTim
   // Use a poller if a pollTime is provided
   usePoller(
     async () => {
-      if (contracts && contracts[contractName] && adjustPollTime > 0) {
-        if (DEBUG) console.log("polling!", contractName, functionName);
+      if (contract && adjustPollTime > 0) {
         updateValue();
       }
     },
     adjustPollTime,
-    contracts && contracts[contractName],
+    contract,
   );
 
   if (tried === false && contract) {

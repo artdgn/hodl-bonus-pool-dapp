@@ -1,12 +1,12 @@
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import WalletLink from "walletlink";
-import { Alert, Button, Col, Menu, Row } from "antd";
+import { Alert, Button, Col, Menu, Row, Empty, Space } from "antd";
 import "antd/dist/antd.css";
 import React, { useCallback, useEffect, useState } from "react";
 import Web3Modal from "web3modal";
 import "./App.css";
 import { Account, Faucet, GasGauge, Header, Ramp, ThemeSwitch } from "./components";
-import { INFURA_ID, NETWORK, NETWORKS, defaultNetwork } from "./constants";
+import { INFURA_ID, NETWORK, NETWORKS, defaultNetwork, contractName } from "./constants";
 import { Transactor } from "./helpers";
 import {
   useBalance,
@@ -24,7 +24,7 @@ import Authereum from "authereum";
 // import Hints from "./Hints";
 import { HodlPoolV3UI } from "./views";
 
-const { ethers } = require("ethers");
+const { ethers, constants } = require("ethers");
 
 /// 📡 What chain are your contracts deployed to?
 const targetNetwork = NETWORKS[defaultNetwork];
@@ -170,14 +170,17 @@ function App(props) {
   // Faucet Tx can be used to send funds from the faucet
   const faucetTx = Transactor(localProvider, gasPrice);
 
+  const contractsConfig = { chainId: localChainId, customAddresses: targetNetwork?.customAddresses };
+
   // Load in your local 📝 contract and read a value from it:
-  const readContracts = useContractLoader(localProvider);
+  const readContracts = useContractLoader(localProvider, contractsConfig);
 
   // If you want to make 🔐 write transactions to your contracts, use the userSigner:
-  const writeContracts = useContractLoader(userSigner, { chainId: localChainId });
+  const writeContracts = useContractLoader(userSigner, contractsConfig);
 
   let networkDisplay = "";
-  if (NETWORKCHECK && localChainId && selectedChainId && localChainId !== selectedChainId) {
+  const wrongNetwork = NETWORKCHECK && localChainId && selectedChainId && localChainId !== selectedChainId;
+  if (wrongNetwork) {
     const networkSelected = NETWORK(selectedChainId);
     const networkLocal = NETWORK(localChainId);
     if (selectedChainId === 1337 && localChainId === 31337) {
@@ -218,7 +221,28 @@ function App(props) {
                       },
                     ];
                     console.log("data", data);
-                    const tx = await ethereum.request({ method: "wallet_addEthereumChain", params: data }).catch();
+
+                    // https://docs.metamask.io/guide/rpc-api.html#other-rpc-methods
+                    try {
+                      await ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: data[0].chainId }],
+                      });
+                    } catch (switchError) {
+                      // This error code indicates that the chain has not been added to MetaMask.
+                      if (switchError.code === 4902) {
+                        try {
+                          await ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: data,
+                          });
+                        } catch (addError) {
+                          // handle "add" error
+                        }
+                      }
+                      // handle other "switch" errors
+                    }
+
                     if (tx) {
                       console.log(tx);
                     }
@@ -302,10 +326,10 @@ function App(props) {
       {/* ✏️ Edit the header and change the title to your project name */}
       <Header />
       {networkDisplay}
-      { !wrongNetwork && !userProvider ?
+      { !wrongNetwork && !userSigner ?
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Please connect Web3 wallet"/> : ""}
 
-      { !wrongNetwork && userProvider ?
+      { !wrongNetwork && userSigner ?
         // <BrowserRouter>
 
         //   <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
@@ -329,7 +353,7 @@ function App(props) {
                 writeContracts={writeContracts}
                 readContracts={readContracts}
                 contractName={contractName}
-                provider={userProvider}
+                signer={userSigner}
                 blockExplorer={blockExplorer}
               />
 
@@ -368,8 +392,8 @@ function App(props) {
           address={address}
           localProvider={localProvider}
           userSigner={userSigner}
+          minimized={injectedProvider}
           mainnetProvider={mainnetProvider}
-          price={price}
           web3Modal={web3Modal}
           loadWeb3Modal={loadWeb3Modal}
           logoutOfWeb3Modal={logoutOfWeb3Modal}
@@ -380,7 +404,7 @@ function App(props) {
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
 
       <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
-        {localEnv ? (
+        {faucetHint ? (
           <Space direction="vertical" size="small">
             {faucetHint}
             <Faucet localProvider={localProvider} />

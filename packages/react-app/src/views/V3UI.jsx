@@ -13,7 +13,7 @@ import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
 
 
 export function HodlPoolV3UI(
-  { address, provider, blockExplorer, tx, readContracts, writeContracts, contractName }) {
+  { address, signer, blockExplorer, tx, readContracts, writeContracts, contractName }) {
 
   // main contract
   const contract = readContracts && readContracts[contractName];  
@@ -26,11 +26,11 @@ export function HodlPoolV3UI(
   const [error, setError] = useState("");
 
   // contract state hooks
-  const tokenContract = useERC20ContractAtAddress(tokenAddress, provider);
+  const tokenContract = useERC20ContractAtAddress(tokenAddress, signer?.provider);
   const tokenState = new ERC20StateHooks(
     tokenContract, address, contract?.address, setLoading, setError);
   const contractState = new HodlPoolV3StateHooks(
-    contract, address, tokenAddress, provider);
+    contract, address, tokenAddress, signer?.provider);
   
   // switch token address and eth-mode depending on token choice
   useEffect(() => {
@@ -42,14 +42,14 @@ export function HodlPoolV3UI(
   const contractTx = (method, args, callback) =>
     tx(writeContracts[contractName][method](...(args ?? [])).finally(callback));
   const tokenTx = (method, args, callback) =>
-    tx(tokenContract.connect(provider.getSigner())[method](...(args ?? [])).finally(callback));
+    tx(tokenContract.connect(signer)[method](...(args ?? [])).finally(callback));
 
   const symbol = ethMode ? "ETH" : tokenState.symbol;
 
   const mainView = (
     <div>
       <HeaderCard
-        provider={provider}
+        provider={signer?.provider}
         blockExplorer={blockExplorer}
         address={address}
         contractState={contractState}
@@ -86,7 +86,7 @@ export function HodlPoolV3UI(
         />}
 
       <OtherPoolsDeposits
-        provider={provider}
+        provider={signer?.provider}
         tokenState={tokenState}
         contractState={contractState}
         setTokenChoice={setTokenChoice}
@@ -103,7 +103,7 @@ export function HodlPoolV3UI(
 
   // inject main view into navigation component
   return <NavigationRouter
-    provider={provider}
+    signer={signer}
     blockExplorer={blockExplorer}
     address={address}
     contractState={contractState}
@@ -114,7 +114,7 @@ export function HodlPoolV3UI(
 
 
 function NavigationRouter({ 
-  address, provider, blockExplorer, contractName, contractState, tokenState, mainView 
+  address, signer, blockExplorer, contractName, contractState, tokenState, mainView 
 }) {
 
   const [route, setRoute] = useState();
@@ -159,8 +159,8 @@ function NavigationRouter({
         <Route exact path="/contract">
           <Contract
             customContract={contractState.contract}
-            signer={provider?.getSigner()}
-            provider={provider}
+            signer={signer}
+            provider={signer?.provider}
             address={address}
             blockExplorer={blockExplorer}
           />
@@ -170,8 +170,8 @@ function NavigationRouter({
           {tokenState.contract ? 
             <Contract
             customContract={tokenState.contract}
-            signer={provider?.getSigner()}
-            provider={provider}
+            signer={signer}
+            provider={signer?.provider}
             address={address}
             blockExplorer={blockExplorer}
           /> : <h2 style={{marginTop: 20}}>No token chosen in Main UI</h2>

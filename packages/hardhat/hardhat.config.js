@@ -241,6 +241,12 @@ module.exports = {
   ovm: {
     solcVersion: "0.7.6",
   },
+
+  namedAccounts: {
+    deployer: {
+      default: 0, // here this will by default take the first account as deployer
+    },
+  },
 };
 
 const DEBUG = false;

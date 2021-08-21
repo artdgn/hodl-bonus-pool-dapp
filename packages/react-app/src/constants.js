@@ -11,8 +11,8 @@ export const BLOCKNATIVE_DAPPID = "0b58206a-f3c0-4701-a62f-73c7243e8c77";
 export const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
 
 // default network to use
-// export const defaultNetwork = "localhost";
-export const defaultNetwork = "kovan";
+export const defaultNetwork = "localhost";
+// export const defaultNetwork = "kovan";
 
 // deployed contract
 export const contractName = "HodlPoolV3";
@@ -33,7 +33,7 @@ export const NETWORKS = {
     chainId: 1,
     rpcUrl: `https://mainnet.infura.io/v3/${INFURA_ID}`,
     blockExplorer: "https://etherscan.io/",
-    contractAddresses: {},
+    customAddresses: {},
   },
   kovan: {
     name: "kovan",
@@ -42,7 +42,7 @@ export const NETWORKS = {
     rpcUrl: `https://kovan.infura.io/v3/${INFURA_ID}`,
     blockExplorer: "https://kovan.etherscan.io/",
     faucet: "https://gitter.im/kovan-testnet/faucet", // https://faucet.kovan.network/
-    contractAddresses: {
+    customAddresses: {
       // "HodlPoolV1": "0xf15E3349B9CB5452638130cd958E3f1be2f934Eb",
       // "HodlPoolV2": "0x42dF7571ae24135E892128B7C70400d8C02c757f"
       "HodlPoolV3": "0xcE0e6d89604EEF6652aaBc187814C44e987A2DB8"

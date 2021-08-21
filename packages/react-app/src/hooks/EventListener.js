@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 */
 
 export default function useEventListener(contract, eventName, provider, startBlock, filterArgs) {
-  const [updates, setUpdates] = useState([]);
+  const [updates, setUpdates] = useState(new Map());
 
   filterArgs = filterArgs || [];
 
@@ -34,9 +34,10 @@ export default function useEventListener(contract, eventName, provider, startBlo
       try {
         const eventFilter = contract.filters[eventName](...filterArgs);
         contract.on(eventFilter, (...args) => {
-          let blockNumber = args[args.length - 1].blockNumber
-          let newMessage = Object.assign({ blockNumber, eventName }, args.pop().args)
-          if (isMounted) setUpdates(messages => [...new Set([newMessage, ...messages])]);
+          let blockNumber = args[args.length - 1].blockNumber;
+          let newMessage = Object.assign({ blockNumber, eventName }, args.pop().args);
+          let key = JSON.stringify(newMessage);
+          if (isMounted) setUpdates(messages => messages.set(key, newMessage));
         });
         return () => {
           isMounted = false;
@@ -45,11 +46,10 @@ export default function useEventListener(contract, eventName, provider, startBlo
       } catch (e) {
         console.log(e);
       }
-
-      return () => { isMounted = false };
     }
+    return () => { isMounted = false };
   // eslint-disable-next-line
   }, [provider, startBlock, contract, eventName, ...filterArgs]);
 
-  return updates;
+  return [...updates.values()];
 }
