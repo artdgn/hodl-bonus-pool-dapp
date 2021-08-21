@@ -50,6 +50,9 @@ module.exports = {
   // (you will need to restart the `yarn run start` dev server after editing the .env)
 
   networks: {
+    hardhat: {
+      initialBaseFeePerGas: 0  // for testing with 0 gasPrice
+    },
     localhost: {
       url: "http://localhost:8545",
       /*

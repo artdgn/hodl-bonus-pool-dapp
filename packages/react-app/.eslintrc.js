@@ -7,12 +7,7 @@ module.exports = {
   plugins: ["babel"],
   rules: {
     "prettier/prettier": "warn",
-    "prettier/prettier": [
-      "warn",
-      {
-        endOfLine: "auto",
-      },
-    ],
+    "prettier/prettier": "off",
     "import/prefer-default-export": "off",
     "prefer-destructuring": "off",
     "prefer-template": "off",

@@ -1,5 +1,5 @@
 ![CI](https://github.com/artdgn/hodl-bonus-pool-dapp/workflows/CI/badge.svg) 
-<a href=https://hodl-pool-dapp-v2-kovan.surge.sh/><img src=https://img.shields.io/badge/V2@Kovan-Surge-blueviolet></img></a>
+<a href=https://hodl-pool-kovan.surge.sh/><img src=https://img.shields.io/badge/Kovan-Surge-blueviolet></img></a>
 
 # HODL-bonus-pool 🧑‍🤝‍🧑🤽 dApp 
 > A project for learning smart-contract-full-stack-whizz-bang-dApp-buidling using the **incredible [austintgriffith/scaffold-eth](https://github.com/austintgriffith/scaffold-eth)**.
@@ -77,7 +77,7 @@
     - UI:
       - [Kovan ✔️](https://hodl-pool-kovan.surge.sh/)
     - Contract:
-      - [Kovan](https://kovan.etherscan.io/address/0xcE0e6d89604EEF6652aaBc187814C44e987A2DB8#code) ✔️
+      - [Kovan](https://kovan.etherscan.io/address/0x3518cDf06b409122076ccc9a27D901413f6E944E#code) ✔️
       - Mainnet(s): ⏳
 
 ---

@@ -170,7 +170,7 @@ function App(props) {
   // Faucet Tx can be used to send funds from the faucet
   const faucetTx = Transactor(localProvider, gasPrice);
 
-  const contractsConfig = { chainId: localChainId, customAddresses: targetNetwork?.customAddresses };
+  const contractsConfig = { chainId: localChainId, customAddresses: targetNetwork?.overrideAddresses };
 
   // Load in your local 📝 contract and read a value from it:
   const readContracts = useContractLoader(localProvider, contractsConfig);
